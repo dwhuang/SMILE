@@ -25,6 +25,8 @@ fname = strcat(aux.path, 'myfile.mat')
 % Initialize variables here (optional)
 % Variables defined here are carried over to the callback script.
 exampleVariable = 0;
+duration = 0;
+rotationDir = 1;
 
 % Set aux.exit to any value will disable this matlab agent (optional)
 % Example: aux.exit = true;

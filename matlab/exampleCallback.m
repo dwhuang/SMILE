@@ -1,11 +1,24 @@
-% This script is called every time the simulated environment is rendering a
+% This script is called every time when the simulated environment is rendering a
 % frame. The default refresh rate is 60Hz, whcih means this script is
-% called approximately every 1/60 seconds.
+% called approximately every 1/60 seconds. Depending on your hardware
+% capabilities, the refresh rate may be lower than 60Hz. The variable 
+% sensor.timeEllapsed (see below) contains a measurement of the duration 
+% since the last time this script was invokded.
+
+%% NOTE Calling a Matlab script from the simulated environment is blocking
+% (as in blocking I/O), meaning the simulated environment will always wait for
+% the matlab script to finish before further execution (e.g., refreshing the
+% scree). Therefore it is important to keep this script fast. 
+% A sluggish script will impact the screen refresh rate. If the refresh rate 
+% drops below ~12 fps (frames per second), noticeable visual latency and funny 
+% physics effects may appear. 
+
 
 %% sensor
 % The variable 'sensor' transmits sensory information from the simulated 
 % robot to this matlab agent. This variable is read-only, meaning any
 % changes to it will be ignored. 
+sensor
 
 % Time elapsed in seconds since last call to this script (~1/60)
 sensor.timeElapsed
@@ -33,6 +46,7 @@ if any(strcmp('rgbVision', fieldnames(sensor)))
     image(sensor.rgbVision); % draw the image whenever it is available
 end
 
+
 %% motor
 % The variable 'motor' transmits motor commands from this matlab agent back
 % to the simulated robot. This variable will be read by the simulated
@@ -47,13 +61,11 @@ end
 %   row index: limb (left, right)
 %   col index: joint (indexed from the shoulder down).
 % Example below: change all joint velocities every 5 seconds
-exampleVariable = exampleVariable + sensor.timeElapsed;
-if exampleVariable > 5
-    exampleVariable = 0;
-    if motor.jointVelocities(1, 1) <= 0
-        motor.jointVelocities(:) = 0.5;
-    else
-        motor.jointVelocities(:) = -0.5;
-    end
+duration = duration + sensor.timeElapsed;
+if duration > 5
+    rotationDir = -rotationDir;
+    motor.jointVelocities(:) = 0.5 * rotationDir;
+    duration = 0;
 end
-    
+
+motor.jointVelocities    
