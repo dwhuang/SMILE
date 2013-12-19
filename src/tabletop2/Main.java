@@ -19,7 +19,10 @@ import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.logging.Logger;
 
@@ -340,7 +343,13 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
                 }
             }
         } else if (name.equals("clearTable")) {
-            for (Spatial s : grabbables) {
+            Iterator<Spatial> itr = grabbables.iterator();
+            while (itr.hasNext()) {
+                Spatial s = itr.next();
+                if (s.getParent() != rootNode) {
+                    // this item may be held by a gripper
+                    continue;
+                }
                 RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
                 if (rbc == null) {
                     continue;
@@ -350,8 +359,8 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
                 if (s.getParent() != null) {
                     s.getParent().detachChild(s);
                 }
+                itr.remove();
             }
-            grabbables.clear();
         } else if (name.equals("cameraRobotHead")) {
             if (isPressed) {
                 robot.toggleHeadCameraView(rootNode);
