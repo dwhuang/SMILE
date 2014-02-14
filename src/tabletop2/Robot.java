@@ -10,6 +10,7 @@ import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -17,8 +18,10 @@ import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.debug.Arrow;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -153,6 +156,7 @@ public class Robot implements ActionListener {
                 0, 1.92f - 1.57f + FastMath.PI / 6, 1.57f, 0);
         // NOTE cheat a little here to get a better view of the table,
         // by moving the real camera position up by 0.2f and rotating downward by pi/6
+        //attachCoordinateAxes(headCamNode);
         
         // head screen
         node = attachSpatialCenter(name + " H1a", node, 0.088f, 0, 0, -1.92f, -1.571f, 0);
@@ -420,5 +424,29 @@ public class Robot implements ActionListener {
             screenPicMat.setTexture("ColorMap", assetManager.loadTexture("Textures/" + picName));
             screen.setMaterial(screenPicMat);
         }
+    }
+    
+    private void attachCoordinateAxes(Node parent) {
+        Arrow arrow = new Arrow(Vector3f.UNIT_X);
+        arrow.setLineWidth(4); // make arrow thicker
+        putShape(arrow, ColorRGBA.Red, parent);
+
+        arrow = new Arrow(Vector3f.UNIT_Y);
+        arrow.setLineWidth(4); // make arrow thicker
+        putShape(arrow, ColorRGBA.Green, parent);
+
+        arrow = new Arrow(Vector3f.UNIT_Z);
+        arrow.setLineWidth(4); // make arrow thicker
+        putShape(arrow, ColorRGBA.Blue, parent);
+    }
+
+    private Geometry putShape(Mesh shape, ColorRGBA color, Node parentNode) {
+        Geometry g = new Geometry("coordinate axis", shape);
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.getAdditionalRenderState().setWireframe(true);
+        mat.setColor("Color", color);
+        g.setMaterial(mat);
+        parentNode.attachChild(g);
+        return g;
     }
 }
