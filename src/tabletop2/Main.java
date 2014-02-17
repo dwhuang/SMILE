@@ -4,34 +4,53 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.collision.CollisionResults;
 import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.PointLight;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Ray;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.filters.FogFilter;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.debug.Grid;
+import com.jme3.scene.shape.Line;
+import com.jme3.scene.shape.Quad;
 import com.jme3.system.AppSettings;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import static tabletop2.Gripper.FINGER_MASS;
 
 /**
  * test
  *
  * @author normenhansen
  */
-public class Main extends SimpleApplication implements ActionListener, SceneGraphVisitor {
+public class Main extends SimpleApplication implements ActionListener {
     protected static final Logger logger = Logger.getLogger(Main.class.getName());
     protected static final Vector3f TABLE_SIZE = new Vector3f(
             20f, 4f, 12f);
@@ -41,22 +60,25 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
             0, 15, -TABLE_SIZE.z / 2 - 10);
     protected static final Vector3f CAMERA_INIT_LOOKAT = new Vector3f(
             0, 0, TABLE_SIZE.z / 2);
-    
+
     protected BulletAppState bulletAppState;
     protected RigidBodyControl camPhysics;
     protected Factory factory;
     
-    protected ArrayList<Spatial> grabbables = new ArrayList<Spatial>();
+    protected HashMap<Geometry, Spatial> grabbables = new HashMap<Geometry, Spatial>();
     private static Random random = new Random(5566);
         
     protected Robot robot;
     
-    private final boolean flyGripper = false;
-    Node gripperNode;
-    Gripper gripper;
+    protected final boolean flyGripper = false;
+    protected Node gripperNode;
+    protected Gripper gripper;
+    
+    protected Demonstrator demonstrator;
     
     private boolean hasDeletedMouseTrigger = false;
-    
+    private boolean shiftKey = false;
+
     public static void main(String[] args) {
         Main app = new Main();
         app.setPauseOnLostFocus(false);
@@ -121,10 +143,17 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
         robot = new Robot("baxter", node, assetManager, renderManager, 
                 bulletAppState.getPhysicsSpace(), factory);
         
+        demonstrator = new Demonstrator("demonstrator", rootNode, viewPort, 
+                assetManager, inputManager, 
+                new Vector2f(TABLE_SIZE.x * 3, TABLE_SIZE.z * 4), 
+                grabbables, factory);
+        
         initStage();
-        initKeys();        
+        initKeys();
+        
         
 //        stateManager.attach(new VideoRecorderAppState()); //start recording
+        
     }
 
     
@@ -165,9 +194,8 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
         RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
         boxContainer.addControl(boxContainerControl);
         bulletAppState.getPhysicsSpace().add(boxContainerControl);
-        grabbables.add(boxContainer);
+        addGrabbable(boxContainer);
         
-
         // have a gripper attached to fly cam
         if (flyGripper) {
             gripperNode = new Node();
@@ -209,6 +237,14 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
         inputManager.addMapping("robotScreen", new KeyTrigger(KeyInput.KEY_BACKSLASH));
         inputManager.addMapping("robotMatlabToggle", new KeyTrigger(KeyInput.KEY_M));
         inputManager.addMapping("robotTakePic", new KeyTrigger(KeyInput.KEY_2));
+        inputManager.addMapping("demoLeftClick", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("demoRightClick", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+        inputManager.addMapping("demoMouseMove", 
+                new MouseAxisTrigger(MouseInput.AXIS_X, true), 
+                new MouseAxisTrigger(MouseInput.AXIS_X, false),
+                new MouseAxisTrigger(MouseInput.AXIS_Y, true),
+                new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+        inputManager.addMapping("demoPlaneRotate", new KeyTrigger(KeyInput.KEY_SLASH));
 
         inputManager.addListener(this, "shiftKey");
         inputManager.addListener(this, "makeBlock");
@@ -238,6 +274,11 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
         inputManager.addListener(robot, "robotScreen");
         inputManager.addListener(robot, "robotMatlabToggle");
         inputManager.addListener(robot, "robotTakePic");
+        inputManager.addListener(demonstrator, "shiftKey");
+        inputManager.addListener(demonstrator, "demoLeftClick");
+        inputManager.addListener(demonstrator, "demoRightClick");
+        inputManager.addListener(demonstrator, "demoMouseMove");
+        inputManager.addListener(demonstrator, "demoPlaneRotate");
 
         if (flyGripper) {
             inputManager.addListener(gripper, "gripperOpen");
@@ -265,25 +306,26 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
             Matrix4f projMat = cam.getViewMatrix().invert();
             gripperNode.setLocalTranslation(projMat.toTranslationVector());
             gripperNode.setLocalRotation(projMat.toRotationMatrix());
-        }        
-
-        rootNode.depthFirstTraversal(this); // cleanup unused objects        
-    }
-    
-    public void visit(Spatial spatial) {
-        if (spatial.getControl(RigidBodyControl.class) != null) {
-            if (spatial.getLocalTranslation().y < -1000) {
-                RigidBodyControl rbc = spatial.getControl(RigidBodyControl.class);
-                if (rbc == null) {
-                    return;
-                }
-                bulletAppState.getPhysicsSpace().remove(rbc);
-                spatial.removeControl(rbc);
-                if (spatial.getParent() != null) {
-                    spatial.getParent().detachChild(spatial);
+        }
+        
+        // cleanup unused objects
+        rootNode.depthFirstTraversal(new SceneGraphVisitor() {
+            public void visit(Spatial spatial) {
+                if (spatial.getControl(RigidBodyControl.class) != null) {
+                    if (spatial.getLocalTranslation().y < -1000) {
+                        RigidBodyControl rbc = spatial.getControl(RigidBodyControl.class);
+                        if (rbc == null) {
+                            return;
+                        }
+                        bulletAppState.getPhysicsSpace().remove(rbc);
+                        spatial.removeControl(rbc);
+                        if (spatial.getParent() != null) {
+                            spatial.getParent().detachChild(spatial);
+                        }
+                    }
                 }
             }
-        }
+        });
     }
 
     @Override
@@ -293,12 +335,14 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
     }
 
     public void onAction(String name, boolean isPressed, float tpf) {
-        if (name.equals("makeBlock")) {
+        if (name.equals("shiftKey")) {
+            shiftKey = isPressed;
+        } else if (name.equals("makeBlock")) {
             if (isPressed) {
                 final ColorRGBA[] colors = new ColorRGBA[] {
                     ColorRGBA.Red, ColorRGBA.Blue, ColorRGBA.Yellow,
                     ColorRGBA.Green, ColorRGBA.Brown, ColorRGBA.Cyan,
-                    ColorRGBA.Magenta, ColorRGBA.Orange, ColorRGBA.Pink};
+                    ColorRGBA.Magenta, ColorRGBA.Orange};
                 Spatial g = factory.makeBlock("big brick", 1.5f, 1.5f, 1.5f, 
                         colors[random.nextInt(colors.length)]);
                 rootNode.attachChild(g);
@@ -314,7 +358,7 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
                 Quaternion rot = new Quaternion();
                 rot.fromAngleAxis(FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_XYZ);
                 c.setPhysicsRotation(rot);
-                grabbables.add(g);
+                addGrabbable(g);
             }
         } else if (name.equals("makeStack")) {
             if (isPressed) {
@@ -322,7 +366,7 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
                 final ColorRGBA[] colors = new ColorRGBA[] {
                     ColorRGBA.Red, ColorRGBA.Blue, ColorRGBA.Yellow,
                     ColorRGBA.Green, ColorRGBA.Brown, ColorRGBA.Cyan,
-                    ColorRGBA.Magenta, ColorRGBA.Orange, ColorRGBA.Pink};
+                    ColorRGBA.Magenta, ColorRGBA.Orange};
                 Vector3f v = new Vector3f();
                 v.x = (random.nextFloat() * 2 - 1) * (TABLE_SIZE.x / 2);
                 v.y = BOX_SIZE.y / 2;
@@ -339,32 +383,54 @@ public class Main extends SimpleApplication implements ActionListener, SceneGrap
                     c.setPhysicsLocation(v);
 
                     v.y += BOX_SIZE.y;
-                    grabbables.add(g);
+                    addGrabbable(g);
                 }
             }
         } else if (name.equals("clearTable")) {
-            Iterator<Spatial> itr = grabbables.iterator();
+            Iterator<Entry<Geometry, Spatial>> itr = grabbables.entrySet().iterator();
+            ArrayList<Spatial> objToBeRemoved = new ArrayList<Spatial>();
             while (itr.hasNext()) {
-                Spatial s = itr.next();
+                Entry<Geometry, Spatial> entry = itr.next();
+                Spatial s = entry.getValue();
                 if (s.getParent() != rootNode) {
                     // this item may be held by a gripper
                     continue;
                 }
+                objToBeRemoved.add(s);
+                itr.remove();
+            }
+            // objToBeRemoved may contain duplicates
+            for (Spatial s : objToBeRemoved) {           
                 RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
-                if (rbc == null) {
-                    continue;
+                if (rbc != null) {
+                    bulletAppState.getPhysicsSpace().remove(rbc);
+                    s.removeControl(rbc);
                 }
-                bulletAppState.getPhysicsSpace().remove(rbc);
-                s.removeControl(rbc);
                 if (s.getParent() != null) {
                     s.getParent().detachChild(s);
                 }
-                itr.remove();
-            }
+            }            
         } else if (name.equals("cameraRobotHead")) {
             if (isPressed) {
                 robot.toggleHeadCameraView(rootNode);
             }
+        }
+    }
+    
+   private void addGrabbable(Spatial gb) {
+        if (gb instanceof Geometry) {
+            grabbables.put((Geometry) gb, gb);
+        } else if (gb instanceof Node) {
+            final Node gbNode = (Node)gb;
+            gbNode.depthFirstTraversal(new SceneGraphVisitor() {
+                public void visit(Spatial s) {
+                    if (s instanceof Geometry) {
+                        grabbables.put((Geometry)s, gbNode);
+                    }
+                }
+            });
+        } else {
+            logger.log(Level.WARNING, "unknown spatial type for {0}", gb.getName());
         }
     }
 

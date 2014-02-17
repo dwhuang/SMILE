@@ -12,11 +12,13 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.BatchNode;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
 import jme3tools.optimize.GeometryBatchFactory;
 
@@ -109,15 +111,15 @@ public class Factory {
         s.setLocalTranslation(halfT - halfW, 0, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock("(right)", thickness, h, d - thickness * 2, color);
+        s = makeBlock(name + "(right)", thickness, h, d - thickness * 2, color);
         s.setLocalTranslation(-halfT + halfW, 0, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock("(near)", w, h, thickness, color);
+        s = makeBlock(name + "(near)", w, h, thickness, color);
         s.setLocalTranslation(0, 0, halfT - halfD);
         boxContainer.attachChild(s);
         
-        s = makeBlock("(far)", w, h, thickness, color);
+        s = makeBlock(name + "(far)", w, h, thickness, color);
         s.setLocalTranslation(0, 0, -halfT + halfD);
         boxContainer.attachChild(s);
         
@@ -153,4 +155,15 @@ public class Factory {
         return sphere;
     }
 
+    public Geometry makeUnshadedPlane(String name, float width, float height, ColorRGBA color) {
+        Material mat = new Material(assetManager, 
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);      
+        mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+//        mat.setBoolean("UseAlpha", true);
+//        mat.setBoolean("HighQuality", false);
+        Geometry plane = new Geometry(name, new Quad(width, height));
+        plane.setMaterial(mat);
+        return plane;
+    }
 }

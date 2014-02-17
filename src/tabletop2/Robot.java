@@ -9,6 +9,7 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.material.MatParam;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -20,6 +21,7 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.Arrow;
 import java.awt.image.BufferedImage;
@@ -181,8 +183,27 @@ public class Robot implements ActionListener {
         leftGripper = new Gripper(name + "left-gripper", node, physicsSpace, factory);
         leftEndEffector = node;
 
-        // enhance color
-        base.depthFirstTraversal(new AmbientColorEnhancer(0.8f));
+        // enhance ambient color
+        base.depthFirstTraversal(new SceneGraphVisitor() {
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Geometry) {
+                    Geometry g = (Geometry) spatial;
+                    Material mat = g.getMaterial();
+        //            Collection<MatParam> params = mat.getParams();
+        //            System.err.println(g.getName());
+        //            for (MatParam p : params) {
+        //                System.err.println("  " + p.getName() + " " + p.getValueAsString());
+        //            }
+                    MatParam p = mat.getParam("Diffuse");
+                    if (p != null) {
+                        ColorRGBA color = ((ColorRGBA) p.getValue()).clone();
+                        color.addLocal(ColorRGBA.White.mult(0.1f));
+                        color.multLocal(0.8f);
+                        mat.setColor("Ambient", color);
+                    }
+                }
+            }
+        });
     }
     
     private Node attachLimb(String name, Node parentNode, JointState[] jointStates) {
