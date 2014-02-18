@@ -162,10 +162,10 @@ public class MatlabAgent {
 
     public void poll(float tpf, 
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
-            final BufferedImage vision) {
+            final BufferedImage vision, boolean demoCue) {
         try {
             sensorData.populate(tpf, leftJoints, rightJoints, 
-                    leftEndEffPos, rightEndEffPos, vision);
+                    leftEndEffPos, rightEndEffPos, vision, demoCue);
             sensorData.sendToMatlab(matlab);
 
             matlab.eval("callbackFunc();");

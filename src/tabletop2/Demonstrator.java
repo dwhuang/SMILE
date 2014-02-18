@@ -38,6 +38,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     protected ViewPort viewPort;
     protected Camera cam;
     protected InputManager inputManager;
+    protected Robot robot;
     protected DemoState state = DemoState.Idle;
     protected Node movingPlane;
     protected Node movingNode;
@@ -57,12 +58,14 @@ public class Demonstrator implements ActionListener, AnalogListener {
     public Demonstrator(String name, Node rootNode, ViewPort viewPort,
             AssetManager assetManager, InputManager inputManager, 
             Vector2f movingPlaneSize, 
-            final HashMap<Geometry, Spatial> grabbables, Factory factory) {
+            final HashMap<Geometry, Spatial> grabbables, 
+            Factory factory, Robot robot) {
         this.rootNode = rootNode;
         this.viewPort = viewPort;
         this.cam = viewPort.getCamera();
         this.inputManager = inputManager;
         this.grabbables = grabbables;
+        this.robot = robot;
 
         movingPlane = new Node(name + " movingPlane");
         Geometry g = factory.makeUnshadedPlane(name + " movingSubplane1",
@@ -102,7 +105,6 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 }
             } else if (state == DemoState.Anchored) {
                 if (isPressed) {
-                    Vector2f cursorPos = inputManager.getCursorPosition();
                     CollisionResult result 
                             = getCursorClosestCollision(grabbedObject);
                     if (result == null) {
@@ -180,6 +182,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
         sceneProcessor.setShowMovingPlane(false);
         sceneProcessor.highlightSpatial(null);
         state = DemoState.Idle;
+        
+        robot.setDemoCue(false);
     }
     
     private void gotoAnchoredState(Spatial object) {
@@ -197,11 +201,15 @@ public class Demonstrator implements ActionListener, AnalogListener {
         sceneProcessor.setShowMovingPlane(true);
         sceneProcessor.highlightSpatial(object);
         state = DemoState.Anchored;
+
+        robot.setDemoCue(false);
     }
     
     private void gotoMovingState(Vector3f planeContact) {
         holdObject(planeContact);
         state = DemoState.Moving;
+        
+        robot.setDemoCue(true);
     }
     
     private Vector3f getCursorRayDirection() {

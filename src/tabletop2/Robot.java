@@ -9,6 +9,7 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.material.MatParam;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -37,14 +38,15 @@ import javax.imageio.ImageIO;
  *
  * @author dwhuang
  */
-public class Robot implements ActionListener {
+public class Robot implements AnalogListener, ActionListener {
     private static final float SCALE = 10;
-    private static final String[] SCREEN_PIC_NAMES = new String[] {
+    private static final String[] FACE_PIC_NAMES = new String[] {
         null, "neutral.jpg", "bluecartooneyes.jpg", "domoface.jpg"
     };
     public static final int HEAD_CAM_RES_WIDTH = 200;
     public static final int HEAD_CAM_RES_HEIGHT = 150;
-    public static final int HEAD_CAM_INTV = 1; // sec
+    public static final float HEAD_CAM_INTV = 0.25f; // sec
+    public static final float HEAD_CAM_FOV = 60;
     
 
     protected String name;
@@ -79,26 +81,28 @@ public class Robot implements ActionListener {
     protected static final int DOF = 7;
     protected boolean shiftKey = false;
     protected JointState[] rightJointStates = new JointState[] {
-        new JointState(-1.7f, 1.7f, -1),
-        new JointState(-2.147f, 1.047f, 1),
-        new JointState(-3.054f, 3.054f, -1),
-        new JointState(-0.05f, 2.618f, 1),
-        new JointState(-3.059f, 3.059f, -1),
-        new JointState(-1.571f, 2.094f, 1),
-        new JointState(-3.059f, 3.059f, -1)
+        new JointState(-0.25f, -1.7f, 1.7f, -1),
+        new JointState(0, -2.147f, 1.047f, 1),
+        new JointState(1.527f, -3.054f, 3.054f, -1),
+        new JointState(2.618f, -0.05f, 2.618f, 1),
+        new JointState(-1.529f, -3.059f, 3.059f, -1),
+        new JointState(1.5f, -1.571f, 2.094f, 1),
+        new JointState(0, -3.059f, 3.059f, -1)
     };    
     protected JointState[] leftJointStates = new JointState[] {
-        new JointState(-1.7f, 1.7f, 1),
-        new JointState(-2.147f, 1.047f, 1),
-        new JointState(-3.054f, 3.054f, 1),
-        new JointState(-0.05f, 2.618f, 1),
-        new JointState(-3.059f, 3.059f, 1),
-        new JointState(-1.571f, 2.094f, 1),
-        new JointState(-3.059f, 3.059f, 1)
+        new JointState(0.25f, -1.7f, 1.7f, 1),
+        new JointState(0, -2.147f, 1.047f, 1),
+        new JointState(-1.527f, -3.054f, 3.054f, 1),
+        new JointState(2.618f, -0.05f, 2.618f, 1),
+        new JointState(1.529f, -3.059f, 3.059f, 1),
+        new JointState(1.5f, -1.571f, 2.094f, 1),
+        new JointState(0, -3.059f, 3.059f, 1)
     };
     protected JointState[] headJointStates = new JointState[] {
-        new JointState(-1.571f, 1.571f, 1)
+        new JointState(0, -1.571f, 1.571f, 1)
     };
+    
+    protected boolean demoCue = false;
     
     private Vector3f vec = new Vector3f();
     private Quaternion quat = new Quaternion();
@@ -123,7 +127,7 @@ public class Robot implements ActionListener {
         // the camera attached near the top of the head screen is used
         // to take pictures, which are sent to the control agent
         headCamcorder = new Camera(HEAD_CAM_RES_WIDTH, HEAD_CAM_RES_HEIGHT);
-        headCamcorder.setFrustumPerspective(70f, 
+        headCamcorder.setFrustumPerspective(HEAD_CAM_FOV, 
                 HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
         headImageCapturer = new ImageCapturer(headCamcorder, renderManager, 
                 headCamNode, this.rootNode);
@@ -138,6 +142,10 @@ public class Robot implements ActionListener {
     
     public void stop() {
         matlabAgent.stop();
+    }
+    
+    public boolean matlabAgentAlive() {
+        return matlabAgent.isAlive();
     }
     
     protected final void buildRobot(String name, Node parentNode) {
@@ -155,7 +163,7 @@ public class Robot implements ActionListener {
 
         // head camera position
         headCamNode = attachSpatialCenter(name + " head camera", node, 0.12839f, 0.06368f + 0.2f, 
-                0, 1.92f - 1.57f + FastMath.PI / 6, 1.57f, 0);
+                0, 1.92f - 1.57f + FastMath.PI / 5, 1.57f, 0);
         // NOTE cheat a little here to get a better view of the table,
         // by moving the real camera position up by 0.2f and rotating downward by pi/6
         //attachCoordinateAxes(headCamNode);
@@ -308,45 +316,20 @@ public class Robot implements ActionListener {
         rbc.setKinematic(true);        
     }
     
-    public void onAction(String name, boolean pressed, float tpf) {
+    public void onAnalog(String name, float value, float tpf) {
         JointState[] joints = null;
         String lowerCaseName = name.toLowerCase();
-        if (lowerCaseName.equals("shiftkey")) {
-            shiftKey = pressed;
-        } else if (lowerCaseName.matches(".*rightarm.*")) {
+        if (lowerCaseName.matches(".*rightarm.*")) {
             joints = rightJointStates;
         } else if (lowerCaseName.matches(".*leftarm.*")) {
             joints = leftJointStates;
         } else if (lowerCaseName.matches(".*head.*")) {
             joints = headJointStates;
-        } else if (lowerCaseName.matches(".*screen.*")) {
-            if (!pressed) {
-                showNextFacialExpression();
-            }
         } else if (lowerCaseName.matches(".*rightgripper.*")) {
-            rightGripper.onAction(name, pressed, tpf);
+            rightGripper.onAnalog(name, value, tpf);
         } else if (lowerCaseName.matches(".*leftgripper.*")) {
-            leftGripper.onAction(name, pressed, tpf);
-        } else if (lowerCaseName.matches(".*matlab.*")) {
-            if (!pressed) {
-                if (matlabAgent.isAlive()) {
-                    matlabAgent.stop();
-                } else {
-                    matlabAgent.start();
-                }
-            }
-        } else if (lowerCaseName.matches(".*takepic")) {            
-            BufferedImage img = headImageCapturer.takePicture();            
-            try {
-                String fname = "headcam" + (new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())) + ".png";
-                ImageIO.write(img, "png", new File(fname));
-            } catch (IOException ex) {
-                Logger.getLogger(Robot.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        } else {
-            throw new IllegalArgumentException("action: " + name + " not supported");
+            leftGripper.onAnalog(name, value, tpf);
         }
-
         
         if (joints != null) {
             String jName = lowerCaseName.substring(lowerCaseName.length() - 2);
@@ -368,14 +351,37 @@ public class Robot implements ActionListener {
             } else if (jName.equals("h0")) {
                 jointIndex = 0;
             }
-            if (pressed) {
-                if (shiftKey) {
-                    joints[jointIndex].setVelocity(-1, true);
-                } else {
-                    joints[jointIndex].setVelocity(1, true);
-                }
+            if (shiftKey) {
+                joints[jointIndex].setVelocity(-1, true);
             } else {
-                joints[jointIndex].setVelocity(0, true);
+                joints[jointIndex].setVelocity(1, true);
+            }
+        }
+    }
+
+    public void onAction(String name, boolean pressed, float tpf) {
+        String lowerCaseName = name.toLowerCase();
+        if (lowerCaseName.equals("shiftkey")) {
+            shiftKey = pressed;
+        } else if (lowerCaseName.matches(".*screen.*")) {
+            if (!pressed) {
+                showNextFacialExpression();
+            }
+        } else if (lowerCaseName.matches(".*matlab.*")) {
+            if (!pressed) {
+                if (matlabAgent.isAlive()) {
+                    matlabAgent.stop();
+                } else {
+                    matlabAgent.start();
+                }
+            }
+        } else if (lowerCaseName.matches(".*takepic")) {            
+            BufferedImage img = headImageCapturer.takePicture();            
+            try {
+                String fname = "headcam" + (new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())) + ".png";
+                ImageIO.write(img, "png", new File(fname));
+            } catch (IOException ex) {
+                Logger.getLogger(Robot.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
@@ -390,7 +396,7 @@ public class Robot implements ActionListener {
             }
             matlabAgent.poll(tpf,
                     leftEndEffector.getWorldTranslation(),
-                    rightEndEffector.getWorldTranslation(), img);
+                    rightEndEffector.getWorldTranslation(), img, demoCue);
         }
         
         for (JointState js : rightJointStates) {
@@ -426,7 +432,16 @@ public class Robot implements ActionListener {
             renderManager.removeMainView("robot head camera");
         } else {
             headCam = renderManager.getMainView("Default").getCamera().clone();
-            headCam.setViewPort(0.6f, 1, 0, 0.4f);
+            float vpXMin = 0.6f;
+            float vpXMax = 1;
+            float vpYMin = 0;
+            float vpYMax = vpYMin + (vpXMax - vpXMin) 
+                    * ((float)HEAD_CAM_RES_HEIGHT / (float)HEAD_CAM_RES_WIDTH)
+                    / ((float)headCam.getHeight() / (float)headCam.getWidth());
+            
+            headCam.setViewPort(vpXMin, vpXMax, vpYMin, vpYMax);
+            headCam.setFrustumPerspective(HEAD_CAM_FOV, 
+                HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
             updateHeadCam();
             ViewPort vp = renderManager.createMainView("robot head camera", headCam);
             vp.setClearFlags(true, true, true);
@@ -436,8 +451,8 @@ public class Robot implements ActionListener {
 
     private void showNextFacialExpression() {
         ++screenPicIndex;
-        screenPicIndex %= SCREEN_PIC_NAMES.length;
-        String picName = SCREEN_PIC_NAMES[screenPicIndex];
+        screenPicIndex %= FACE_PIC_NAMES.length;
+        String picName = FACE_PIC_NAMES[screenPicIndex];
         if (picName == null) {
             screen.setMaterial(screenDefault);
         } else {
@@ -469,5 +484,9 @@ public class Robot implements ActionListener {
         g.setMaterial(mat);
         parentNode.attachChild(g);
         return g;
+    }
+
+    public void setDemoCue(boolean cue) {
+        demoCue = cue;
     }
 }

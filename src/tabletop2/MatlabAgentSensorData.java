@@ -22,13 +22,14 @@ public class MatlabAgentSensorData implements Serializable {
     private double[][] jointAngles = new double[2][Robot.DOF];
     private double[][] endEffPos = new double[2][3];
     private double[] rgbVision = new double[Robot.HEAD_CAM_RES_HEIGHT * Robot.HEAD_CAM_RES_WIDTH * 3];
+    private boolean demoCue;
     
     private transient int[] rgbVisionBuffer = new int[Robot.HEAD_CAM_RES_WIDTH * Robot.HEAD_CAM_RES_HEIGHT];
     private transient boolean rgbVisionReady = false;
             
     protected void populate(float tpf, final JointState[] leftJoints, final JointState[] rightJoints,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
-            final BufferedImage vision) {
+            final BufferedImage vision, boolean demoCue) {
         timeElapsed = tpf;
         if (leftJoints.length != jointAngles[0].length) {
             throw new IllegalArgumentException("left joint counts mismatch " 
@@ -75,8 +76,10 @@ public class MatlabAgentSensorData implements Serializable {
                 }
             }
             rgbVisionReady = true;
+            this.demoCue = demoCue;
         } else {
             rgbVisionReady = false;
+            this.demoCue = false;
         }
     }
 
@@ -110,5 +113,7 @@ public class MatlabAgentSensorData implements Serializable {
                     + ", " + Robot.HEAD_CAM_RES_WIDTH + ", 3);");
             matlab.eval("clear " + varName);
         }
+        
+        matlab.eval("sensor.demoCue = " + demoCue + ";");
     }
 }

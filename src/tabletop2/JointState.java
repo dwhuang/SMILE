@@ -22,13 +22,12 @@ public class JointState {
     private float[] angles = new float[3];
     private Quaternion quat = new Quaternion();
 
-    public JointState(float minAngle, float maxAngle, int manualControlOrientation) {
+    public JointState(float angle, float minAngle, float maxAngle, int manualControlOrientation) {
         this.minAngle = minAngle;
         this.maxAngle = maxAngle;
         this.manualControlOrientation = manualControlOrientation;
-
         node.getLocalRotation().toAngles(angles);
-        setAngle(angles[1]);
+        setAngle(angle);
     }
 
     public Node getNode() {
@@ -59,6 +58,7 @@ public class JointState {
             float f = getAngle();
             f += velocity * tpf;
             setAngle(f);
+            velocity = 0;
             return true;
         }
         return false;

@@ -5,12 +5,12 @@
 package tabletop2;
 
 import com.jme3.bullet.PhysicsSpace;
-import com.jme3.bullet.PhysicsTickListener;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.AbstractPhysicsControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  *
  * @author dwhuang
  */
-public class Gripper implements ActionListener {
+public class Gripper implements AnalogListener {
     private static final Logger logger = Logger.getLogger(
             Gripper.class.getName());
     static {
@@ -64,12 +64,12 @@ public class Gripper implements ActionListener {
         
         Geometry g;
         g = factory.makeBlock(name + " left-finger", 
-                FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, ColorRGBA.Green);
+                FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(-MAX_OPENING / 2 - FINGER_SIZE.x / 2, 0, 0);
         base.attachChild(g);        
         
         g = factory.makeBlock(name + " right-finger", 
-                FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, ColorRGBA.Red);
+                FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(MAX_OPENING / 2 + FINGER_SIZE.x / 2, 0, 0);
         base.attachChild(g);
         
@@ -84,14 +84,14 @@ public class Gripper implements ActionListener {
         physicsSpace.add(phy);
     }
     
-    public void onAction(String name, boolean isPressed, float tpf) {
+    public void onAnalog(String name, float value, float tpf) {
         if (name.toLowerCase().matches(".*gripperopen")) {
-            phy.setChange(isPressed ? 1 : 0);
+            phy.addChange(1);
         } else if (name.toLowerCase().matches(".*gripperclose")) {
-            phy.setChange(isPressed ? -1 : 0);
+            phy.addChange(-1);
         }
     }
-    
+
     protected class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {
         private Geometry leftFinger;
         private Geometry rightFinger;
@@ -216,6 +216,7 @@ public class Gripper implements ActionListener {
             }
             
             if (holding.size() > 0) {
+                change = 0;
                 return;
             }
             
@@ -240,6 +241,7 @@ public class Gripper implements ActionListener {
                 rightFinger.setLocalTranslation(v);
                 
                 fingerPressure = 0;
+                change = 0;
             }
 
             // check holding objects
@@ -320,8 +322,8 @@ public class Gripper implements ActionListener {
             holding.clear();
         }
 
-        public void setChange(int change) {
-            this.change = change;
+        public void addChange(int change) {
+            this.change += change;
         }
     }
 }

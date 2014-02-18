@@ -1,49 +1,35 @@
 package tabletop2;
 
 import com.jme3.app.SimpleApplication;
-import com.jme3.app.state.VideoRecorderAppState;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.PointLight;
-import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.jme3.post.FilterPostProcessor;
-import com.jme3.post.filters.FogFilter;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.debug.Grid;
-import com.jme3.scene.shape.Line;
-import com.jme3.scene.shape.Quad;
 import com.jme3.system.AppSettings;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static tabletop2.Gripper.FINGER_MASS;
 
 /**
  * test
@@ -78,6 +64,11 @@ public class Main extends SimpleApplication implements ActionListener {
     
     private boolean hasDeletedMouseTrigger = false;
     private boolean shiftKey = false;
+    
+    protected ArrayList<String> hudTextBuffer = new ArrayList<String>();
+    protected ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
+    protected Node hudNode;
+    protected Geometry hudBackground;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -109,6 +100,9 @@ public class Main extends SimpleApplication implements ActionListener {
         
         app.setSettings(settings);
 //        app.setShowSettings(true);
+        
+        app.setDisplayStatView(false);
+        
         app.start(); // restart the context to apply changes
         
         
@@ -136,7 +130,7 @@ public class Main extends SimpleApplication implements ActionListener {
         flyCam.setMoveSpeed(10f);
         
         Node node = new Node("robot location");
-        node.setLocalTranslation(0, 0, TABLE_SIZE.z / 2 + 3);
+        node.setLocalTranslation(0, 2, TABLE_SIZE.z / 2 + 3);
         Quaternion q = new Quaternion(new float[] {0, FastMath.HALF_PI, 0});
         node.setLocalRotation(q);
         rootNode.attachChild(node);        
@@ -146,10 +140,10 @@ public class Main extends SimpleApplication implements ActionListener {
         demonstrator = new Demonstrator("demonstrator", rootNode, viewPort, 
                 assetManager, inputManager, 
                 new Vector2f(TABLE_SIZE.x * 3, TABLE_SIZE.z * 4), 
-                grabbables, factory);
-        
+                grabbables, factory, robot);
         initStage();
         initKeys();
+        initHUD();
         
         
 //        stateManager.attach(new VideoRecorderAppState()); //start recording
@@ -190,7 +184,7 @@ public class Main extends SimpleApplication implements ActionListener {
         Spatial boxContainer = factory.makeBoxContainer("container", 5, 3, 5, 
                 0.5f, ColorRGBA.Gray);
         rootNode.attachChild(boxContainer);
-        boxContainer.setLocalTranslation(0f, 5f, 0f);
+        boxContainer.setLocalTranslation(1f, 2f, -2f);
         RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
         boxContainer.addControl(boxContainerControl);
         bulletAppState.getPhysicsSpace().add(boxContainerControl);
@@ -286,6 +280,17 @@ public class Main extends SimpleApplication implements ActionListener {
         }        
 
     }
+    
+    protected void initHUD() {
+        hudNode = new Node();
+        guiNode.attachChild(hudNode);
+        
+        hudTextBuffer.add("matlab");
+        
+        hudBackground = factory.makeUnshadedPlane("", 1, 1, ColorRGBA.Black.mult(0.5f));
+        hudBackground.setLocalTranslation(0, 0, -0.01f);
+        hudNode.attachChild(hudBackground);
+    }
 
     @Override
     public void simpleUpdate(float tpf) {
@@ -326,6 +331,63 @@ public class Main extends SimpleApplication implements ActionListener {
                 }
             }
         });
+        
+        
+        if (robot.matlabAgentAlive()) {
+            hudTextBuffer.set(0, "Matlab agent: ON");
+        } else {
+            hudTextBuffer.set(0, "Matlab agent: OFF");
+        }
+        updateHUD();
+    }
+    
+    // if hudTextBuffer differs from hudText, update hudText
+    protected void updateHUD() {
+        boolean hasChanged = false;
+        if (hudText.size() != hudTextBuffer.size()) {
+            hasChanged = true;
+            int diff = hudTextBuffer.size() - hudText.size();
+            if (diff > 0) {
+                for (int i = 0; i < diff; ++i) {
+                    BitmapText bt = new BitmapText(guiFont);
+                    hudText.add(bt);
+                    hudNode.attachChild(bt);
+                }
+            } else {
+                for (int i = 0; i < -diff; ++i) {
+                    BitmapText bt = hudText.get(hudText.size() - 1);
+                    hudText.remove(bt);
+                    hudNode.detachChild(bt);
+                }
+            }
+        } else {
+            for (int i = 0; i < hudText.size(); ++i) {
+                if (!hudTextBuffer.get(i).equals(hudText.get(i).getText())) {
+                    hasChanged = true;
+                    break;
+                }
+            }
+        }
+        
+        if (hasChanged) {
+            float width = 0;
+            float height = 0;
+            for (int i = hudText.size() - 1; i >= 0; --i) {
+                BitmapText bt = hudText.get(i);
+                String newStr = hudTextBuffer.get(i);
+                if (!bt.getText().equals(newStr)) {
+                    bt.setText(newStr);
+                }
+                if (width < bt.getLineWidth()) {
+                    width = bt.getLineWidth();
+                }
+                height += bt.getLineCount() * bt.getLineHeight();
+                bt.setLocalTranslation(0, height, 0);
+            }
+            
+            hudBackground.setLocalScale(width + 10, height, 0);
+            hudNode.setLocalTranslation(0, cam.getHeight() - height, 0);
+        }
     }
 
     @Override
