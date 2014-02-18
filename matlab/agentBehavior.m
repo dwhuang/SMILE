@@ -5,7 +5,7 @@ function [init, callback] = agentBehavior()
 
 % init = @dof2TestingInit;
 % callback = @dof2TestingCallback;
-init = @exampleInit;
-callback = @exampleCallback;
+init = @recordDemoInit;
+callback = @recordDemoCallback;
 
 end
