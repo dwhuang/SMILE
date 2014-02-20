@@ -29,6 +29,10 @@ sensor.timeElapsed
 %   col index: joint (indexed from the shoulder down)
 sensor.jointAngles
 
+% Current gripper opening: an array of length 'aux.numLimbs'. Each value
+% is the distance of the opening between the two gripper fingers.
+sensor.gripperOpening
+
 % End effector positions: a 'aux.numLimbs'-by-3 matrix
 %   row index: limb (left, right)
 %   col index: x, y, z (XY: horizontal plane; Z: vertical)
@@ -46,6 +50,11 @@ if any(strcmp('rgbVision', fieldnames(sensor)))
     image(sensor.rgbVision); % draw the image whenever it is available
 end
 
+% A boolean value indicating if the current visual image is a part of a
+% demonstration. If the visual image is not available in this frame, this
+% value will be false.
+sensor.demoCue
+
 
 %% motor
 % The variable 'motor' transmits motor commands from this matlab agent back
@@ -60,12 +69,20 @@ end
 % per second)
 %   row index: limb (left, right)
 %   col index: joint (indexed from the shoulder down).
-% Example below: change all joint velocities every 5 seconds
+%
+% Gripper velocities: an array of length 'aux.numLimbs' specifying the
+% intended velocities for the grippers. Positive values increase the
+% gripper opening; negative values decrease it. The actual gripper velocity
+% may be reduced if the gripper is interacting with other objects.
+%
+% Example below: invert all joint and gripper velocities every 5 seconds
 duration = duration + sensor.timeElapsed;
 if duration > 5
     rotationDir = -rotationDir;
     motor.jointVelocities(:) = 0.5 * rotationDir;
+    motor.gripperVelocities(:) = rotationDir;
     duration = 0;
 end
 
 motor.jointVelocities    
+motor.gripperVelocities

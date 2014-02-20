@@ -40,7 +40,7 @@ public class Gripper implements AnalogListener {
     public static final Vector3f FINGER_SIZE = new Vector3f(0.3f, 0.4f, 1.5f);
     protected static final float MAX_OPENING = 2;
     protected static final float FINGER_MASS = 5;
-    protected static final float FINGER_SPEED = 1;    
+//    protected static final float FINGER_SPEED = 1;    
     protected static final ColorRGBA COLOR = new ColorRGBA(0.5f, 0.1f, 0.1f, 1);
     
     protected String name;
@@ -86,10 +86,18 @@ public class Gripper implements AnalogListener {
     
     public void onAnalog(String name, float value, float tpf) {
         if (name.toLowerCase().matches(".*gripperopen")) {
-            phy.addChange(1);
+            phy.addVelocity(1);
         } else if (name.toLowerCase().matches(".*gripperclose")) {
-            phy.addChange(-1);
+            phy.addVelocity(-1);
         }
+    }
+    
+    public void setTargetVelocity(float tv) {
+        phy.velocity = tv;
+    }
+    
+    public float getOpening() {
+        return phy.opening;
     }
 
     protected class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {
@@ -99,7 +107,7 @@ public class Gripper implements AnalogListener {
         private RigidBodyControl rightFingerControl = null;
         
         // for grabbing objects
-        private int change = 0; // -1: shrinking, 1: expanding, 0: unchanged
+        private float velocity = 0; // -1: shrinking, 1: expanding, 0: unchanged
         private float opening = MAX_OPENING;
         private float fingerPressure = 0;
         private TreeMap<Float, Spatial> leftContacts = new TreeMap<Float, Spatial>();
@@ -167,7 +175,7 @@ public class Gripper implements AnalogListener {
 
         // NOTE called from the rendering thread (after update())
         public void collision(PhysicsCollisionEvent event) {
-            if (holding.size() > 0 || change >= 0) {
+            if (holding.size() > 0 || velocity >= 0) {
                 return;
             }
             Spatial nodeA = event.getNodeA();
@@ -211,24 +219,24 @@ public class Gripper implements AnalogListener {
         @Override
         public void update(float tpf) {
             super.update(tpf);
-            if (change > 0 && holding.size() > 0) {
+            if (velocity > 0 && holding.size() > 0) {
                 release();
             }
             
             if (holding.size() > 0) {
-                change = 0;
+                velocity = 0;
                 return;
             }
             
-            if (change != 0) {
-                if (change < 0) {
-                    float force = FINGER_SPEED * tpf * FINGER_MASS * 2;
-                    force -= fingerPressure;
-                    float offset = force / (FINGER_MASS * 2);
+            if (velocity != 0) {
+                if (velocity < 0) {
+                    float impulse = -velocity * tpf * FINGER_MASS * 2;
+                    impulse -= fingerPressure;
+                    float offset = impulse / (FINGER_MASS * 2);
                     offset = FastMath.clamp(offset, 0, offset);
                     opening -= offset;
                 } else {
-                    opening += FINGER_SPEED * tpf;
+                    opening += velocity * tpf;
                 }
                 opening = FastMath.clamp(opening, 0, Gripper.MAX_OPENING);
 
@@ -241,7 +249,7 @@ public class Gripper implements AnalogListener {
                 rightFinger.setLocalTranslation(v);
                 
                 fingerPressure = 0;
-                change = 0;
+                velocity = 0;
             }
 
             // check holding objects
@@ -322,8 +330,8 @@ public class Gripper implements AnalogListener {
             holding.clear();
         }
 
-        public void addChange(int change) {
-            this.change += change;
+        public void addVelocity(float tv) {
+            this.velocity += tv;
         }
     }
 }

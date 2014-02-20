@@ -18,8 +18,10 @@ public class MatlabAgentMotorData implements Serializable {
     private static final long serialVersionUID = 1L;
     
     public double[][] jointVelocities = new double[2][Robot.DOF];
+    public double[] gripperVelocities = new double[2];
     
     protected void sendTemplateToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
+        reset();
         matlab.setVariable("motor", this);
         matlab.eval("motor = struct(motor);");
     }
@@ -29,6 +31,9 @@ public class MatlabAgentMotorData implements Serializable {
             for (int j = 0; j < jointVelocities[0].length; ++j) {
                 jointVelocities[i][j] = 0;
             }
+        }
+        for (int i = 0; i < gripperVelocities.length; ++i) {
+            gripperVelocities[i] = 0;
         }
     }
     
@@ -41,9 +46,9 @@ public class MatlabAgentMotorData implements Serializable {
         
         ret = matlab.returningEval("fieldnames(motor);", 1);
         String[] keys = (String[]) ret[0];
+        MatlabTypeConverter processor = new MatlabTypeConverter(matlab);
         for (String key : keys) {
             if (key.equals("jointVelocities")) {
-                MatlabTypeConverter processor = new MatlabTypeConverter(matlab);
                 MatlabNumericArray matlabArray = processor.getNumericArray("motor." + key);
                 int[] sizes = matlabArray.getLengths();
                 if (sizes.length != 2) {
@@ -62,18 +67,34 @@ public class MatlabAgentMotorData implements Serializable {
                         jointVelocities[i][j] = matlabArray.getRealValue(i, j);
                     }
                 }
+            } else if (key.equals("gripperVelocities")) {
+                MatlabNumericArray matlabArray = processor.getNumericArray("motor." + key);
+                int[] sizes = matlabArray.getLengths();
+                if (sizes.length != 2) {
+                    throw new RuntimeException("invalid 'motor': gripperVelocities field does not return a 2D array");
+                }
+                if (sizes[0] != gripperVelocities.length) {
+                    throw new RuntimeException("invalid 'motor': gripperVelocities field does not contain " 
+                            + gripperVelocities.length + " elements");
+                }
+                for (int i = 0; i < gripperVelocities.length; ++i) {
+                    gripperVelocities[i] = matlabArray.getRealValue(i);
+                }
             } else {
                 throw new RuntimeException("invalid 'motor': unrecognized field '" + key + "'");
             }
         }        
     }
     
-    public void execute(JointState[] leftJoints, JointState[] rightJoints) {
+    public void execute(JointState[] leftJoints, JointState[] rightJoints,
+            Gripper leftGripper, Gripper rightGripper) {
         for (int i = 0; i < leftJoints.length; ++i) {
             leftJoints[i].setVelocity((float) jointVelocities[0][i], false);
         }
         for (int i = 0; i < rightJoints.length; ++i) {
             rightJoints[i].setVelocity((float) jointVelocities[1][i], false);
         }
+        leftGripper.setTargetVelocity((float) gripperVelocities[0]);
+        rightGripper.setTargetVelocity((float) gripperVelocities[1]);
     }
 }

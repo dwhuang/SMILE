@@ -36,6 +36,8 @@ public class MatlabAgent {
     
     private JointState[] leftJoints;
     private JointState[] rightJoints;
+    private Gripper leftGripper;
+    private Gripper rightGripper;
     private Node rootNode;
     private Factory factory;
     
@@ -49,18 +51,16 @@ public class MatlabAgent {
     private MatlabTypeConverter processor;
     
     public MatlabAgent(JointState[] leftJoints, JointState[] rightJoints, 
+            Gripper leftGripper, Gripper rightGripper,
             Node rootNode, Factory factory) {
         this.leftJoints = leftJoints;
         this.rightJoints = rightJoints;
+        this.leftGripper = leftGripper;
+        this.rightGripper = rightGripper;
         this.rootNode = rootNode;
         this.factory = factory;
     }
 
-    /**
-     *
-     * @param leftJoints
-     * @param leftJoints
-     */
     public void start() {        
         MatlabProxyFactoryOptions options = new MatlabProxyFactoryOptions.Builder()
                 .setUsePreviouslyControlledSession(true).build();
@@ -164,14 +164,15 @@ public class MatlabAgent {
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
             final BufferedImage vision, boolean demoCue) {
         try {
-            sensorData.populate(tpf, leftJoints, rightJoints, 
+            sensorData.populate(tpf, leftJoints, rightJoints,
+                    leftGripper.getOpening(), rightGripper.getOpening(),
                     leftEndEffPos, rightEndEffPos, vision, demoCue);
             sensorData.sendToMatlab(matlab);
 
             matlab.eval("callbackFunc();");
             
             motorData.recvFromMatlab(matlab);
-            motorData.execute(leftJoints, rightJoints);
+            motorData.execute(leftJoints, rightJoints, leftGripper, rightGripper);
             
             if (matlabStructVarExists("aux", "exit")) {
                 stop();
@@ -187,7 +188,7 @@ public class MatlabAgent {
     
     private void cleanup() {
         motorData.reset();
-        motorData.execute(leftJoints, rightJoints);        
+        motorData.execute(leftJoints, rightJoints, leftGripper, rightGripper);        
         markerNode.detachAllChildren();
         if (markerNode.getParent() != null) {
             markerNode.getParent().detachChild(markerNode);

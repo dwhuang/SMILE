@@ -137,7 +137,8 @@ public class Robot implements AnalogListener, ActionListener {
         showNextFacialExpression();
         
         // control agent
-        matlabAgent = new MatlabAgent(leftJointStates, rightJointStates, rootNode, factory);
+        matlabAgent = new MatlabAgent(leftJointStates, rightJointStates, 
+                leftGripper, rightGripper, rootNode, factory);
     }
     
     public void stop() {
@@ -180,7 +181,7 @@ public class Robot implements AnalogListener, ActionListener {
                 0.024645f, 0.118588f, 0.219645f,
                 0, -0.7845f, 0);
         node = attachLimb(name + " right", node, rightJointStates);        
-        rightGripper = new Gripper(name + "right gripper", node, physicsSpace, factory);
+        rightGripper = new Gripper(name + "right-gripper", node, physicsSpace, factory);
         rightEndEffector = node;
         
         // left arm

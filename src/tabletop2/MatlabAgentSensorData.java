@@ -20,6 +20,7 @@ public class MatlabAgentSensorData implements Serializable {
 
     private double timeElapsed;
     private double[][] jointAngles = new double[2][Robot.DOF];
+    private double[] gripperOpening = new double[2];
     private double[][] endEffPos = new double[2][3];
     private double[] rgbVision = new double[Robot.HEAD_CAM_RES_HEIGHT * Robot.HEAD_CAM_RES_WIDTH * 3];
     private boolean demoCue;
@@ -28,6 +29,7 @@ public class MatlabAgentSensorData implements Serializable {
     private transient boolean rgbVisionReady = false;
             
     protected void populate(float tpf, final JointState[] leftJoints, final JointState[] rightJoints,
+            double leftGripperOpening, double rightGripperOpening,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
             final BufferedImage vision, boolean demoCue) {
         timeElapsed = tpf;
@@ -45,6 +47,9 @@ public class MatlabAgentSensorData implements Serializable {
         for (int i = 0; i < rightJoints.length; ++i) {
             jointAngles[1][i] = rightJoints[i].getAngle();
         }
+        
+        gripperOpening[0] = leftGripperOpening;
+        gripperOpening[1] = rightGripperOpening;
         
         // convert to a more intuitive coordinate system:
         // x, y parallel to the table surface, z vertical
@@ -104,6 +109,8 @@ public class MatlabAgentSensorData implements Serializable {
         }
         buf.append("];");        
         matlab.eval(buf.toString());
+
+        matlab.eval("sensor.gripperOpening = [" + gripperOpening[0] + ", " + gripperOpening[1] + "];");
         
         if (rgbVisionReady) {
             Object[] ret = matlab.returningEval("genvarname('rgbVision', who)", 1);
