@@ -5,6 +5,8 @@
 package tabletop2;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.collision.PhysicsCollisionEvent;
+import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
@@ -13,9 +15,9 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
-import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
+import com.jme3.math.Transform;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
@@ -23,37 +25,43 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
  *
  * @author dwhuang
  */
-public class Demonstrator implements ActionListener, AnalogListener {
+public class Demonstrator implements ActionListener, AnalogListener, PhysicsCollisionListener {
 
-    protected enum DemoState {
-        Idle, Anchored, Moving
+    private enum DemoState {
+        Idle, Grasped, Moving
     }
-    protected Node rootNode;
-    protected ViewPort viewPort;
-    protected Camera cam;
-    protected InputManager inputManager;
-    protected Robot robot;
-    protected DemoState state = DemoState.Idle;
-    protected Node movingPlane;
-    protected Node movingNode;
-    protected DemonstratorSceneProcessor sceneProcessor;
-    protected Spatial grabbedObject = null;
-    protected final HashMap<Geometry, Spatial> grabbables;
+    private Node rootNode;
+    private Camera cam;
+    private InputManager inputManager;
+    private Robot robot;
+    private final HashMap<Geometry, Spatial> grabbables;
+
+    private ArrayList<DemonstrationListener> demoListeners = new ArrayList<DemonstrationListener>();
+    private DemonstratorSceneProcessor sceneProcessor;
+
+    private DemoState state = DemoState.Idle;
+    private Node visualAid;
+    private Node movingPlane;
+    private Node graspNode;
+    private Spatial graspedObject = null;
+    private Vector3f movingCursorOffset;
     
     private boolean shiftKey = false;
-    private float rightClickTime = 0;
+//    private float rightClickTime = 0;
     
     private Ray ray = new Ray();
     private CollisionResults collisionResults = new CollisionResults();
-    private Matrix4f mat = new Matrix4f();
     private float[] angles = new float[3];
     private Quaternion quat = new Quaternion();
+    private Vector3f vec = new Vector3f();
+    private Transform transform = new Transform();
 
     public Demonstrator(String name, Node rootNode, ViewPort viewPort,
             AssetManager assetManager, InputManager inputManager, 
@@ -61,13 +69,14 @@ public class Demonstrator implements ActionListener, AnalogListener {
             final HashMap<Geometry, Spatial> grabbables, 
             Factory factory, Robot robot) {
         this.rootNode = rootNode;
-        this.viewPort = viewPort;
         this.cam = viewPort.getCamera();
         this.inputManager = inputManager;
         this.grabbables = grabbables;
         this.robot = robot;
 
+        visualAid = new Node(name + "visualAid");
         movingPlane = new Node(name + " movingPlane");
+        visualAid.attachChild(movingPlane);
         Geometry g = factory.makeUnshadedPlane(name + " movingSubplane1",
                 movingPlaneSize.x, movingPlaneSize.y,
                 new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
@@ -79,11 +88,27 @@ public class Demonstrator implements ActionListener, AnalogListener {
         g.setLocalRotation(new Quaternion(new float[]{0, FastMath.PI, 0}));
         g.setLocalTranslation(movingPlaneSize.x / 2, -movingPlaneSize.y / 2, 0);
         movingPlane.attachChild(g);
+        g = factory.makeUnshadedLine(name + " shadowLine", Vector3f.ZERO, 
+                new Vector3f(0, -movingPlaneSize.y / 2, 0), ColorRGBA.Black);
+        movingPlane.attachChild(g);
+        
+        g = factory.makeUnshadedArrow(name + " axisArrowX", 
+                Vector3f.UNIT_X.mult(10), 2, ColorRGBA.Red);
+        g.setLocalTranslation(Vector3f.UNIT_X.negate().multLocal(5));
+        visualAid.attachChild(g);
+        g = factory.makeUnshadedArrow(name + " axisArrowY", 
+                Vector3f.UNIT_Y.mult(10), 2, ColorRGBA.Blue);
+        g.setLocalTranslation(Vector3f.UNIT_Y.negate().multLocal(5));
+        visualAid.attachChild(g);
+        g = factory.makeUnshadedArrow(name + " axisArrowZ", 
+                Vector3f.UNIT_Z.mult(10).negateLocal(), 2, ColorRGBA.Green);
+        g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
+        visualAid.attachChild(g);
+        
+        graspNode = new Node(name + " graspNode");
+        rootNode.attachChild(graspNode);
 
-        movingNode = new Node(name + " movingNode");
-        rootNode.attachChild(movingNode);
-
-        sceneProcessor = new DemonstratorSceneProcessor(assetManager, movingPlane);
+        sceneProcessor = new DemonstratorSceneProcessor(assetManager, visualAid);
         viewPort.addProcessor(sceneProcessor);
     }
 
@@ -93,123 +118,250 @@ public class Demonstrator implements ActionListener, AnalogListener {
         } else if (name.equals("demoLeftClick")) {
             if (state == DemoState.Idle) {
                 if (!isPressed) {
-                    CollisionResult result = getCursorClosestCollision(rootNode);
-                    if (result != null) {
-                        Geometry target = result.getGeometry();
-                        Spatial s = grabbables.get(target);
-                        if (s != null && s.getParent() == rootNode) {
-                            // translate the demoplane to the center of the picked object
-                            gotoAnchoredState(s);
-                        }
+                    Spatial cursorObj = getCursorObject(rootNode);
+                    if (cursorObj != null) { 
+                        grasp(cursorObj);
                     }
                 }
-            } else if (state == DemoState.Anchored) {
+            } else if (state == DemoState.Grasped) {
                 if (isPressed) {
-                    CollisionResult result 
-                            = getCursorClosestCollision(grabbedObject);
-                    if (result == null) {
-                        gotoIdleState(false);
-                    } else {
-                        Vector3f pos = getCursorPosOnMovingPlane();
-                        if (pos == null) {
-                            gotoIdleState(false);
-                        } else {
-                            gotoMovingState(pos);
-                        }
+                    if (!movingStart()) {
+                        release();
                     }
-                } else {
-                    // impossible
-                    throw new IllegalStateException();
                 }
             } else if (state == DemoState.Moving) {
                 if (!isPressed) {
-                    gotoIdleState(true);
+                    movingEnd();
                 }
             }
-        } else if (name.equals("demoRightClick")) {
-            if (!isPressed) {
-                if (state == DemoState.Idle) {
-                    CollisionResult result = getCursorClosestCollision(rootNode);
-                    if (result != null) {
-                        Geometry target = result.getGeometry();
-                        Spatial s = grabbables.get(target);
-                        if (s != null && s.getParent() == rootNode) {
-                            RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
-                            Vector3f dir = getCursorRayDirection();
-                            dir.y = 0.05f; // ignore vertical impulse
-                            dir.multLocal(rightClickTime * 10);
-                            Vector3f pt = result.getContactPoint();
-                            s.getLocalTransform().transformInverseVector(pt, pt);                            
-                            rbc.applyImpulse(dir, pt);
-                        }
-                    }
-                }
-                rightClickTime = 0;
-            }
+//        } else if (name.equals("demoRightClick")) {
+//            if (!isPressed) {
+//                if (state == DemoState.Idle) {
+//                    CollisionResult result = getCursorClosestCollision(rootNode);
+//                    if (result != null) {
+//                        Geometry target = result.getGeometry();
+//                        Spatial s = grabbables.get(target);
+//                        if (s != null && s.getParent() == rootNode) {
+//                            RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
+//                            Vector3f dir = getCursorRayDirection();
+//                            dir.y = 0.05f; // ignore vertical impulse
+//                            dir.multLocal(rightClickTime * 10);
+//                            Vector3f pt = result.getContactPoint();
+//                            s.getLocalTransform().transformInverseVector(pt, pt);                            
+//                            rbc.applyImpulse(dir, pt);
+//                        }
+//                    }
+//                }
+//                rightClickTime = 0;
+//            }
         }
     }
 
     public void onAnalog(String name, float value, float tpf) {
         if (name.equals("demoPlaneRotate")) {
-            if (state != DemoState.Idle) {
-                movingPlane.setLocalTranslation(movingNode.getLocalTranslation());
+            if (state == DemoState.Grasped) {
+                transform.set(movingPlane.getLocalTransform());
                 if (!shiftKey) {
                     movingPlane.rotate(0, value * 0.3f, 0);
                 } else {
                     movingPlane.rotate(0, -value * 0.3f, 0);
                 }
+                
+                // move camera relatively to the rotated movingPlane
+                vec.set(cam.getLocation());
+                visualAid.getLocalTransform().transformInverseVector(vec, vec);
+                transform.transformInverseVector(vec, vec);
+                movingPlane.getLocalTransform().transformVector(vec, vec);
+                visualAid.getLocalTransform().transformVector(vec, vec);
+                cam.setLocation(vec);
+                // adjust the camera direction too
+                // NOTE: camera direction is unaffected by the translation of
+                // visualAid
+                vec.set(cam.getDirection());
+                transform.transformInverseVector(vec, vec);
+                movingPlane.getLocalTransform().transformVector(vec, vec);
+                cam.lookAtDirection(vec, Vector3f.UNIT_Y);
             }
         } else if (name.equals("demoMouseMove")) {
             if (state == DemoState.Moving) {
                 Vector3f pos = getCursorPosOnMovingPlane();
                 if (pos != null) {
-                    movingNode.setLocalTranslation(pos);
+                    pos.addLocal(movingCursorOffset);
+                    move(pos);
                 } else {
-                    gotoIdleState(true);
+                    movingEnd();
                 }
             }
-        } else if (name.equals("demoRightClick")) {
-            rightClickTime += tpf;
+//        } else if (name.equals("demoRightClick")) {
+//            rightClickTime += tpf;
         }
     }
 
-
-    private void gotoIdleState(boolean release) {
-        if (release) {
-            releaseObject();
-        }
-        grabbedObject = null;
-        sceneProcessor.setShowMovingPlane(false);
-        sceneProcessor.highlightSpatial(null);
-        state = DemoState.Idle;
+    @Override
+    public void collision(PhysicsCollisionEvent event) {
         
-        robot.setDemoCue(false);
     }
     
-    private void gotoAnchoredState(Spatial object) {
-        grabbedObject = object;
-        Vector3f objCenter = object.getLocalTranslation();
-        objCenter.y = 0;
+    public void grasp(Spatial s) {
+        if (state != DemoState.Idle) {
+            throw new IllegalStateException("illegal operation");
+        }
+        if (s == null) {
+            throw new NullPointerException();
+        }
+        
+        graspedObject = s;
+        graspNode.setLocalTransform(s.getLocalTransform());
+        rootNode.detachChild(s);
+        s.setLocalTransform(Transform.IDENTITY);
+        graspNode.attachChild(s);
+
+        RigidBodyControl rbc = graspedObject.getControl(RigidBodyControl.class);
+        rbc.setKinematic(true);
+        rbc.setMass(rbc.getMass() + 9999);                                    
+
+        visualAid.setLocalTranslation(graspNode.getLocalTranslation());
+        // init the moving plane such that it is perpendicular to the camera direction
+        angles = new float[3];
         cam.getRotation().toAngles(angles);
         angles[0] = 0;
         angles[2] = 0;
         quat.fromAngles(angles);
-        
-        movingPlane.setLocalTranslation(objCenter);
         movingPlane.setLocalRotation(quat);
-        movingNode.setLocalTranslation(objCenter);
-        sceneProcessor.setShowMovingPlane(true);
-        sceneProcessor.highlightSpatial(object);
-        state = DemoState.Anchored;
+        // draw visual aid
+        sceneProcessor.setShowVisualAid(true);
+        sceneProcessor.highlightSpatial(s);
+        
+        state = DemoState.Grasped;
+        for (DemonstrationListener l : demoListeners) {
+            l.demoGrasp(graspedObject, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
+        }
+    }
 
-        robot.setDemoCue(false);
+    private boolean movingStart() {
+        Spatial cursorObj = getCursorObject(rootNode);
+        movingCursorOffset = getCursorPosOnMovingPlane();
+        if (cursorObj == graspedObject && movingCursorOffset != null) {
+            movingCursorOffset.negateLocal();
+            movingCursorOffset.addLocal(graspNode.getLocalTranslation());
+            state = DemoState.Moving;
+            return true;
+        } else {
+            return false;
+        }
     }
     
-    private void gotoMovingState(Vector3f planeContact) {
-        holdObject(planeContact);
-        state = DemoState.Moving;
+    public void move(Vector3f pos) {
+        if (state != DemoState.Grasped && state != DemoState.Moving) {
+            throw new IllegalStateException("illegal operation");
+        }
         
-        robot.setDemoCue(true);
+        if (pos == null) {
+            throw new NullPointerException();
+        }
+        graspNode.setLocalTranslation(pos);
+        visualAid.setLocalTranslation(pos);
+    }
+    
+    private void movingEnd() {
+        state = DemoState.Grasped;
+    }
+    
+    public void rotate(Quaternion rot) {
+        if (state != DemoState.Grasped) {
+            throw new IllegalStateException("illegal operation");
+        }
+        graspNode.setLocalRotation(rot);
+    }
+    
+    public void release() {
+        if (state != DemoState.Grasped) {
+            throw new IllegalStateException("illegal operation");
+        }
+
+        graspNode.detachChild(graspedObject);
+        graspedObject.setLocalTransform(graspNode.getLocalTransform());
+        rootNode.attachChild(graspedObject);
+
+        RigidBodyControl oldControl = graspedObject.getControl(RigidBodyControl.class);
+        RigidBodyControl newControl = new RigidBodyControl(oldControl.getMass() - 9999);
+        graspedObject.addControl(newControl);
+        oldControl.getPhysicsSpace().add(newControl);                
+        graspedObject.removeControl(oldControl);
+        oldControl.getPhysicsSpace().remove(oldControl);
+
+        graspedObject = null;
+        
+        sceneProcessor.setShowVisualAid(false);
+        sceneProcessor.highlightSpatial(null);
+        
+        state = DemoState.Idle;
+        for (DemonstrationListener l : demoListeners) {
+            l.demoRelease();
+        }
+    }
+
+//    private void gotoIdleState(boolean release) {
+//        if (release) {
+//            releaseObject();
+//        }
+//        selectedObject = null;
+//        sceneProcessor.setShowVisualAid(false);
+//        sceneProcessor.highlightSpatial(null);
+//        state = DemoState.Idle;
+//        
+//        robot.setDemoCue(false);
+//    }
+//    
+//    private void gotoSelectedState(Spatial object) {
+//        selectedObject = object;
+//        Vector3f objCenter = object.getLocalTranslation();
+//        objCenter.y = 0;
+//        cam.getRotation().toAngles(angles);
+//        angles[0] = 0;
+//        angles[2] = 0;
+//        quat.fromAngles(angles);
+//        
+//        movingPlane.setLocalTranslation(objCenter);
+//        movingPlane.setLocalRotation(quat);
+//        demoNode.setLocalTranslation(objCenter);
+//        sceneProcessor.setShowVisualAid(true);
+//        sceneProcessor.highlightSpatial(object);
+//        state = DemoState.Anchored;
+//
+//        robot.setDemoCue(false);
+//    }
+    
+//    private void gotoMovingState(Vector3f planeContact) {
+//        holdObject(planeContact);
+//        state = DemoState.Moving;
+//        
+//        robot.setDemoCue(true);
+//    }
+
+    private Spatial getCursorObject(Node rootNode) {
+        CollisionResult r = getCursorClosestCollision(rootNode);
+        if (r == null) {
+            return null;
+        }
+        return getWholeGrabbableSpatial(r.getGeometry());
+    }
+    
+    private Spatial getWholeGrabbableSpatial(Spatial s) {
+        if (s instanceof Geometry) {
+            Spatial obj = grabbables.get((Geometry)s);
+            if (obj != null && obj.getParent() != rootNode && obj.getParent() != graspNode) {
+                return null;
+            } else {
+                return obj;
+            }
+        } else {
+            if (!grabbables.containsValue(s) || (s.getParent() != rootNode && s.getParent() != graspNode)) {
+                return null;
+            } else {
+                return s;
+            }
+        }
     }
     
     private Vector3f getCursorRayDirection() {
@@ -240,39 +392,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
             return null;
         }
     }
-     
-    private void holdObject(Vector3f onPlanePos) {
-        movingNode.setLocalTranslation(onPlanePos);
-        Vector3f relativePos = grabbedObject.getLocalTranslation();
-        relativePos.subtractLocal(onPlanePos);
-
-        grabbedObject.getParent().detachChild(grabbedObject);
-        movingNode.attachChild(grabbedObject);
-        grabbedObject.setLocalTranslation(relativePos);
-
-        RigidBodyControl rbc = grabbedObject.getControl(RigidBodyControl.class);
-        rbc.setKinematic(true);
-        rbc.setMass(rbc.getMass() + 9999);                            
+    
+    public void addListener(DemonstrationListener listener) {
+        demoListeners.add(listener);
     }
     
-    private void releaseObject() {
-        if (grabbedObject == null) {
-            return;
-        }
-        Vector3f pos = movingNode.getLocalTranslation();
-        pos.addLocal(grabbedObject.getLocalTranslation());
-        movingNode.detachChild(grabbedObject);
-        rootNode.attachChild(grabbedObject);
-        grabbedObject.setLocalTranslation(pos);
-
-        // make a new control, because the old one won't go
-        // to sleep when its kinematic is turned off
-        RigidBodyControl oldControl = grabbedObject.getControl(RigidBodyControl.class);
-        RigidBodyControl newControl = new RigidBodyControl(oldControl.getMass() - 9999);
-        grabbedObject.addControl(newControl);
-        oldControl.getPhysicsSpace().add(newControl);                
-        grabbedObject.removeControl(oldControl);
-        oldControl.getPhysicsSpace().remove(oldControl);
+    public void removeListener(DemonstrationListener listener) {
+        demoListeners.remove(listener);
     }
-    
 }

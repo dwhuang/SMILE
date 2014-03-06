@@ -9,7 +9,6 @@ import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.AbstractPhysicsControl;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -38,18 +37,17 @@ public class Gripper implements AnalogListener {
     }
 
     public static final Vector3f FINGER_SIZE = new Vector3f(0.3f, 0.4f, 1.5f);
-    protected static final float MAX_OPENING = 2;
-    protected static final float FINGER_MASS = 5;
-//    protected static final float FINGER_SPEED = 1;    
-    protected static final ColorRGBA COLOR = new ColorRGBA(0.5f, 0.1f, 0.1f, 1);
+    private static final float MAX_OPENING = 2;
+    private static final float FINGER_MASS = 5;
+    private static final ColorRGBA COLOR = new ColorRGBA(0.5f, 0.1f, 0.1f, 1);
     
-    protected String name;
-    protected PhysicsSpace physicsSpace;
-    protected Factory factory;
+    private String name;
+    private PhysicsSpace physicsSpace;
+    private Factory factory;
 
-    protected Node base;
+    private Node base;
 
-    protected Physics phy;
+    private Physics phy;
     
     public Gripper(String name, Node parentNode, PhysicsSpace physicsSpace, Factory factory) {
         this.name = name;
@@ -58,7 +56,7 @@ public class Gripper implements AnalogListener {
         buildGripper(parentNode);
     }
     
-    protected final void buildGripper(Node parentNode) {
+    private void buildGripper(Node parentNode) {
         base = new Node(name);
         parentNode.attachChild(base);
         
@@ -100,7 +98,7 @@ public class Gripper implements AnalogListener {
         return phy.opening;
     }
 
-    protected class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {
+    private class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {
         private Geometry leftFinger;
         private Geometry rightFinger;
         private RigidBodyControl leftFingerControl = null;
@@ -157,12 +155,10 @@ public class Gripper implements AnalogListener {
         protected void addPhysics(PhysicsSpace space) {
             space.add(leftFingerControl);
             space.add(rightFingerControl);
-            space.addCollisionListener(this);
         }
 
         @Override
         protected void removePhysics(PhysicsSpace space) {
-            space.removeCollisionListener(this);
             space.remove(leftFingerControl);
             space.remove(rightFingerControl);
         }

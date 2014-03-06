@@ -13,11 +13,11 @@ import com.jme3.scene.Node;
  * @author dwhuang
  */
 public class JointState {
-    protected Node node = new Node();
-    protected float velocity = 0;
-    protected float minAngle = 0;
-    protected float maxAngle = 0;
-    protected int manualControlOrientation = 1;
+    private Node node = new Node();
+    private float velocity = 0;
+    private float minAngle = 0;
+    private float maxAngle = 0;
+    private int manualControlOrientation = 1;
     
     private float[] angles = new float[3];
     private Quaternion quat = new Quaternion();

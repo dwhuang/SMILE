@@ -6,18 +6,17 @@ package tabletop2;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
-import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import com.jme3.scene.BatchNode;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
+import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
 import jme3tools.optimize.GeometryBatchFactory;
@@ -27,9 +26,7 @@ import jme3tools.optimize.GeometryBatchFactory;
  * @author dwhuang
  */
 public class Factory {
-    protected AssetManager assetManager;
-    
-    private Quaternion quat = new Quaternion();
+    private AssetManager assetManager;
     
     public Factory(AssetManager assetManager) {
         this.assetManager = assetManager;
@@ -165,5 +162,27 @@ public class Factory {
         Geometry plane = new Geometry(name, new Quad(width, height));
         plane.setMaterial(mat);
         return plane;
+    }
+    
+    public Geometry makeUnshadedLine(String name, Vector3f start, Vector3f end, ColorRGBA color) {
+        Material mat = new Material(assetManager, 
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);      
+        mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        Geometry line = new Geometry(name, new Line(start, end));
+        line.setMaterial(mat);
+        return line;
+    }
+
+    public Geometry makeUnshadedArrow(String name, Vector3f extend, float lineWidth, ColorRGBA color) {
+        Material mat = new Material(assetManager, 
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);      
+        mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        Arrow arrow = new Arrow(extend);
+        arrow.setLineWidth(lineWidth);
+        Geometry line = new Geometry(name, arrow);
+        line.setMaterial(mat);
+        return line;
     }
 }

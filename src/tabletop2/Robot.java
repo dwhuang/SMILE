@@ -49,38 +49,38 @@ public class Robot implements AnalogListener, ActionListener {
     public static final float HEAD_CAM_FOV = 60;
     
 
-    protected String name;
-    protected AssetManager assetManager;
-    protected RenderManager renderManager;
-    protected PhysicsSpace physicsSpace;
-    protected Factory factory;
-    protected Node rootNode;
+    private String name;
+    private AssetManager assetManager;
+    private RenderManager renderManager;
+    private PhysicsSpace physicsSpace;
+    private Factory factory;
+    private Node rootNode;
     
-    protected Node base;
-    protected Geometry screen;
-    protected Gripper rightGripper;
-    protected Gripper leftGripper;
-    protected Node rightEndEffector;
-    protected Node leftEndEffector;
-    protected Node headCamNode;
-    protected Camera headCam;
-    protected Camera headCamcorder;
-    protected ImageCapturer headImageCapturer;
-    protected int screenPicIndex = 0;
-    protected Material screenDefault;    
-    protected MatlabAgent matlabAgent;    
+    private Node base;
+    private Geometry screen;
+    private Gripper rightGripper;
+    private Gripper leftGripper;
+    private Node rightEndEffector;
+    private Node leftEndEffector;
+    private Node headCamNode;
+    private Camera headCam;
+    private Camera headCamcorder;
+    private ImageCapturer headImageCapturer;
+    private int screenPicIndex = 0;
+    private Material screenDefault;    
+    private MatlabAgent matlabAgent;    
     
     // joints & manual control
-    protected static final int S0 = 0;
-    protected static final int S1 = 1;
-    protected static final int E0 = 2;
-    protected static final int E1 = 3;
-    protected static final int W0 = 4;
-    protected static final int W1 = 5;
-    protected static final int W2 = 6;
-    protected static final int DOF = 7;
-    protected boolean shiftKey = false;
-    protected JointState[] rightJointStates = new JointState[] {
+    private static final int S0 = 0;
+    private static final int S1 = 1;
+    private static final int E0 = 2;
+    private static final int E1 = 3;
+    private static final int W0 = 4;
+    private static final int W1 = 5;
+    private static final int W2 = 6;
+    public static final int DOF = 7;
+    private boolean shiftKey = false;
+    private JointState[] rightJointStates = new JointState[] {
         new JointState(-0.25f, -1.7f, 1.7f, -1),
         new JointState(0, -2.147f, 1.047f, 1),
         new JointState(1.527f, -3.054f, 3.054f, -1),
@@ -89,7 +89,7 @@ public class Robot implements AnalogListener, ActionListener {
         new JointState(1.5f, -1.571f, 2.094f, 1),
         new JointState(0, -3.059f, 3.059f, -1)
     };    
-    protected JointState[] leftJointStates = new JointState[] {
+    private JointState[] leftJointStates = new JointState[] {
         new JointState(0.25f, -1.7f, 1.7f, 1),
         new JointState(0, -2.147f, 1.047f, 1),
         new JointState(-1.527f, -3.054f, 3.054f, 1),
@@ -98,15 +98,15 @@ public class Robot implements AnalogListener, ActionListener {
         new JointState(1.5f, -1.571f, 2.094f, 1),
         new JointState(0, -3.059f, 3.059f, 1)
     };
-    protected JointState[] headJointStates = new JointState[] {
+    private JointState[] headJointStates = new JointState[] {
         new JointState(0, -1.571f, 1.571f, 1)
     };
     
-    protected boolean demoCue = false;
+    private boolean demoCue = false;
+    private float timeSinceLastHeadVision = 0;
     
     private Vector3f vec = new Vector3f();
     private Quaternion quat = new Quaternion();
-    private float timeSinceLastHeadVision = 0;
     
     
     public Robot(String name, Node parentNode, AssetManager assetManager,
@@ -149,7 +149,7 @@ public class Robot implements AnalogListener, ActionListener {
         return matlabAgent.isAlive();
     }
     
-    protected final void buildRobot(String name, Node parentNode) {
+    private void buildRobot(String name, Node parentNode) {
         // torso + head
         base = new Node(name);
         parentNode.attachChild(base);

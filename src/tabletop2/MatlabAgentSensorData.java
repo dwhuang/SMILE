@@ -28,7 +28,7 @@ public class MatlabAgentSensorData implements Serializable {
     private transient int[] rgbVisionBuffer = new int[Robot.HEAD_CAM_RES_WIDTH * Robot.HEAD_CAM_RES_HEIGHT];
     private transient boolean rgbVisionReady = false;
             
-    protected void populate(float tpf, final JointState[] leftJoints, final JointState[] rightJoints,
+    public void populate(float tpf, final JointState[] leftJoints, final JointState[] rightJoints,
             double leftGripperOpening, double rightGripperOpening,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
             final BufferedImage vision, boolean demoCue) {
@@ -88,7 +88,7 @@ public class MatlabAgentSensorData implements Serializable {
         }
     }
 
-    protected void sendToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
+    public void sendToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
         StringBuilder buf = new StringBuilder();
         buf.append("sensor.timeElapsed = ").append(timeElapsed).append(";");
         buf.append("sensor.jointAngles = [");

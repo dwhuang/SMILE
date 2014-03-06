@@ -24,13 +24,13 @@ public class ImageCapturer {
     
     public static final int IMAGE_TYPE = BufferedImage.TYPE_4BYTE_ABGR;
 
-    protected Camera cam;
-    protected RenderManager renderManager;
-    protected Node camNode;
-    protected ViewPort vp;
-    protected FrameBuffer fbuf;
-    protected ByteBuffer bbuf;
-    protected BufferedImage image;
+    private Camera cam;
+    private RenderManager renderManager;
+    private Node camNode;
+    private ViewPort vp;
+    private FrameBuffer fbuf;
+    private ByteBuffer bbuf;
+    private BufferedImage image;
     
     @SuppressWarnings("LeakingThisInConstructor")
     public ImageCapturer(Camera cam, RenderManager renderManager, Node camNode, Node rootNode) {

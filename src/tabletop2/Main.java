@@ -18,11 +18,13 @@ import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
+import de.lessvoid.nifty.Nifty;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tabletop2.gui.GuiController;
 
 /**
  * test
@@ -37,38 +40,37 @@ import java.util.logging.Logger;
  * @author normenhansen
  */
 public class Main extends SimpleApplication implements ActionListener {
-    protected static final Logger logger = Logger.getLogger(Main.class.getName());
-    protected static final Vector3f TABLE_SIZE = new Vector3f(
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private static final Vector3f TABLE_SIZE = new Vector3f(
             20f, 4f, 12f);
-    protected static final ColorRGBA TABLE_COLOR = new ColorRGBA(
+    private static final ColorRGBA TABLE_COLOR = new ColorRGBA(
             1.0f, 1.0f, 1.0f, 1.0f);
-    protected static final Vector3f CAMERA_INIT_LOCATION = new Vector3f(
+    private static final Vector3f CAMERA_INIT_LOCATION = new Vector3f(
             0, 15, -TABLE_SIZE.z / 2 - 10);
-    protected static final Vector3f CAMERA_INIT_LOOKAT = new Vector3f(
+    private static final Vector3f CAMERA_INIT_LOOKAT = new Vector3f(
             0, 0, TABLE_SIZE.z / 2);
 
-    protected BulletAppState bulletAppState;
-    protected RigidBodyControl camPhysics;
-    protected Factory factory;
+    private BulletAppState bulletAppState;
+    private Factory factory;
     
-    protected HashMap<Geometry, Spatial> grabbables = new HashMap<Geometry, Spatial>();
+    private HashMap<Geometry, Spatial> grabbables = new HashMap<Geometry, Spatial>();
     private static Random random = new Random(5566);
         
-    protected Robot robot;
+    private Robot robot;
     
-    protected final boolean flyGripper = false;
-    protected Node gripperNode;
-    protected Gripper gripper;
+    private final boolean flyGripper = false;
+    private Node gripperNode;
+    private Gripper gripper;
     
-    protected Demonstrator demonstrator;
+    private Demonstrator demonstrator;
     
     private boolean hasDeletedMouseTrigger = false;
     private boolean shiftKey = false;
     
-    protected ArrayList<String> hudTextBuffer = new ArrayList<String>();
-    protected ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
-    protected Node hudNode;
-    protected Geometry hudBackground;
+    private ArrayList<String> hudTextBuffer = new ArrayList<String>();
+    private ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
+    private Node hudNode;
+    private Geometry hudBackground;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -97,11 +99,13 @@ public class Main extends SimpleApplication implements ActionListener {
         settings.setSamples(2);
 ////        settings.setVSync(true);
 //        settings.setFrameRate(60);
+        settings.putBoolean("DisableJoysticks", false);
         
         app.setSettings(settings);
 //        app.setShowSettings(true);
         
         app.setDisplayStatView(false);
+        app.setDisplayFps(false);
         
         app.start(); // restart the context to apply changes
         
@@ -148,13 +152,40 @@ public class Main extends SimpleApplication implements ActionListener {
         
 //        stateManager.attach(new VideoRecorderAppState()); //start recording
         
+//        Joystick[] joysticks = inputManager.getJoysticks();
+//        for( Joystick j : joysticks ) {
+//            System.out.println( "Joystick[" + j.getJoyId() + "]:" + j.getName() );
+//            System.out.println( "  buttons:" + j.getButtonCount() );
+//            for( JoystickButton b : j.getButtons() ) {
+//                System.out.println( "   " + b );
+//            }
+//            
+//            System.out.println( "  axes:" + j.getAxisCount() );
+//            for( JoystickAxis axis : j.getAxes() ) {
+//                System.out.println( "   " + axis );
+//            }
+//        }
+        
+        GuiController guiController = new GuiController(demonstrator);
+        NiftyJmeDisplay niftyDisplay= new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
+        Nifty nifty = niftyDisplay.getNifty();
+        String viewFname = "Interface/guiview.xml";
+        try {
+            nifty.validateXml(viewFname);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, viewFname + " not valid", ex);
+        }
+        nifty.fromXml(viewFname, "guiView", guiController);
+        stateManager.attach(guiController);
+//        nifty.setDebugOptionPanelColors(true);
+        guiViewPort.addProcessor(niftyDisplay);
     }
 
     
-    protected void initStage() {
+    private void initStage() {
         // table
         Spatial table = factory.makeBigBlock("table", 
-                TABLE_SIZE.x, TABLE_SIZE.y, TABLE_SIZE.z, ColorRGBA.White, 4);
+                TABLE_SIZE.x, TABLE_SIZE.y, TABLE_SIZE.z, TABLE_COLOR, 4);
         table.setLocalTranslation(0.0f, -TABLE_SIZE.y / 2, 0.0f);
         rootNode.attachChild(table);
         RigidBodyControl tablePhysics = new RigidBodyControl(0.0f);
@@ -202,7 +233,7 @@ public class Main extends SimpleApplication implements ActionListener {
         }               
     }
     
-    protected void initKeys() {
+    private void initKeys() {
         inputManager.addMapping("shiftKey", new KeyTrigger(KeyInput.KEY_LSHIFT));
         inputManager.addMapping("shiftKey", new KeyTrigger(KeyInput.KEY_RSHIFT));
         inputManager.addMapping("makeBlock", new KeyTrigger(KeyInput.KEY_B));
@@ -278,10 +309,9 @@ public class Main extends SimpleApplication implements ActionListener {
             inputManager.addListener(gripper, "gripperOpen");
             inputManager.addListener(gripper, "gripperClose");
         }        
-
     }
     
-    protected void initHUD() {
+    private void initHUD() {
         hudNode = new Node();
         guiNode.attachChild(hudNode);
         
@@ -324,6 +354,15 @@ public class Main extends SimpleApplication implements ActionListener {
                         }
                         bulletAppState.getPhysicsSpace().remove(rbc);
                         spatial.removeControl(rbc);
+                        // remove from grabbables
+                        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+                            public void visit(Spatial spatial) {
+                                if (spatial instanceof Geometry) {
+                                    grabbables.remove((Geometry)spatial);
+                                }
+                            }
+                        });
+                        // remove from the scene graph
                         if (spatial.getParent() != null) {
                             spatial.getParent().detachChild(spatial);
                         }
@@ -342,7 +381,7 @@ public class Main extends SimpleApplication implements ActionListener {
     }
     
     // if hudTextBuffer differs from hudText, update hudText
-    protected void updateHUD() {
+    private void updateHUD() {
         boolean hasChanged = false;
         if (hudText.size() != hudTextBuffer.size()) {
             hasChanged = true;
@@ -494,7 +533,5 @@ public class Main extends SimpleApplication implements ActionListener {
         } else {
             logger.log(Level.WARNING, "unknown spatial type for {0}", gb.getName());
         }
-    }
-
-
+   }
 }

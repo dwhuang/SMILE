@@ -20,13 +20,13 @@ public class MatlabAgentMotorData implements Serializable {
     public double[][] jointVelocities = new double[2][Robot.DOF];
     public double[] gripperVelocities = new double[2];
     
-    protected void sendTemplateToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
+    public void sendTemplateToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
         reset();
         matlab.setVariable("motor", this);
         matlab.eval("motor = struct(motor);");
     }
     
-    protected void reset() {
+    public void reset() {
         for (int i = 0; i < jointVelocities.length; ++i) {
             for (int j = 0; j < jointVelocities[0].length; ++j) {
                 jointVelocities[i][j] = 0;
@@ -37,7 +37,7 @@ public class MatlabAgentMotorData implements Serializable {
         }
     }
     
-    protected void recvFromMatlab(MatlabProxy matlab) throws MatlabInvocationException {
+    public void recvFromMatlab(MatlabProxy matlab) throws MatlabInvocationException {
         Object[] ret = matlab.returningEval("class(motor);", 1);
         String type = (String) ret[0];
         if (!type.equals("struct")) {

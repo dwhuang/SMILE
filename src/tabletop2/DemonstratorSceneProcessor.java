@@ -30,27 +30,22 @@ import java.util.ArrayList;
  * @author dwhuang
  */
 public class DemonstratorSceneProcessor implements SceneProcessor {
-    protected AssetManager assetManager;
-    
-    protected boolean isInit = false;
-    protected Node movingPlane;
-    protected boolean showMovingPlane = false;
-    protected ArrayList<Geometry> movingPlaneGeos = new ArrayList<Geometry>();
+    private boolean isInit = false;
+    private boolean showVisualAid = false;
+    private ArrayList<Geometry> visualAidGeos = new ArrayList<Geometry>();
     // highlighting objects
-    protected Spatial hlOriginal = null;
-    protected Spatial hlClone = null;
-    protected ArrayList<Geometry> hlGeos = new ArrayList<Geometry>();
-    protected Material hlMaterial;
+    private Spatial hlOriginal = null;
+    private Spatial hlClone = null;
+    private ArrayList<Geometry> hlGeos = new ArrayList<Geometry>();
+    private Material hlMaterial;
     
     private Matrix4f mat = new Matrix4f();
     
-    public DemonstratorSceneProcessor(AssetManager assetManager, Node movingPlane) {
-        this.assetManager = assetManager;
-        this.movingPlane = movingPlane;
-        movingPlane.depthFirstTraversal(new SceneGraphVisitor() {
+    public DemonstratorSceneProcessor(AssetManager assetManager, Node visualAid) {
+        visualAid.depthFirstTraversal(new SceneGraphVisitor() {
             public void visit(Spatial s) {
                 if (s instanceof Geometry) {
-                    movingPlaneGeos.add((Geometry)s);
+                    visualAidGeos.add((Geometry)s);
                 }
             }
         });
@@ -85,8 +80,8 @@ public class DemonstratorSceneProcessor implements SceneProcessor {
                 rq.addToQueue(g, RenderQueue.Bucket.Translucent);
             }
         }
-        if (showMovingPlane) {
-            for (Geometry g : movingPlaneGeos) {
+        if (showVisualAid) {
+            for (Geometry g : visualAidGeos) {
                 rq.addToQueue(g, RenderQueue.Bucket.Translucent);
             }
         }
@@ -98,8 +93,8 @@ public class DemonstratorSceneProcessor implements SceneProcessor {
     public void cleanup() {
     }
     
-    public void setShowMovingPlane(boolean enabled) {
-        showMovingPlane = enabled;
+    public void setShowVisualAid(boolean enabled) {
+        showVisualAid = enabled;
     }
     
     public void highlightSpatial(Spatial s) {

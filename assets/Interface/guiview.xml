@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty xmlns="http://nifty-gui.sourceforge.net/nifty-1.3.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://nifty-gui.sourceforge.net/nifty-1.3.xsd http://nifty-gui.sourceforge.net/nifty-1.3.xsd">
+    <useStyles filename="nifty-default-styles.xml" />
+    <useControls filename="nifty-default-controls.xml" />        
+
+    <screen id="guiView" controller="tabletop2.gui.GuiController">
+        <layer childLayout="horizontal">
+            <panel childLayout="center" valign="bottom" width="27px" height="23px">
+                <control name="button" id="btShowAll" label="" valign="bottom" width="100%" focusable="false" 
+                         childLayout="center"/>
+                <image filename="Interface/list.png" inset="4px"/>
+            </panel>
+            <control name="button" id="btCamNav" label="Camera" valign="bottom" focusable="false"/>
+            <control name="button" id="btDemo" label="Demonstrate" valign="bottom" focusable="false"/>
+            <panel childLayout="center" valign="bottom" width="27px" height="23px">
+                <control name="button" id="btOrganize" label="" valign="bottom" width="100%" focusable="false" 
+                         childLayout="center"/>
+                <image filename="Interface/arrowL.png" inset="14px"/>
+            </panel>
+            <panel childLayout="center" valign="bottom" width="27px" height="23px">
+                <control name="button" id="btHideAll" label="" valign="bottom" width="100%" focusable="false" 
+                         childLayout="center"/>
+                <image filename="Interface/cross.png" inset="4px"/>
+            </panel>
+        </layer>
+
+        <layer childLayout="absolute-inside">
+            <control name="window" id="wdCamNav" title="Camera Navigation" hideOnClose="true"
+                     width="320px" height="176px" backgroundColor="#000f">
+                <effect>
+                    <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
+                    <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
+                    <onCustom name="border" border="3px" inherit="true" length="500"/>
+                </effect>
+                <panel childLayout="horizontal">
+                    <panel id="navAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
+                        childLayout="center" width="140px" height="140px" margin="0px">
+                        <text text="drag to move" font="Interface/Fonts/Default.fnt"
+                            width="100%" height="100%" wrap="true"/>
+                    </panel>
+                    <panel childLayout="center" height="100%" width="40px">
+                        <control name="button" id="btAscend" label="Asc" focusable="false" 
+                                 width="30px" height="65px" valign="top" align="left"/>
+                        <control name="button" id="btDescend" label="Dsc" focusable="false" 
+                                 width="30px" height="65px" valign="bottom" align="left"/>
+                    </panel>
+                    <panel id="oriAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
+                        childLayout="center" width="140px" height="140px" margin="0px">
+                        <text text="look around" font="Interface/Fonts/Default.fnt"
+                            width="100%" height="100%" wrap="true"/>
+                    </panel>
+                </panel>
+            </control>
+            <control name="window" id="wdDemo" title="Demostration Tools" hideOnClose="true"
+                     width="320px" height="186px" backgroundColor="#000f">
+                <effect>
+                    <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
+                    <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
+                    <onCustom name="border" border="3px" inherit="true" length="500"/>
+                </effect>
+                <panel childLayout="vertical">
+                    <panel childLayout="horizontal" width="100%">
+                        <control name="label" text="Current Object:" width="90px" textHAlign="right"/>
+                        <control name="label" text="" width="5px"/><!--padding-->
+                        <control name="label" id="lbGrasped" text="&lt;none&gt;" textHAlign="left" width="*"/>
+                        <control name="button" id="btRelease" label="Release" width="60px" focusable="false"/>
+                    </panel>
+                    <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
+                        <control name="label" text="Plane Rotation:" width="90px" textHAlign="right"/>
+                        <control name="label" text="" width="5px"/><!--padding-->
+                        <control name="label" text="" width="*"/><!--padding-->
+                        <control name="button" id="btPlaneRotL" label="L" width="100px" focusable="fasle"/>
+                        <control name="button" id="btPlaneRotR" label="R" width="100px" focusable="fasle"/>
+                    </panel>
+                    <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
+                        <control name="label" text="Object Rotation:" width="90px" textHAlign="right"/>
+                        <control name="label" text="" width="*"/>
+                    </panel>
+                    <panel childLayout="vertical" align="left" width="100%">
+                        <panel childLayout="horizontal" width="100%">
+                            <control name="label" text="X:" width="30px" textHAlign="right" color="#ff0000"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="horizontalScrollbar" id="sbObjRotX" worldMax="405" worldPageSize="45"
+                                initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="label" id="lbObjRotX" text="" width="30px" color="#ff0000"/>
+                        </panel>
+                        <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
+                            <control name="label" text="Y:" width="30px" textHAlign="right" color="#00ff00"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="horizontalScrollbar" id="sbObjRotY" worldMax="405" worldPageSize="45"
+                                initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="label" id="lbObjRotY" text="" width="30px" color="#00ff00"/>
+                        </panel>
+                        <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
+                            <control name="label" text="Z:" width="30px" textHAlign="right" color="#0000ff"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="horizontalScrollbar" id="sbObjRotZ" worldMax="405" worldPageSize="45"
+                                initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
+                            <control name="label" text="" width="5px"/><!--padding-->
+                            <control name="label" id="lbObjRotZ" text="" width="30px" color="#0000ff"/>
+                        </panel>
+                    </panel>
+                </panel>
+            </control>        
+        </layer>
+    </screen>    
+</nifty>
