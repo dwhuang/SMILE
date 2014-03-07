@@ -85,7 +85,8 @@ public class Factory {
             c.x += unitBlockSize;
         }
         
-        return GeometryBatchFactory.optimize(bigBlock);
+//        return GeometryBatchFactory.optimize(bigBlock);
+        return bigBlock;
     }
     
     public Spatial makeBoxContainer(String name, float w, float h, float d, 

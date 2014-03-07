@@ -83,7 +83,7 @@
                             <control name="horizontalScrollbar" id="sbObjRotX" worldMax="405" worldPageSize="45"
                                 initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
                             <control name="label" text="" width="5px"/><!--padding-->
-                            <control name="label" id="lbObjRotX" text="" width="30px" color="#ff0000"/>
+                            <control name="label" id="lbObjAngleX" text="" width="30px" color="#ff0000"/>
                         </panel>
                         <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
                             <control name="label" text="Y:" width="30px" textHAlign="right" color="#00ff00"/>
@@ -91,7 +91,7 @@
                             <control name="horizontalScrollbar" id="sbObjRotY" worldMax="405" worldPageSize="45"
                                 initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
                             <control name="label" text="" width="5px"/><!--padding-->
-                            <control name="label" id="lbObjRotY" text="" width="30px" color="#00ff00"/>
+                            <control name="label" id="lbObjAngleY" text="" width="30px" color="#00ff00"/>
                         </panel>
                         <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
                             <control name="label" text="Z:" width="30px" textHAlign="right" color="#0000ff"/>
@@ -99,7 +99,7 @@
                             <control name="horizontalScrollbar" id="sbObjRotZ" worldMax="405" worldPageSize="45"
                                 initial="180" buttonStepSize="1" pageStepSize="45" width="*" focusable="fasle"/>
                             <control name="label" text="" width="5px"/><!--padding-->
-                            <control name="label" id="lbObjRotZ" text="" width="30px" color="#0000ff"/>
+                            <control name="label" id="lbObjAngleZ" text="" width="30px" color="#0000ff"/>
                         </panel>
                     </panel>
                 </panel>

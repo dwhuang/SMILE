@@ -97,7 +97,6 @@ public class GuiController extends AbstractAppState implements ScreenController 
                 windowElement.show();
             }
         }
-        organizeWindows();
     }
     
     @NiftyEventSubscriber(id="btHideAll")

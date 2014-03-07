@@ -16,22 +16,18 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
 import tabletop2.gui.GuiController;
 
 /**
@@ -39,9 +35,10 @@ import tabletop2.gui.GuiController;
  *
  * @author normenhansen
  */
-public class Main extends SimpleApplication implements ActionListener {
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
-    private static final Vector3f TABLE_SIZE = new Vector3f(
+public class MainApp extends SimpleApplication implements ActionListener {
+    private static final Logger logger = Logger.getLogger(MainApp.class.getName());
+    
+    public static final Vector3f TABLE_SIZE = new Vector3f(
             20f, 4f, 12f);
     private static final ColorRGBA TABLE_COLOR = new ColorRGBA(
             1.0f, 1.0f, 1.0f, 1.0f);
@@ -50,19 +47,19 @@ public class Main extends SimpleApplication implements ActionListener {
     private static final Vector3f CAMERA_INIT_LOOKAT = new Vector3f(
             0, 0, TABLE_SIZE.z / 2);
 
-    private BulletAppState bulletAppState;
-    private Factory factory;
-    
-    private HashMap<Geometry, Spatial> grabbables = new HashMap<Geometry, Spatial>();
+    private BulletAppState bulletAppState = new BulletAppState();
+    private Inventory inventory = new Inventory();
     private static Random random = new Random(5566);
-        
+
+    private Factory factory;
     private Robot robot;
+    private Demonstrator demonstrator;
+    private Spatial table;
     
     private final boolean flyGripper = false;
     private Node gripperNode;
     private Gripper gripper;
     
-    private Demonstrator demonstrator;
     
     private boolean hasDeletedMouseTrigger = false;
     private boolean shiftKey = false;
@@ -71,17 +68,25 @@ public class Main extends SimpleApplication implements ActionListener {
     private ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
     private Node hudNode;
     private Geometry hudBackground;
-
-    public static void main(String[] args) {
-        Main app = new Main();
+    
+    public static void main(String[] args) throws BackingStoreException {
+        MainApp app = new MainApp();
         app.setPauseOnLostFocus(false);
-        
-        AppSettings settings = new AppSettings(true);
+        app.setDisplayStatView(false);
+        app.setDisplayFps(false);
+
+                
+        AppSettings settings = new AppSettings(false);
+        settings.load("tabletop2");
         settings.setTitle("tabletop2");
         settings.setSettingsDialogImage("Interface/baxter.png");
         settings.setFrameRate(60);
-//        settings.setVSync(true);
-        settings.setResolution(800, 600);
+        settings.setSamples(2);
+        settings.putBoolean("DisableJoysticks", false);
+        settings.save("tabletop2");
+
+        //        settings.setVSync(true);
+//        settings.setResolution(800, 600);
 //        settings.setSamples(4);
 //        settings.setFullscreen(true);
 //        GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
@@ -96,29 +101,35 @@ public class Main extends SimpleApplication implements ActionListener {
 //        settings.setFrequency(modes[i].getRefreshRate());
 //        settings.setBitsPerPixel(modes[i].getBitDepth());
 ////        settings.setFullscreen(device.isFullScreenSupported());
-        settings.setSamples(2);
-////        settings.setVSync(true);
-//        settings.setFrameRate(60);
-        settings.putBoolean("DisableJoysticks", false);
         
         app.setSettings(settings);
-//        app.setShowSettings(true);
-        
-        app.setDisplayStatView(false);
-        app.setDisplayFps(false);
+        app.setShowSettings(true);        
         
         app.start(); // restart the context to apply changes
-        
-        
-//        app.setSettings(settings);
-//        app.setShowSettings(true);
-//        app.start();
+    }
+    
+    public BulletAppState getBulletAppState() {
+        return bulletAppState;
+    }
+    
+    public final Factory getFactory() {
+        return factory;
+    }
+    
+    public final Inventory getInventory() {
+        return inventory;
+    }
+    
+    public Robot getRobot() {
+        return robot;
+    }
+    
+    public Spatial getTable() {
+        return table;
     }
     
     @Override
     public void simpleInitApp() {
-        factory = new Factory(assetManager);
-        bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
 //        bulletAppState.getPhysicsSpace().setAccuracy(1f/120f);
 //        bulletAppState.getPhysicsSpace().setMaxSubSteps(10);
@@ -131,8 +142,10 @@ public class Main extends SimpleApplication implements ActionListener {
 //        System.err.println(dw.getSolverInfo().splitImpulse);
 //        dw.getSolverInfo().splitImpulse = true;
 
-        flyCam.setMoveSpeed(10f);
-        
+        factory = new Factory(assetManager);
+
+        initStage();
+
         Node node = new Node("robot location");
         node.setLocalTranslation(0, 2, TABLE_SIZE.z / 2 + 3);
         Quaternion q = new Quaternion(new float[] {0, FastMath.HALF_PI, 0});
@@ -141,14 +154,12 @@ public class Main extends SimpleApplication implements ActionListener {
         robot = new Robot("baxter", node, assetManager, renderManager, 
                 bulletAppState.getPhysicsSpace(), factory);
         
-        demonstrator = new Demonstrator("demonstrator", rootNode, viewPort, 
-                assetManager, inputManager, 
-                new Vector2f(TABLE_SIZE.x * 3, TABLE_SIZE.z * 4), 
-                grabbables, factory, robot);
-        initStage();
+        demonstrator = new Demonstrator("demonstrator", this);
+
         initKeys();
         initHUD();
         
+        flyCam.setMoveSpeed(10f);
         
 //        stateManager.attach(new VideoRecorderAppState()); //start recording
         
@@ -184,7 +195,7 @@ public class Main extends SimpleApplication implements ActionListener {
     
     private void initStage() {
         // table
-        Spatial table = factory.makeBigBlock("table", 
+        table = factory.makeBigBlock("table", 
                 TABLE_SIZE.x, TABLE_SIZE.y, TABLE_SIZE.z, TABLE_COLOR, 4);
         table.setLocalTranslation(0.0f, -TABLE_SIZE.y / 2, 0.0f);
         rootNode.attachChild(table);
@@ -219,7 +230,7 @@ public class Main extends SimpleApplication implements ActionListener {
         RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
         boxContainer.addControl(boxContainerControl);
         bulletAppState.getPhysicsSpace().add(boxContainerControl);
-        addGrabbable(boxContainer);
+        inventory.addItem(boxContainer);
         
         // have a gripper attached to fly cam
         if (flyGripper) {
@@ -344,33 +355,21 @@ public class Main extends SimpleApplication implements ActionListener {
         }
         
         // cleanup unused objects
-        rootNode.depthFirstTraversal(new SceneGraphVisitor() {
-            public void visit(Spatial spatial) {
-                if (spatial.getControl(RigidBodyControl.class) != null) {
-                    if (spatial.getLocalTranslation().y < -1000) {
-                        RigidBodyControl rbc = spatial.getControl(RigidBodyControl.class);
-                        if (rbc == null) {
-                            return;
-                        }
-                        bulletAppState.getPhysicsSpace().remove(rbc);
-                        spatial.removeControl(rbc);
-                        // remove from grabbables
-                        spatial.depthFirstTraversal(new SceneGraphVisitor() {
-                            public void visit(Spatial spatial) {
-                                if (spatial instanceof Geometry) {
-                                    grabbables.remove((Geometry)spatial);
-                                }
-                            }
-                        });
-                        // remove from the scene graph
-                        if (spatial.getParent() != null) {
-                            spatial.getParent().detachChild(spatial);
-                        }
-                    }
+        for (Spatial item : inventory.allItems()) {
+            if (item.getParent() == rootNode && item.getLocalTranslation().y < -1000) {
+                RigidBodyControl rbc = item.getControl(RigidBodyControl.class);
+                // remove physics control
+                if (rbc != null) {
+                    bulletAppState.getPhysicsSpace().remove(rbc);
+                    item.removeControl(rbc);
                 }
+                // remove from the scene graph
+                rootNode.detachChild(item);
+                
+                inventory.markItemForRemoval(item);
             }
-        });
-        
+        }
+        inventory.purge();
         
         if (robot.matlabAgentAlive()) {
             hudTextBuffer.set(0, "Matlab agent: ON");
@@ -459,7 +458,7 @@ public class Main extends SimpleApplication implements ActionListener {
                 Quaternion rot = new Quaternion();
                 rot.fromAngleAxis(FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_XYZ);
                 c.setPhysicsRotation(rot);
-                addGrabbable(g);
+                inventory.addItem(g);
             }
         } else if (name.equals("makeStack")) {
             if (isPressed) {
@@ -484,33 +483,22 @@ public class Main extends SimpleApplication implements ActionListener {
                     c.setPhysicsLocation(v);
 
                     v.y += BOX_SIZE.y;
-                    addGrabbable(g);
+                    inventory.addItem(g);
                 }
             }
         } else if (name.equals("clearTable")) {
-            Iterator<Entry<Geometry, Spatial>> itr = grabbables.entrySet().iterator();
-            ArrayList<Spatial> objToBeRemoved = new ArrayList<Spatial>();
-            while (itr.hasNext()) {
-                Entry<Geometry, Spatial> entry = itr.next();
-                Spatial s = entry.getValue();
-                if (s.getParent() != rootNode) {
-                    // this item may be held by a gripper
-                    continue;
+            for (Spatial item : inventory.allItems()) {
+                if (item.getParent() == rootNode) {
+                    RigidBodyControl rbc = item.getControl(RigidBodyControl.class);
+                    if (rbc != null) {
+                        bulletAppState.getPhysicsSpace().remove(rbc);
+                        item.removeControl(rbc);
+                    }
+                    rootNode.detachChild(item);
+                    inventory.markItemForRemoval(item);
                 }
-                objToBeRemoved.add(s);
-                itr.remove();
             }
-            // objToBeRemoved may contain duplicates
-            for (Spatial s : objToBeRemoved) {           
-                RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
-                if (rbc != null) {
-                    bulletAppState.getPhysicsSpace().remove(rbc);
-                    s.removeControl(rbc);
-                }
-                if (s.getParent() != null) {
-                    s.getParent().detachChild(s);
-                }
-            }            
+            inventory.purge();
         } else if (name.equals("cameraRobotHead")) {
             if (isPressed) {
                 robot.toggleHeadCameraView(rootNode);
@@ -518,20 +506,4 @@ public class Main extends SimpleApplication implements ActionListener {
         }
     }
     
-   private void addGrabbable(Spatial gb) {
-        if (gb instanceof Geometry) {
-            grabbables.put((Geometry) gb, gb);
-        } else if (gb instanceof Node) {
-            final Node gbNode = (Node)gb;
-            gbNode.depthFirstTraversal(new SceneGraphVisitor() {
-                public void visit(Spatial s) {
-                    if (s instanceof Geometry) {
-                        grabbables.put((Geometry)s, gbNode);
-                    }
-                }
-            });
-        } else {
-            logger.log(Level.WARNING, "unknown spatial type for {0}", gb.getName());
-        }
-   }
 }

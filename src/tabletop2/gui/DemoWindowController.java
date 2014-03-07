@@ -34,20 +34,16 @@ public class DemoWindowController implements WindowController, DemonstrationList
     private Button btRelease;
     private Button btPlaneRotL;
     private Button btPlaneRotR;
-    private Scrollbar sbObjRotX;
-    private Scrollbar sbObjRotY;
-    private Scrollbar sbObjRotZ;
-    private Label lbObjRotX;
-    private Label lbObjRotY;
-    private Label lbObjRotZ;
-    
     private float planeRotDir = 0;
-//    private Quaternion graspRot = new Quaternion();
+
+    private Scrollbar[] sbObjRot = new Scrollbar[3];
+    private Label[] lbObjAngles = new Label[3];
     private Quaternion objRot = new Quaternion();
+    private float[] prevObjAngles = new float[] {180, 180, 180};
+    private final Vector3f[] objRotAxis = new Vector3f[] {
+        Vector3f.UNIT_X, Vector3f.UNIT_Z.negate(), Vector3f.UNIT_Y};
+    
     private Quaternion quat = new Quaternion(); // temporary variable
-    private float prevObjRotX = 180;
-    private float prevObjRotY = 180;
-    private float prevObjRotZ = 180;
     
     DemoWindowController(Demonstrator demonstrator) {
         this.demonstrator = demonstrator;
@@ -59,12 +55,12 @@ public class DemoWindowController implements WindowController, DemonstrationList
         btRelease = screen.findElementByName("btRelease").getNiftyControl(Button.class);
         btPlaneRotL = screen.findElementByName("btPlaneRotL").getNiftyControl(Button.class);
         btPlaneRotR = screen.findElementByName("btPlaneRotR").getNiftyControl(Button.class);
-        sbObjRotX = screen.findElementByName("sbObjRotX").getNiftyControl(Scrollbar.class);
-        sbObjRotY = screen.findElementByName("sbObjRotY").getNiftyControl(Scrollbar.class);
-        sbObjRotZ = screen.findElementByName("sbObjRotZ").getNiftyControl(Scrollbar.class);
-        lbObjRotX = screen.findElementByName("lbObjRotX").getNiftyControl(Label.class);
-        lbObjRotY = screen.findElementByName("lbObjRotY").getNiftyControl(Label.class);
-        lbObjRotZ = screen.findElementByName("lbObjRotZ").getNiftyControl(Label.class);
+        sbObjRot[0] = screen.findElementByName("sbObjRotX").getNiftyControl(Scrollbar.class);
+        sbObjRot[1] = screen.findElementByName("sbObjRotY").getNiftyControl(Scrollbar.class);
+        sbObjRot[2] = screen.findElementByName("sbObjRotZ").getNiftyControl(Scrollbar.class);
+        lbObjAngles[0] = screen.findElementByName("lbObjAngleX").getNiftyControl(Label.class);
+        lbObjAngles[1] = screen.findElementByName("lbObjAngleY").getNiftyControl(Label.class);
+        lbObjAngles[2] = screen.findElementByName("lbObjAngleZ").getNiftyControl(Label.class);
         nifty.subscribeAnnotations(this);
 
         demoRelease();
@@ -89,16 +85,11 @@ public class DemoWindowController implements WindowController, DemonstrationList
         btRelease.enable();
         btPlaneRotL.enable();
         btPlaneRotR.enable();
-        sbObjRotX.enable();
-        sbObjRotY.enable();
-        sbObjRotZ.enable();
-        lbObjRotX.setText("0");
-        lbObjRotY.setText("0");
-        lbObjRotZ.setText("0");
-
-        prevObjRotX = 180;
-        prevObjRotY = 180;
-        prevObjRotZ = 180;
+        for (int i = 0; i < sbObjRot.length; ++i) {
+            sbObjRot[i].enable();
+            lbObjAngles[i].setText("0");
+            prevObjAngles[i] = 180;
+        }
         
         objRot = new Quaternion(rot);
     }
@@ -109,16 +100,11 @@ public class DemoWindowController implements WindowController, DemonstrationList
         btPlaneRotL.disable();
         btPlaneRotR.disable();        
         
-        sbObjRotX.disable();
-        sbObjRotX.setValue(180);
-        sbObjRotY.disable();
-        sbObjRotY.setValue(180);
-        sbObjRotZ.disable();
-        sbObjRotZ.setValue(180);
-        
-        lbObjRotX.setText("");
-        lbObjRotY.setText("");
-        lbObjRotZ.setText("");
+        for (int i = 0; i < sbObjRot.length; ++i) {
+            sbObjRot[i].disable();
+            sbObjRot[i].setValue(180);
+            lbObjAngles[i].setText("");
+        }
     }
     
     @NiftyEventSubscriber(id="btRelease")
@@ -145,23 +131,38 @@ public class DemoWindowController implements WindowController, DemonstrationList
         if (!e.getScrollbar().isEnabled()) {
             return;
         }
-        if (e.getScrollbar() == sbObjRotX) {
-            quat.fromAngleNormalAxis((e.getValue() - prevObjRotX) * FastMath.DEG_TO_RAD, Vector3f.UNIT_X);
-            prevObjRotX = e.getValue();
-            lbObjRotX.setText(Integer.toString((int)e.getValue() - 180));
-        } else if (e.getScrollbar() == sbObjRotY) {
-            quat.fromAngleNormalAxis((e.getValue() - prevObjRotY) * FastMath.DEG_TO_RAD, Vector3f.UNIT_Z.negate());
-            prevObjRotY = e.getValue();
-            lbObjRotY.setText(Integer.toString((int)e.getValue() - 180));
-        } else if (e.getScrollbar() == sbObjRotZ) {
-            quat.fromAngleNormalAxis((e.getValue() - prevObjRotZ) * FastMath.DEG_TO_RAD, Vector3f.UNIT_Y);
-            prevObjRotZ = e.getValue();
-            lbObjRotZ.setText(Integer.toString((int)e.getValue() - 180));
-        } else {
+        int ind = -1;
+        for (int i = 0; i < sbObjRot.length; ++i) {
+            if (e.getScrollbar() == sbObjRot[i]) {
+                ind = i;
+                break;
+            }
+        }
+        if (ind < 0) {
             return;
         }
-        quat.multLocal(objRot);
-        objRot.set(quat);
-        demonstrator.rotate(quat);
+        
+        float angleDiff = e.getValue() - prevObjAngles[ind];
+        boolean failed = false;
+        if (FastMath.abs(angleDiff) < 46) {
+            quat.fromAngleNormalAxis(angleDiff * FastMath.DEG_TO_RAD, objRotAxis[ind]);
+            quat.multLocal(objRot);
+            if (demonstrator.rotate(quat)) {
+                // rotation succeeded
+                prevObjAngles[ind] = e.getValue();
+                lbObjAngles[ind].setText(Integer.toString((int)e.getValue() - 180));
+                objRot.set(quat);
+            } else {
+                // rotation failed due to collision with the table
+                failed = true;
+            }
+        } else {
+            // ignore huge-angle rotations
+            failed = true;
+        }
+        
+        if (failed) {
+            e.getScrollbar().setValue(prevObjAngles[ind]);
+        }
     }
 }

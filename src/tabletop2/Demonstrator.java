@@ -4,7 +4,7 @@
  */
 package tabletop2;
 
-import com.jme3.asset.AssetManager;
+import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
@@ -15,24 +15,25 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Transform;
+import com.jme3.math.Triangle;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
-import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  *
  * @author dwhuang
  */
-public class Demonstrator implements ActionListener, AnalogListener, PhysicsCollisionListener {
+public class Demonstrator implements ActionListener, AnalogListener {
 
     private enum DemoState {
         Idle, Grasped, Moving
@@ -40,8 +41,8 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
     private Node rootNode;
     private Camera cam;
     private InputManager inputManager;
-    private Robot robot;
-    private final HashMap<Geometry, Spatial> grabbables;
+    private final Inventory inventory;
+    private Spatial table;
 
     private ArrayList<DemonstrationListener> demoListeners = new ArrayList<DemonstrationListener>();
     private DemonstratorSceneProcessor sceneProcessor;
@@ -50,11 +51,12 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
     private Node visualAid;
     private Node movingPlane;
     private Node graspNode;
-    private Spatial graspedObject = null;
+    private Spatial graspedItem = null;
     private Vector3f movingCursorOffset;
+    private Vector3f graspNodePrevPos = new Vector3f();
+    private Quaternion graspNodePrevRot = new Quaternion();
     
     private boolean shiftKey = false;
-//    private float rightClickTime = 0;
     
     private Ray ray = new Ray();
     private CollisionResults collisionResults = new CollisionResults();
@@ -63,33 +65,36 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
     private Vector3f vec = new Vector3f();
     private Transform transform = new Transform();
 
-    public Demonstrator(String name, Node rootNode, ViewPort viewPort,
-            AssetManager assetManager, InputManager inputManager, 
-            Vector2f movingPlaneSize, 
-            final HashMap<Geometry, Spatial> grabbables, 
-            Factory factory, Robot robot) {
-        this.rootNode = rootNode;
-        this.cam = viewPort.getCamera();
-        this.inputManager = inputManager;
-        this.grabbables = grabbables;
-        this.robot = robot;
-
+//    public Demonstrator(String name, Node rootNode, ViewPort viewPort,
+//            AssetManager assetManager, InputManager inputManager, 
+//            Vector2f movingPlaneSize, 
+//            final HashMap<Geometry, Spatial> grabbables, 
+//            Factory factory, Robot robot) {
+    public Demonstrator(String name, MainApp app) {
+        rootNode = app.getRootNode();
+        cam = app.getViewPort().getCamera();
+        inputManager = app.getInputManager();
+        inventory = app.getInventory();
+        table = app.getTable();
+        
         visualAid = new Node(name + "visualAid");
         movingPlane = new Node(name + " movingPlane");
-        visualAid.attachChild(movingPlane);
+        visualAid.attachChild(movingPlane);        
+        Factory factory = app.getFactory();
+        
+        Vector2f planeSize = new Vector2f(MainApp.TABLE_SIZE.x, MainApp.TABLE_SIZE.x);
+        planeSize.multLocal(4);
         Geometry g = factory.makeUnshadedPlane(name + " movingSubplane1",
-                movingPlaneSize.x, movingPlaneSize.y,
-                new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
-        g.setLocalTranslation(-movingPlaneSize.x / 2, -movingPlaneSize.y / 2, 0);
+                planeSize.x, planeSize.y, new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
+        g.setLocalTranslation(-planeSize.x / 2, -planeSize.y / 2, 0);
         movingPlane.attachChild(g);
         g = factory.makeUnshadedPlane(name + " movingSubplane2",
-                movingPlaneSize.x, movingPlaneSize.y,
-                new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
+                planeSize.x, planeSize.y, new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
         g.setLocalRotation(new Quaternion(new float[]{0, FastMath.PI, 0}));
-        g.setLocalTranslation(movingPlaneSize.x / 2, -movingPlaneSize.y / 2, 0);
+        g.setLocalTranslation(planeSize.x / 2, -planeSize.y / 2, 0);
         movingPlane.attachChild(g);
         g = factory.makeUnshadedLine(name + " shadowLine", Vector3f.ZERO, 
-                new Vector3f(0, -movingPlaneSize.y / 2, 0), ColorRGBA.Black);
+                new Vector3f(0, -planeSize.y / 2, 0), ColorRGBA.Black);
         movingPlane.attachChild(g);
         
         g = factory.makeUnshadedArrow(name + " axisArrowX", 
@@ -108,8 +113,8 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         graspNode = new Node(name + " graspNode");
         rootNode.attachChild(graspNode);
 
-        sceneProcessor = new DemonstratorSceneProcessor(assetManager, visualAid);
-        viewPort.addProcessor(sceneProcessor);
+        sceneProcessor = new DemonstratorSceneProcessor(app.getAssetManager(), visualAid);
+        app.getViewPort().addProcessor(sceneProcessor);
     }
 
     public void onAction(String name, boolean isPressed, float tpf) {
@@ -118,7 +123,7 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         } else if (name.equals("demoLeftClick")) {
             if (state == DemoState.Idle) {
                 if (!isPressed) {
-                    Spatial cursorObj = getCursorObject(rootNode);
+                    Spatial cursorObj = getCursorItem(rootNode);
                     if (cursorObj != null) { 
                         grasp(cursorObj);
                     }
@@ -134,26 +139,6 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
                     movingEnd();
                 }
             }
-//        } else if (name.equals("demoRightClick")) {
-//            if (!isPressed) {
-//                if (state == DemoState.Idle) {
-//                    CollisionResult result = getCursorClosestCollision(rootNode);
-//                    if (result != null) {
-//                        Geometry target = result.getGeometry();
-//                        Spatial s = grabbables.get(target);
-//                        if (s != null && s.getParent() == rootNode) {
-//                            RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
-//                            Vector3f dir = getCursorRayDirection();
-//                            dir.y = 0.05f; // ignore vertical impulse
-//                            dir.multLocal(rightClickTime * 10);
-//                            Vector3f pt = result.getContactPoint();
-//                            s.getLocalTransform().transformInverseVector(pt, pt);                            
-//                            rbc.applyImpulse(dir, pt);
-//                        }
-//                    }
-//                }
-//                rightClickTime = 0;
-//            }
         }
     }
 
@@ -187,21 +172,16 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
                 Vector3f pos = getCursorPosOnMovingPlane();
                 if (pos != null) {
                     pos.addLocal(movingCursorOffset);
-                    move(pos);
+                    if (!move(pos) && !movingStart()) {
+                        movingEnd();
+                    }
                 } else {
                     movingEnd();
                 }
             }
-//        } else if (name.equals("demoRightClick")) {
-//            rightClickTime += tpf;
         }
     }
 
-    @Override
-    public void collision(PhysicsCollisionEvent event) {
-        
-    }
-    
     public void grasp(Spatial s) {
         if (state != DemoState.Idle) {
             throw new IllegalStateException("illegal operation");
@@ -210,13 +190,13 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
             throw new NullPointerException();
         }
         
-        graspedObject = s;
+        graspedItem = s;
         graspNode.setLocalTransform(s.getLocalTransform());
         rootNode.detachChild(s);
         s.setLocalTransform(Transform.IDENTITY);
         graspNode.attachChild(s);
 
-        RigidBodyControl rbc = graspedObject.getControl(RigidBodyControl.class);
+        RigidBodyControl rbc = graspedItem.getControl(RigidBodyControl.class);
         rbc.setKinematic(true);
         rbc.setMass(rbc.getMass() + 9999);                                    
 
@@ -234,14 +214,14 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         
         state = DemoState.Grasped;
         for (DemonstrationListener l : demoListeners) {
-            l.demoGrasp(graspedObject, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
+            l.demoGrasp(graspedItem, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
         }
     }
 
     private boolean movingStart() {
-        Spatial cursorObj = getCursorObject(rootNode);
+        Spatial cursorObj = getCursorItem(rootNode);
         movingCursorOffset = getCursorPosOnMovingPlane();
-        if (cursorObj == graspedObject && movingCursorOffset != null) {
+        if (cursorObj == graspedItem && movingCursorOffset != null) {
             movingCursorOffset.negateLocal();
             movingCursorOffset.addLocal(graspNode.getLocalTranslation());
             state = DemoState.Moving;
@@ -251,7 +231,7 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         }
     }
     
-    public void move(Vector3f pos) {
+    public boolean move(Vector3f pos) {
         if (state != DemoState.Grasped && state != DemoState.Moving) {
             throw new IllegalStateException("illegal operation");
         }
@@ -259,19 +239,32 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         if (pos == null) {
             throw new NullPointerException();
         }
+        graspNodePrevPos.set(graspNode.getLocalTranslation());
         graspNode.setLocalTranslation(pos);
+        if (graspNodeCollidedWithTable()) {
+            // revert to previous position (undo this move() call)
+            graspNode.setLocalTranslation(graspNodePrevPos);
+            return false;
+        }
         visualAid.setLocalTranslation(pos);
+        return true;
     }
     
     private void movingEnd() {
         state = DemoState.Grasped;
     }
     
-    public void rotate(Quaternion rot) {
+    public boolean rotate(Quaternion rot) {
         if (state != DemoState.Grasped) {
             throw new IllegalStateException("illegal operation");
         }
+        graspNodePrevRot.set(graspNode.getLocalRotation());
         graspNode.setLocalRotation(rot);
+        if (graspNodeCollidedWithTable()) {
+            graspNode.setLocalRotation(graspNodePrevRot);
+            return false;
+        }
+        return true;
     }
     
     public void release() {
@@ -279,18 +272,18 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
             throw new IllegalStateException("illegal operation");
         }
 
-        graspNode.detachChild(graspedObject);
-        graspedObject.setLocalTransform(graspNode.getLocalTransform());
-        rootNode.attachChild(graspedObject);
+        graspNode.detachChild(graspedItem);
+        graspedItem.setLocalTransform(graspNode.getLocalTransform());
+        rootNode.attachChild(graspedItem);
 
-        RigidBodyControl oldControl = graspedObject.getControl(RigidBodyControl.class);
+        RigidBodyControl oldControl = graspedItem.getControl(RigidBodyControl.class);
         RigidBodyControl newControl = new RigidBodyControl(oldControl.getMass() - 9999);
-        graspedObject.addControl(newControl);
+        graspedItem.addControl(newControl);
         oldControl.getPhysicsSpace().add(newControl);                
-        graspedObject.removeControl(oldControl);
+        graspedItem.removeControl(oldControl);
         oldControl.getPhysicsSpace().remove(oldControl);
 
-        graspedObject = null;
+        graspedItem = null;
         
         sceneProcessor.setShowVisualAid(false);
         sceneProcessor.highlightSpatial(null);
@@ -301,67 +294,22 @@ public class Demonstrator implements ActionListener, AnalogListener, PhysicsColl
         }
     }
 
-//    private void gotoIdleState(boolean release) {
-//        if (release) {
-//            releaseObject();
-//        }
-//        selectedObject = null;
-//        sceneProcessor.setShowVisualAid(false);
-//        sceneProcessor.highlightSpatial(null);
-//        state = DemoState.Idle;
-//        
-//        robot.setDemoCue(false);
-//    }
-//    
-//    private void gotoSelectedState(Spatial object) {
-//        selectedObject = object;
-//        Vector3f objCenter = object.getLocalTranslation();
-//        objCenter.y = 0;
-//        cam.getRotation().toAngles(angles);
-//        angles[0] = 0;
-//        angles[2] = 0;
-//        quat.fromAngles(angles);
-//        
-//        movingPlane.setLocalTranslation(objCenter);
-//        movingPlane.setLocalRotation(quat);
-//        demoNode.setLocalTranslation(objCenter);
-//        sceneProcessor.setShowVisualAid(true);
-//        sceneProcessor.highlightSpatial(object);
-//        state = DemoState.Anchored;
-//
-//        robot.setDemoCue(false);
-//    }
+    private boolean graspNodeCollidedWithTable() {
+        collisionResults.clear();
+        graspNode.collideWith(table.getWorldBound(), collisionResults);
+        if (collisionResults.size() > 0) {
+            return true;
+        }
+        return false;
+    }
     
-//    private void gotoMovingState(Vector3f planeContact) {
-//        holdObject(planeContact);
-//        state = DemoState.Moving;
-//        
-//        robot.setDemoCue(true);
-//    }
-
-    private Spatial getCursorObject(Node rootNode) {
+    private Spatial getCursorItem(Node rootNode) {
         CollisionResult r = getCursorClosestCollision(rootNode);
         if (r == null) {
             return null;
         }
-        return getWholeGrabbableSpatial(r.getGeometry());
-    }
-    
-    private Spatial getWholeGrabbableSpatial(Spatial s) {
-        if (s instanceof Geometry) {
-            Spatial obj = grabbables.get((Geometry)s);
-            if (obj != null && obj.getParent() != rootNode && obj.getParent() != graspNode) {
-                return null;
-            } else {
-                return obj;
-            }
-        } else {
-            if (!grabbables.containsValue(s) || (s.getParent() != rootNode && s.getParent() != graspNode)) {
-                return null;
-            } else {
-                return s;
-            }
-        }
+        Spatial item = inventory.getItem(r.getGeometry());
+        return item;
     }
     
     private Vector3f getCursorRayDirection() {
