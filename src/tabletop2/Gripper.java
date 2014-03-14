@@ -32,7 +32,7 @@ public class Gripper implements AnalogListener {
     private static final Logger logger = Logger.getLogger(
             Gripper.class.getName());
     static {
-        logger.setLevel(Level.INFO);
+        logger.setLevel(Level.SEVERE);
     }
 
     public static final Vector3f FINGER_SIZE = new Vector3f(0.3f, 0.4f, 1.5f);

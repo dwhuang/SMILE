@@ -1,10 +1,19 @@
 package tabletop2;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
+
+import tabletop2.gui.GuiController;
+
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
-import com.jme3.bullet.joints.motors.RotationalLimitMotor;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -24,14 +33,8 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
+
 import de.lessvoid.nifty.Nifty;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.prefs.BackingStoreException;
-import tabletop2.gui.GuiController;
 
 /**
  * test
@@ -77,6 +80,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private transient HashSet<Spatial> itemsToBeRemoved = new HashSet<Spatial>();
     
     public static void main(String[] args) throws BackingStoreException {
+    	Locale.setDefault(Locale.ENGLISH);
         MainApp app = new MainApp();
         app.setPauseOnLostFocus(false);
         app.setDisplayStatView(false);

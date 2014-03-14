@@ -4,6 +4,9 @@
  */
 package tabletop2;
 
+import java.util.ArrayList;
+import java.util.Set;
+
 import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.joints.PhysicsJoint;
@@ -23,9 +26,6 @@ import com.jme3.renderer.Camera;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  *
