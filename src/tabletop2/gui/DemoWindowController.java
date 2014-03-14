@@ -32,6 +32,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
     private Window window;
     private Label lbGrasped;
     private Button btRelease;
+    private Button btDestroy;
     private Button btPlaneRotL;
     private Button btPlaneRotR;
     private float planeRotDir = 0;
@@ -43,7 +44,9 @@ public class DemoWindowController implements WindowController, DemonstrationList
     private final Vector3f[] objRotAxis = new Vector3f[] {
         Vector3f.UNIT_X, Vector3f.UNIT_Z.negate(), Vector3f.UNIT_Y};
     
-    private Quaternion quat = new Quaternion(); // temporary variable
+    private transient Quaternion targetRot = new Quaternion();
+    private transient Quaternion quat = new Quaternion();
+    private transient float[] angles = new float[3];
     
     DemoWindowController(Demonstrator demonstrator) {
         this.demonstrator = demonstrator;
@@ -53,6 +56,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
         window = screen.findElementByName("wdDemo").getNiftyControl(Window.class);
         lbGrasped = screen.findElementByName("lbGrasped").getNiftyControl(Label.class);
         btRelease = screen.findElementByName("btRelease").getNiftyControl(Button.class);
+        btDestroy = screen.findElementByName("btDestroy").getNiftyControl(Button.class);
         btPlaneRotL = screen.findElementByName("btPlaneRotL").getNiftyControl(Button.class);
         btPlaneRotR = screen.findElementByName("btPlaneRotR").getNiftyControl(Button.class);
         sbObjRot[0] = screen.findElementByName("sbObjRotX").getNiftyControl(Scrollbar.class);
@@ -83,6 +87,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
     public void demoGrasp(Spatial s, Vector3f pos, Quaternion rot) {
         lbGrasped.setText(s.getName());
         btRelease.enable();
+        btDestroy.enable();
         btPlaneRotL.enable();
         btPlaneRotR.enable();
         for (int i = 0; i < sbObjRot.length; ++i) {
@@ -97,6 +102,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
     public void demoRelease() {
         lbGrasped.setText("<empty>");
         btRelease.disable();
+        btDestroy.disable();
         btPlaneRotL.disable();
         btPlaneRotR.disable();        
         
@@ -110,6 +116,11 @@ public class DemoWindowController implements WindowController, DemonstrationList
     @NiftyEventSubscriber(id="btRelease")
     public void onBtRelease(String id, ButtonClickedEvent e) {
         demonstrator.release();
+    }
+    
+    @NiftyEventSubscriber(id="btDestroy")
+    public void onBtDestroy(String id, ButtonClickedEvent e) {
+        demonstrator.destroy();
     }
     
     @NiftyEventSubscriber(pattern="btPlaneRot(L|R)")
@@ -143,25 +154,19 @@ public class DemoWindowController implements WindowController, DemonstrationList
         }
         
         float angleDiff = e.getValue() - prevObjAngles[ind];
-        boolean failed = false;
         if (FastMath.abs(angleDiff) < 46) {
-            quat.fromAngleNormalAxis(angleDiff * FastMath.DEG_TO_RAD, objRotAxis[ind]);
-            quat.multLocal(objRot);
-            if (demonstrator.rotate(quat)) {
-                // rotation succeeded
-                prevObjAngles[ind] = e.getValue();
-                lbObjAngles[ind].setText(Integer.toString((int)e.getValue() - 180));
-                objRot.set(quat);
-            } else {
-                // rotation failed due to collision with the table
-                failed = true;
+            targetRot.fromAngleNormalAxis(angleDiff * FastMath.DEG_TO_RAD, objRotAxis[ind]);
+            targetRot.multLocal(objRot);
+            float delta = demonstrator.rotate(targetRot, 0.02f);
+            if (delta < 1) {
+                // partial rotation
+                e.getScrollbar().setValue(prevObjAngles[ind] + delta * angleDiff);
             }
+            prevObjAngles[ind] = sbObjRot[ind].getValue();
+            lbObjAngles[ind].setText(Integer.toString((int)sbObjRot[ind].getValue() - 180));
+            objRot.set(targetRot);
         } else {
             // ignore huge-angle rotations
-            failed = true;
-        }
-        
-        if (failed) {
             e.getScrollbar().setValue(prevObjAngles[ind]);
         }
     }

@@ -4,10 +4,9 @@
  */
 package tabletop2;
 
-import com.jme3.bounding.BoundingVolume;
-import com.jme3.bullet.collision.PhysicsCollisionEvent;
-import com.jme3.bullet.collision.PhysicsCollisionListener;
-import com.jme3.bullet.control.RigidBodyControl;
+import com.bulletphysics.collision.dispatch.CollisionObject;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
@@ -15,19 +14,18 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
-import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Transform;
-import com.jme3.math.Triangle;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -39,6 +37,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         Idle, Grasped, Moving
     }
     private Node rootNode;
+    private BulletAppState bulletAppState;
     private Camera cam;
     private InputManager inputManager;
     private final Inventory inventory;
@@ -53,17 +52,14 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private Node graspNode;
     private Spatial graspedItem = null;
     private Vector3f movingCursorOffset;
-    private Vector3f graspNodePrevPos = new Vector3f();
-    private Quaternion graspNodePrevRot = new Quaternion();
     
     private boolean shiftKey = false;
     
-    private Ray ray = new Ray();
-    private CollisionResults collisionResults = new CollisionResults();
-    private float[] angles = new float[3];
-    private Quaternion quat = new Quaternion();
-    private Vector3f vec = new Vector3f();
-    private Transform transform = new Transform();
+    private transient Ray ray = new Ray();
+    private transient CollisionResults collisionResults = new CollisionResults();
+    private transient Vector3f vec = new Vector3f();
+    private transient Transform transform = new Transform();
+    private transient Transform graspNodeTarget = new Transform();
 
 //    public Demonstrator(String name, Node rootNode, ViewPort viewPort,
 //            AssetManager assetManager, InputManager inputManager, 
@@ -72,6 +68,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
 //            Factory factory, Robot robot) {
     public Demonstrator(String name, MainApp app) {
         rootNode = app.getRootNode();
+        bulletAppState = app.getBulletAppState();
         cam = app.getViewPort().getCamera();
         inputManager = app.getInputManager();
         inventory = app.getInventory();
@@ -152,7 +149,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     movingPlane.rotate(0, -value * 0.3f, 0);
                 }
                 
-                // move camera relatively to the rotated movingPlane
+                // move the camera with respect to the rotating movingPlane
                 vec.set(cam.getLocation());
                 visualAid.getLocalTransform().transformInverseVector(vec, vec);
                 transform.transformInverseVector(vec, vec);
@@ -172,7 +169,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 Vector3f pos = getCursorPosOnMovingPlane();
                 if (pos != null) {
                     pos.addLocal(movingCursorOffset);
-                    if (!move(pos) && !movingStart()) {
+                    if (move(pos, 0.1f) < 1 && !movingStart()) {
                         movingEnd();
                     }
                 } else {
@@ -196,18 +193,27 @@ public class Demonstrator implements ActionListener, AnalogListener {
         s.setLocalTransform(Transform.IDENTITY);
         graspNode.attachChild(s);
 
-        RigidBodyControl rbc = graspedItem.getControl(RigidBodyControl.class);
+        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+        rbc.setMass(rbc.getMass() + 9999);    
         rbc.setKinematic(true);
-        rbc.setMass(rbc.getMass() + 9999);                                    
+        
+        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+        if (joints != null) {
+            for (PhysicsJoint joint : joints) {
+                MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
+                c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
+                c.activate();
+                c = (MyRigidBodyControl)joint.getBodyB();
+                c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
+                c.activate();
+            }
+        }
 
         visualAid.setLocalTranslation(graspNode.getLocalTranslation());
         // init the moving plane such that it is perpendicular to the camera direction
-        angles = new float[3];
+        float[] angles = new float[3];
         cam.getRotation().toAngles(angles);
-        angles[0] = 0;
-        angles[2] = 0;
-        quat.fromAngles(angles);
-        movingPlane.setLocalRotation(quat);
+        movingPlane.setLocalRotation(new Quaternion().fromAngleAxis(angles[1], Vector3f.UNIT_Y));
         // draw visual aid
         sceneProcessor.setShowVisualAid(true);
         sceneProcessor.highlightSpatial(s);
@@ -231,7 +237,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
     }
     
-    public boolean move(Vector3f pos) {
+    public float move(Vector3f pos, float deltaRangePrecision) {
         if (state != DemoState.Grasped && state != DemoState.Moving) {
             throw new IllegalStateException("illegal operation");
         }
@@ -239,32 +245,34 @@ public class Demonstrator implements ActionListener, AnalogListener {
         if (pos == null) {
             throw new NullPointerException();
         }
-        graspNodePrevPos.set(graspNode.getLocalTranslation());
-        graspNode.setLocalTranslation(pos);
-        if (graspNodeCollidedWithTable()) {
-            // revert to previous position (undo this move() call)
-            graspNode.setLocalTranslation(graspNodePrevPos);
-            return false;
+        graspNodeTarget.set(graspNode.getLocalTransform());
+        graspNodeTarget.setTranslation(pos);
+        float delta = tryTransformingGraspNode(graspNodeTarget, deltaRangePrecision);
+        if (delta < 1) {
+            pos.set(graspNode.getLocalTranslation());
         }
         visualAid.setLocalTranslation(pos);
-        return true;
+        return delta;
     }
     
     private void movingEnd() {
         state = DemoState.Grasped;
     }
     
-    public boolean rotate(Quaternion rot) {
+    public float rotate(Quaternion rot, float deltaRangePrecision) {
         if (state != DemoState.Grasped) {
             throw new IllegalStateException("illegal operation");
         }
-        graspNodePrevRot.set(graspNode.getLocalRotation());
-        graspNode.setLocalRotation(rot);
-        if (graspNodeCollidedWithTable()) {
-            graspNode.setLocalRotation(graspNodePrevRot);
-            return false;
+        if (rot == null) {
+            throw new NullPointerException();
         }
-        return true;
+        graspNodeTarget.set(graspNode.getLocalTransform());
+        graspNodeTarget.setRotation(rot);
+        float delta = tryTransformingGraspNode(graspNodeTarget, deltaRangePrecision);
+        if (delta < 1) {
+            rot.set(graspNode.getLocalRotation());
+        }
+        return delta;
     }
     
     public void release() {
@@ -276,13 +284,57 @@ public class Demonstrator implements ActionListener, AnalogListener {
         graspedItem.setLocalTransform(graspNode.getLocalTransform());
         rootNode.attachChild(graspedItem);
 
-        RigidBodyControl oldControl = graspedItem.getControl(RigidBodyControl.class);
-        RigidBodyControl newControl = new RigidBodyControl(oldControl.getMass() - 9999);
-        graspedItem.addControl(newControl);
-        oldControl.getPhysicsSpace().add(newControl);                
-        graspedItem.removeControl(oldControl);
-        oldControl.getPhysicsSpace().remove(oldControl);
+        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+        rbc.setKinematic(false);
+        rbc.setMass(rbc.getMass() - 9999);
 
+        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+        if (joints != null) {
+            for (PhysicsJoint joint : joints) {
+                MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
+                c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                c.activate();
+                c = (MyRigidBodyControl)joint.getBodyB();
+                c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                c.activate();
+            }
+        }
+
+        graspedItem = null;
+        
+        sceneProcessor.setShowVisualAid(false);
+        sceneProcessor.highlightSpatial(null);
+        
+        state = DemoState.Idle;
+        for (DemonstrationListener l : demoListeners) {
+            l.demoRelease();
+        }
+    }
+
+    public void destroy() {
+        if (state != DemoState.Grasped) {
+            throw new IllegalStateException("illegal operation");
+        }
+
+        graspNode.detachChild(graspedItem);
+        
+        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+        if (joints != null) {
+            for (PhysicsJoint j : joints) {
+                bulletAppState.getPhysicsSpace().remove(j);
+                
+                MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
+                c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                c.activate();
+                c = (MyRigidBodyControl)j.getBodyB();
+                c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                c.activate();
+            }
+        }
+        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+        bulletAppState.getPhysicsSpace().remove(rbc);
+
+        inventory.removeItem(graspedItem);        
         graspedItem = null;
         
         sceneProcessor.setShowVisualAid(false);
@@ -301,6 +353,35 @@ public class Demonstrator implements ActionListener, AnalogListener {
             return true;
         }
         return false;
+    }
+    
+    private transient Transform midTransform = new Transform();
+    private transient Transform minTransform = new Transform();
+    private float tryTransformingGraspNode(Transform target, float deltaRangePrecision) {
+        minTransform.set(graspNode.getLocalTransform());
+
+        // if transforming to the target does not cause a collision, do it.
+        graspNode.setLocalTransform(target);
+        if (!graspNodeCollidedWithTable()) {
+            return 1;
+        }
+        
+        float min = 0;
+        float max = 1;
+        float delta;
+        while (max - min > deltaRangePrecision) {
+            delta = (min + max) / 2f;
+            midTransform.interpolateTransforms(minTransform, target, delta);
+            graspNode.setLocalTransform(midTransform);
+            if (graspNodeCollidedWithTable()) {
+                midTransform.interpolateTransforms(minTransform, target, min);
+                graspNode.setLocalTransform(midTransform);
+                max = delta;
+            } else {
+                min = delta;
+            }
+        }
+        return min;
     }
     
     private Spatial getCursorItem(Node rootNode) {

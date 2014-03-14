@@ -2,7 +2,9 @@ package tabletop2;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.bullet.collision.shapes.BoxCollisionShape;
+import com.jme3.bullet.joints.SixDofJoint;
+import com.jme3.bullet.joints.motors.RotationalLimitMotor;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -24,6 +26,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,6 +71,10 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
     private Node hudNode;
     private Geometry hudBackground;
+    
+    private float timeAccumulator = 0;
+    
+    private transient HashSet<Spatial> itemsToBeRemoved = new HashSet<Spatial>();
     
     public static void main(String[] args) throws BackingStoreException {
         MainApp app = new MainApp();
@@ -131,12 +138,13 @@ public class MainApp extends SimpleApplication implements ActionListener {
     @Override
     public void simpleInitApp() {
         stateManager.attach(bulletAppState);
-//        bulletAppState.getPhysicsSpace().setAccuracy(1f/120f);
-//        bulletAppState.getPhysicsSpace().setMaxSubSteps(10);
+        bulletAppState.getPhysicsSpace().setAccuracy(1f/240f);
+//        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
+        bulletAppState.getPhysicsSpace().setMaxSubSteps(10);
 //        bulletAppState.getPhysicsSpace().setGravity(new Vector3f(0f, -9.81f, 0f));
-//        bulletAppState.getPhysicsSpace().getDynamicsWorld().getSolverInfo().splitImpulsePenetrationThreshold = -0.04f;
+        bulletAppState.getPhysicsSpace().getDynamicsWorld().getSolverInfo().splitImpulsePenetrationThreshold = -0.04f;
         bulletAppState.setSpeed(10f);
-//        bulletAppState.setDebugEnabled(true);
+        bulletAppState.setDebugEnabled(true);
         
 //        DynamicsWorld dw = bulletAppState.getPhysicsSpace().getDynamicsWorld();
 //        System.err.println(dw.getSolverInfo().splitImpulse);
@@ -199,7 +207,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
                 TABLE_SIZE.x, TABLE_SIZE.y, TABLE_SIZE.z, TABLE_COLOR, 4);
         table.setLocalTranslation(0.0f, -TABLE_SIZE.y / 2, 0.0f);
         rootNode.attachChild(table);
-        RigidBodyControl tablePhysics = new RigidBodyControl(0.0f);
+        MyRigidBodyControl tablePhysics = new MyRigidBodyControl(0.0f);
         table.addControl(tablePhysics);
         bulletAppState.getPhysicsSpace().add(tablePhysics);
         
@@ -222,15 +230,15 @@ public class MainApp extends SimpleApplication implements ActionListener {
         cam.lookAt(CAMERA_INIT_LOOKAT, new Vector3f(0.0f, 1.0f, 0.0f));
 
         
-        // make a box        
-        Spatial boxContainer = factory.makeBoxContainer("container", 5, 3, 5, 
-                0.5f, ColorRGBA.Gray);
-        rootNode.attachChild(boxContainer);
-        boxContainer.setLocalTranslation(1f, 2f, -2f);
-        RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
-        boxContainer.addControl(boxContainerControl);
-        bulletAppState.getPhysicsSpace().add(boxContainerControl);
-        inventory.addItem(boxContainer);
+//        // make a box        
+//        Spatial boxContainer = factory.makeBoxContainer("container", 5, 3, 5, 
+//                0.5f, ColorRGBA.Gray);
+//        rootNode.attachChild(boxContainer);
+//        boxContainer.setLocalTranslation(1f, 2f, -2f);
+//        RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
+//        boxContainer.addControl(boxContainerControl);
+//        bulletAppState.getPhysicsSpace().add(boxContainerControl);
+//        inventory.addItem(boxContainer);
         
         // have a gripper attached to fly cam
         if (flyGripper) {
@@ -241,7 +249,58 @@ public class MainApp extends SimpleApplication implements ActionListener {
             node.setLocalTranslation(0, -1, -3);
             gripper = new Gripper("baxter right-gripper", node, 
                     bulletAppState.getPhysicsSpace(), factory);
-        }               
+        }
+        
+        // make a string
+        Spatial fixedBlock1 = factory.makeBlock("fixedBlock1", 2, 2, 2, TABLE_COLOR);
+        MyRigidBodyControl fixedBlockControl1 = new MyRigidBodyControl(
+                new BoxCollisionShape(new Vector3f(.1f, .1f, .1f)), 0);
+        fixedBlock1.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
+        fixedBlock1.setLocalTranslation(TABLE_SIZE.x / 2, 5, 0);
+        fixedBlock1.addControl(fixedBlockControl1);        
+        rootNode.attachChild(fixedBlock1);
+        bulletAppState.getPhysicsSpace().add(fixedBlockControl1);
+        
+        MyRigidBodyControl prevControl = fixedBlockControl1;
+        Vector3f prevJointPos = new Vector3f(0, 0, -1);
+        for (int i = 0; i < 18; ++i) {
+            Spatial s = factory.makeBlock("rope" + i, .1f, .1f, 1.2f, ColorRGBA.Yellow);
+            MyRigidBodyControl rbc = new MyRigidBodyControl(
+                    new BoxCollisionShape(new Vector3f(.05f, .05f, .45f)), 1);
+//            rbc.setCcdMotionThreshold(.06f);
+//            rbc.setAngularFactor(aspect);
+            rbc.setAngularDamping(1);
+            s.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
+            s.setLocalTranslation(TABLE_SIZE.x / 2 - 1 - i * 1, 5, 0);
+            s.addControl(rbc);
+            rootNode.attachChild(s);
+            bulletAppState.getPhysicsSpace().add(rbc);
+            inventory.addItem(s);
+
+            SixDofJoint joint = new SixDofJoint(prevControl, rbc, prevJointPos, new Vector3f(0, 0, .5f), false);
+            joint.setCollisionBetweenLinkedBodys(false);
+
+            bulletAppState.getPhysicsSpace().add(joint);
+            inventory.addPhysicsJoint(joint);
+            
+            prevControl = rbc;
+            prevJointPos = new Vector3f(0, 0, -.5f);
+        }
+        
+        Spatial fixedBlock2 = factory.makeBlock("fixedBlock2", 2, 2, 2, TABLE_COLOR);
+        MyRigidBodyControl fixedBlockControl2 = new MyRigidBodyControl(
+                new BoxCollisionShape(new Vector3f(.1f, .1f, .1f)), 0);
+        fixedBlock2.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
+        fixedBlock2.setLocalTranslation(-TABLE_SIZE.x / 2, 5, 0);
+        fixedBlock2.addControl(fixedBlockControl2);
+        rootNode.attachChild(fixedBlock2);
+        bulletAppState.getPhysicsSpace().add(fixedBlockControl2);
+
+        SixDofJoint joint = new SixDofJoint(prevControl, fixedBlockControl2, prevJointPos, new Vector3f(0, 0, 1), false);
+        joint.setCollisionBetweenLinkedBodys(false);
+
+        bulletAppState.getPhysicsSpace().add(joint);
+        inventory.addPhysicsJoint(joint);
     }
     
     private void initKeys() {
@@ -335,6 +394,8 @@ public class MainApp extends SimpleApplication implements ActionListener {
 
     @Override
     public void simpleUpdate(float tpf) {
+        timeAccumulator += tpf;
+        
         if (!hasDeletedMouseTrigger) {
             // TODO this is a quick fix to disable mouse-controlled camera 
             // rotation;
@@ -353,23 +414,27 @@ public class MainApp extends SimpleApplication implements ActionListener {
             gripperNode.setLocalTranslation(projMat.toTranslationVector());
             gripperNode.setLocalRotation(projMat.toRotationMatrix());
         }
-        
+
         // cleanup unused objects
-        for (Spatial item : inventory.allItems()) {
-            if (item.getParent() == rootNode && item.getLocalTranslation().y < -1000) {
-                RigidBodyControl rbc = item.getControl(RigidBodyControl.class);
-                // remove physics control
-                if (rbc != null) {
-                    bulletAppState.getPhysicsSpace().remove(rbc);
-                    item.removeControl(rbc);
+        if (timeAccumulator > 2) {
+            timeAccumulator = 0;
+            itemsToBeRemoved.clear();
+            for (Spatial item : inventory.allItems()) {
+                if (item.getParent() == rootNode && item.getLocalTranslation().y < -1000) {
+                    MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
+                    // remove physics control
+                    if (rbc != null) {
+                        bulletAppState.getPhysicsSpace().remove(rbc);
+                        item.removeControl(rbc);
+                    }
+                    // remove from the scene graph
+                    rootNode.detachChild(item);
+
+                    itemsToBeRemoved.add(item);
                 }
-                // remove from the scene graph
-                rootNode.detachChild(item);
-                
-                inventory.markItemForRemoval(item);
             }
+            inventory.removeItems(itemsToBeRemoved);
         }
-        inventory.purge();
         
         if (robot.matlabAgentAlive()) {
             hudTextBuffer.set(0, "Matlab agent: ON");
@@ -446,7 +511,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
                 Spatial g = factory.makeBlock("big brick", 1.5f, 1.5f, 1.5f, 
                         colors[random.nextInt(colors.length)]);
                 rootNode.attachChild(g);
-                RigidBodyControl c = new RigidBodyControl(1f);
+                MyRigidBodyControl c = new MyRigidBodyControl(1f);
                 g.addControl(c);
                 bulletAppState.getPhysicsSpace().add(c);
                 c.setUserObject(g);
@@ -476,7 +541,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
                             BOX_SIZE.x, BOX_SIZE.y, BOX_SIZE.z,
                             colors[random.nextInt(colors.length)]);
                     rootNode.attachChild(g);
-                    RigidBodyControl c = new RigidBodyControl(1f);
+                    MyRigidBodyControl c = new MyRigidBodyControl(1f);
                     g.addControl(c);
                     bulletAppState.getPhysicsSpace().add(c);
                     c.setUserObject(g);
@@ -487,18 +552,19 @@ public class MainApp extends SimpleApplication implements ActionListener {
                 }
             }
         } else if (name.equals("clearTable")) {
+            itemsToBeRemoved.clear();
             for (Spatial item : inventory.allItems()) {
                 if (item.getParent() == rootNode) {
-                    RigidBodyControl rbc = item.getControl(RigidBodyControl.class);
+                    MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
                     if (rbc != null) {
                         bulletAppState.getPhysicsSpace().remove(rbc);
                         item.removeControl(rbc);
                     }
                     rootNode.detachChild(item);
-                    inventory.markItemForRemoval(item);
+                    itemsToBeRemoved.add(item);
                 }
             }
-            inventory.purge();
+            inventory.removeItems(itemsToBeRemoved);
         } else if (name.equals("cameraRobotHead")) {
             if (isPressed) {
                 robot.toggleHeadCameraView(rootNode);

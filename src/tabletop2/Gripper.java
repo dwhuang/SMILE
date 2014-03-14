@@ -8,7 +8,6 @@ import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.AbstractPhysicsControl;
-import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -33,7 +32,7 @@ public class Gripper implements AnalogListener {
     private static final Logger logger = Logger.getLogger(
             Gripper.class.getName());
     static {
-        logger.setLevel(Level.SEVERE);
+        logger.setLevel(Level.INFO);
     }
 
     public static final Vector3f FINGER_SIZE = new Vector3f(0.3f, 0.4f, 1.5f);
@@ -80,6 +79,7 @@ public class Gripper implements AnalogListener {
         phy = new Physics();
         base.addControl(phy);
         physicsSpace.add(phy);
+        physicsSpace.addCollisionListener(phy);
     }
     
     public void onAnalog(String name, float value, float tpf) {
@@ -101,8 +101,8 @@ public class Gripper implements AnalogListener {
     private class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {
         private Geometry leftFinger;
         private Geometry rightFinger;
-        private RigidBodyControl leftFingerControl = null;
-        private RigidBodyControl rightFingerControl = null;
+        private MyRigidBodyControl leftFingerControl = null;
+        private MyRigidBodyControl rightFingerControl = null;
         
         // for grabbing objects
         private float velocity = 0; // -1: shrinking, 1: expanding, 0: unchanged
@@ -122,14 +122,14 @@ public class Gripper implements AnalogListener {
             
             leftFinger = (Geometry) node.getChild(Gripper.this.name + " left-finger");
             if (leftFingerControl == null) {
-                leftFingerControl = new RigidBodyControl(Gripper.FINGER_MASS);
+                leftFingerControl = new MyRigidBodyControl(Gripper.FINGER_MASS);
             }
             leftFinger.addControl(leftFingerControl);
             leftFingerControl.setKinematic(true);
             
             rightFinger = (Geometry) node.getChild(Gripper.this.name + " right-finger");
             if (rightFingerControl == null) {
-                rightFingerControl = new RigidBodyControl(Gripper.FINGER_MASS);
+                rightFingerControl = new MyRigidBodyControl(Gripper.FINGER_MASS);
             }
             rightFinger.addControl(rightFingerControl);
             rightFingerControl.setKinematic(true);
@@ -262,7 +262,7 @@ public class Gripper implements AnalogListener {
                     if (holding.contains(s)) {
                         continue;
                     }
-                    RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
+                    MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
                     if (rbc == null || rbc.getMass() == 0 || rbc.isKinematic()) {
                         continue;
                     }
@@ -292,7 +292,7 @@ public class Gripper implements AnalogListener {
             s.setLocalRotation(mat.toRotationMatrix());
             s.setLocalScale(mat.toScaleVector());
             // kinematic
-            RigidBodyControl rbc = s.getControl(RigidBodyControl.class);
+            MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
             rbc.setKinematic(true);
             rbc.setMass(rbc.getMass() + FINGER_MASS);
             
@@ -313,15 +313,10 @@ public class Gripper implements AnalogListener {
                 s.setLocalTranslation(mat.toTranslationVector());
                 s.setLocalRotation(mat.toRotationMatrix());
                 s.setLocalScale(mat.toScaleVector());
-                // make a new control, because the old one won't go
-                // to sleep when its kinematic is turned off
-                RigidBodyControl oldControl = s.getControl(RigidBodyControl.class);
-                RigidBodyControl newControl = new RigidBodyControl(
-                        oldControl.getMass() - FINGER_MASS);
-                s.addControl(newControl);
-                oldControl.getPhysicsSpace().add(newControl);                
-                s.removeControl(oldControl);
-                oldControl.getPhysicsSpace().remove(oldControl);
+
+                MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
+                rbc.setMass(rbc.getMass() - FINGER_MASS);
+                rbc.setKinematic(false);
             }
             holding.clear();
         }

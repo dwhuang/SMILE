@@ -86,7 +86,7 @@ public class MatlabAgentMotorData implements Serializable {
         }        
     }
     
-    public void execute(JointState[] leftJoints, JointState[] rightJoints,
+    public void execute(RobotJointState[] leftJoints, RobotJointState[] rightJoints,
             Gripper leftGripper, Gripper rightGripper) {
         for (int i = 0; i < leftJoints.length; ++i) {
             leftJoints[i].setVelocity((float) jointVelocities[0][i], false);

@@ -12,7 +12,7 @@ import com.jme3.scene.Node;
  *
  * @author dwhuang
  */
-public class JointState {
+public class RobotJointState {
     private Node node = new Node();
     private float velocity = 0;
     private float minAngle = 0;
@@ -22,7 +22,7 @@ public class JointState {
     private float[] angles = new float[3];
     private Quaternion quat = new Quaternion();
 
-    public JointState(float angle, float minAngle, float maxAngle, int manualControlOrientation) {
+    public RobotJointState(float angle, float minAngle, float maxAngle, int manualControlOrientation) {
         this.minAngle = minAngle;
         this.maxAngle = maxAngle;
         this.manualControlOrientation = manualControlOrientation;

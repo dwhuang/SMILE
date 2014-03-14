@@ -33,8 +33,8 @@ public class MatlabAgent {
 
     private static final boolean debug = false;
     
-    private JointState[] leftJoints;
-    private JointState[] rightJoints;
+    private RobotJointState[] leftJoints;
+    private RobotJointState[] rightJoints;
     private Gripper leftGripper;
     private Gripper rightGripper;
     private Node rootNode;
@@ -49,7 +49,7 @@ public class MatlabAgent {
     
     private MatlabTypeConverter processor;
     
-    public MatlabAgent(JointState[] leftJoints, JointState[] rightJoints, 
+    public MatlabAgent(RobotJointState[] leftJoints, RobotJointState[] rightJoints, 
             Gripper leftGripper, Gripper rightGripper,
             Node rootNode, Factory factory) {
         this.leftJoints = leftJoints;

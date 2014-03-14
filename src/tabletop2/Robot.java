@@ -80,26 +80,26 @@ public class Robot implements AnalogListener, ActionListener {
     private static final int W2 = 6;
     public static final int DOF = 7;
     private boolean shiftKey = false;
-    private JointState[] rightJointStates = new JointState[] {
-        new JointState(-0.25f, -1.7f, 1.7f, -1),
-        new JointState(0, -2.147f, 1.047f, 1),
-        new JointState(1.527f, -3.054f, 3.054f, -1),
-        new JointState(2.618f, -0.05f, 2.618f, 1),
-        new JointState(-1.529f, -3.059f, 3.059f, -1),
-        new JointState(1.5f, -1.571f, 2.094f, 1),
-        new JointState(0, -3.059f, 3.059f, -1)
+    private RobotJointState[] rightJointStates = new RobotJointState[] {
+        new RobotJointState(-0.25f, -1.7f, 1.7f, -1),
+        new RobotJointState(0, -2.147f, 1.047f, 1),
+        new RobotJointState(1.527f, -3.054f, 3.054f, -1),
+        new RobotJointState(2.618f, -0.05f, 2.618f, 1),
+        new RobotJointState(-1.529f, -3.059f, 3.059f, -1),
+        new RobotJointState(1.5f, -1.571f, 2.094f, 1),
+        new RobotJointState(0, -3.059f, 3.059f, -1)
     };    
-    private JointState[] leftJointStates = new JointState[] {
-        new JointState(0.25f, -1.7f, 1.7f, 1),
-        new JointState(0, -2.147f, 1.047f, 1),
-        new JointState(-1.527f, -3.054f, 3.054f, 1),
-        new JointState(2.618f, -0.05f, 2.618f, 1),
-        new JointState(1.529f, -3.059f, 3.059f, 1),
-        new JointState(1.5f, -1.571f, 2.094f, 1),
-        new JointState(0, -3.059f, 3.059f, 1)
+    private RobotJointState[] leftJointStates = new RobotJointState[] {
+        new RobotJointState(0.25f, -1.7f, 1.7f, 1),
+        new RobotJointState(0, -2.147f, 1.047f, 1),
+        new RobotJointState(-1.527f, -3.054f, 3.054f, 1),
+        new RobotJointState(2.618f, -0.05f, 2.618f, 1),
+        new RobotJointState(1.529f, -3.059f, 3.059f, 1),
+        new RobotJointState(1.5f, -1.571f, 2.094f, 1),
+        new RobotJointState(0, -3.059f, 3.059f, 1)
     };
-    private JointState[] headJointStates = new JointState[] {
-        new JointState(0, -1.571f, 1.571f, 1)
+    private RobotJointState[] headJointStates = new RobotJointState[] {
+        new RobotJointState(0, -1.571f, 1.571f, 1)
     };
     
     private boolean demoCue = false;
@@ -215,7 +215,7 @@ public class Robot implements AnalogListener, ActionListener {
         });
     }
     
-    private Node attachLimb(String name, Node parentNode, JointState[] jointStates) {
+    private Node attachLimb(String name, Node parentNode, RobotJointState[] jointStates) {
         Node node = attachSpatialCenter(name + " S0", parentNode, 
                 0.055695f, 0, -0.011038f,
                 0, 0, 0);
@@ -284,7 +284,7 @@ public class Robot implements AnalogListener, ActionListener {
         return mount;
     }
     
-    private Node attachLink(String name, Node parentNode, JointState js, 
+    private Node attachLink(String name, Node parentNode, RobotJointState js, 
             String spatialModelName) {
         Spatial spatialModel = assetManager.loadModel(
                 "Models/baxter/" + spatialModelName + ".j3o");
@@ -318,7 +318,7 @@ public class Robot implements AnalogListener, ActionListener {
     }
     
     public void onAnalog(String name, float value, float tpf) {
-        JointState[] joints = null;
+        RobotJointState[] joints = null;
         String lowerCaseName = name.toLowerCase();
         if (lowerCaseName.matches(".*rightarm.*")) {
             joints = rightJointStates;
@@ -400,15 +400,15 @@ public class Robot implements AnalogListener, ActionListener {
                     rightEndEffector.getWorldTranslation(), img, demoCue);
         }
         
-        for (JointState js : rightJointStates) {
+        for (RobotJointState js : rightJointStates) {
             js.update(tpf);
         }
-        for (JointState js : leftJointStates) {
+        for (RobotJointState js : leftJointStates) {
             js.update(tpf);
         }
         
         boolean headMoved = false;
-        for (JointState js : headJointStates) {
+        for (RobotJointState js : headJointStates) {
             headMoved |= js.update(tpf);
         }
         if (headMoved) {

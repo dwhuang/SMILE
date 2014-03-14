@@ -52,7 +52,7 @@
                 </panel>
             </control>
             <control name="window" id="wdDemo" title="Demostration Tools" hideOnClose="true"
-                     width="320px" height="186px" backgroundColor="#000f">
+                     width="320px" height="200px" backgroundColor="#000f">
                 <effect>
                     <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
                     <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
@@ -101,6 +101,10 @@
                             <control name="label" text="" width="5px"/><!--padding-->
                             <control name="label" id="lbObjAngleZ" text="" width="30px" color="#0000ff"/>
                         </panel>
+                    </panel>
+                    <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
+                        <control name="label" width="*"/>
+                        <control name="button" id="btDestroy" label="Destroy" width="60px" focusable="false"/>
                     </panel>
                 </panel>
             </control>        
