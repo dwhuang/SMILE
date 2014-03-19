@@ -19,7 +19,6 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
-import jme3tools.optimize.GeometryBatchFactory;
 
 /**
  *

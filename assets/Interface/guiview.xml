@@ -7,24 +7,56 @@
         <layer childLayout="horizontal">
             <panel childLayout="center" valign="bottom" width="27px" height="23px">
                 <control name="button" id="btShowAll" label="" valign="bottom" width="100%" focusable="false" 
-                         childLayout="center"/>
+                         childLayout="center">
+                    <effect>
+                        <onHover name="hint" hintText="Show all windows"/>
+                    </effect>
+                </control>
                 <image filename="Interface/list.png" inset="4px"/>
             </panel>
+            <control name="button" id="btStatus" label="Status" valign="bottom" focusable="false"/>
             <control name="button" id="btCamNav" label="Camera" valign="bottom" focusable="false"/>
-            <control name="button" id="btDemo" label="Demonstrate" valign="bottom" focusable="false"/>
+            <control name="button" id="btDemo" label="Demo Tools" valign="bottom" focusable="false"/>
+            <control name="button" id="btObjects" label="Objects" valign="bottom" focusable="false"/>
             <panel childLayout="center" valign="bottom" width="27px" height="23px">
                 <control name="button" id="btOrganize" label="" valign="bottom" width="100%" focusable="false" 
-                         childLayout="center"/>
+                         childLayout="center">
+                    <effect>
+                        <onHover name="hint" hintText="Organize windows"/>
+                    </effect>
+                </control>
                 <image filename="Interface/arrowL.png" inset="14px"/>
             </panel>
             <panel childLayout="center" valign="bottom" width="27px" height="23px">
                 <control name="button" id="btHideAll" label="" valign="bottom" width="100%" focusable="false" 
-                         childLayout="center"/>
+                         childLayout="center">
+                    <effect>
+                        <onHover name="hint" hintText="Hide all windows"/>
+                    </effect>
+                </control>
                 <image filename="Interface/cross.png" inset="4px"/>
             </panel>
         </layer>
 
         <layer childLayout="absolute-inside">
+            <control name="window" id="wdStatus" title="Status" hideOnClose="true"
+                     width="320px" height="76px" backgroundColor="#0002">
+                <effect>
+                    <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
+                    <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
+                    <onCustom name="border" border="3px" inherit="true" length="500"/>
+                </effect>
+                <panel childLayout="vertical">
+                    <panel childLayout="horizontal">
+                        <control name="label" text="FPS: " width="50px" textHAlign="right" margin="0,5,0,0"/>
+                        <control name="label" id="lbFps" text="000"  width="*" textHAlign="left"/>
+                    </panel>
+                    <panel childLayout="horizontal">
+                        <control name="label" text="Matlab: " width="50px" textHAlign="right" margin="0,5,0,0"/>
+                        <control name="label" id="lbMatlabStatus" text="offline" width="*" textHAlign="left"/>
+                    </panel>
+                </panel>
+            </control>
             <control name="window" id="wdCamNav" title="Camera Navigation" hideOnClose="true"
                      width="320px" height="176px" backgroundColor="#000f">
                 <effect>
@@ -107,7 +139,27 @@
                         <control name="button" id="btDestroy" label="Destroy" width="60px" focusable="false"/>
                     </panel>
                 </panel>
-            </control>        
+            </control>
+            <control name="window" id="wdObjects" title="Objects" hideOnClose="true"
+                     width="320px" height="76px" backgroundColor="#000f">
+                <effect>
+                    <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
+                    <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
+                    <onCustom name="border" border="3px" inherit="true" length="500"/>
+                </effect>
+                <panel childLayout="vertical">
+                    <panel childLayout="horizontal">
+                        <control name="dropDown" id="ddXml" width="*" margin="0,5,0,0" focusable="false" 
+                            displayItems="8"/>
+                        <control name="button" id="btLoadXml" label="Load XML" focusable="fasle"/>
+                    </panel>
+                    <panel childLayout="horizontal" padding="3px,0,0,0">
+                        <control name="dropDown" id="ddPresetObject" width="*" margin="0,5,0,0" focusable="false" 
+                            displayItems="8"/>
+                        <control name="button" id="btExecute" label="Execute" focusable="fasle"/>
+                    </panel>
+                </panel>
+            </control>
         </layer>
     </screen>    
 </nifty>

@@ -1,9 +1,7 @@
 package tabletop2;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
@@ -12,9 +10,6 @@ import tabletop2.gui.GuiController;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.collision.shapes.BoxCollisionShape;
-import com.jme3.bullet.joints.SixDofJoint;
-import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
@@ -24,12 +19,9 @@ import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.PointLight;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
 import com.jme3.math.Matrix4f;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
@@ -39,45 +31,31 @@ import de.lessvoid.nifty.Nifty;
 /**
  * test
  *
- * @author normenhansen
+ * @author dwhuang
  */
 public class MainApp extends SimpleApplication implements ActionListener {
     private static final Logger logger = Logger.getLogger(MainApp.class.getName());
+	
+    public static final String DEFAULT_TABLE_XML_FNAME = "xml/default.xml";
     
-    public static final Vector3f TABLE_SIZE = new Vector3f(
-            20f, 4f, 12f);
-    private static final ColorRGBA TABLE_COLOR = new ColorRGBA(
-            1.0f, 1.0f, 1.0f, 1.0f);
-    private static final Vector3f CAMERA_INIT_LOCATION = new Vector3f(
-            0, 15, -TABLE_SIZE.z / 2 - 10);
-    private static final Vector3f CAMERA_INIT_LOOKAT = new Vector3f(
-            0, 0, TABLE_SIZE.z / 2);
-
-    private BulletAppState bulletAppState = new BulletAppState();
-    private Inventory inventory = new Inventory();
-    private static Random random = new Random(5566);
-
+    private BulletAppState bulletAppState = new BulletAppState();    
     private Factory factory;
+    private Inventory inventory;
+    private Table table;
+    private Node robotLocationNode = new Node("robotLocationNode");
     private Robot robot;
     private Demonstrator demonstrator;
-    private Spatial table;
+//    private Spatial tableSpatial;
     
     private final boolean flyGripper = false;
     private Node gripperNode;
     private Gripper gripper;
-    
-    
+        
     private boolean hasDeletedMouseTrigger = false;
-    private boolean shiftKey = false;
-    
-    private ArrayList<String> hudTextBuffer = new ArrayList<String>();
-    private ArrayList<BitmapText> hudText = new ArrayList<BitmapText>();
-    private Node hudNode;
-    private Geometry hudBackground;
     
     private float timeAccumulator = 0;
     
-    private transient HashSet<Spatial> itemsToBeRemoved = new HashSet<Spatial>();
+    private transient HashSet<Spatial> itemsToRemove = new HashSet<Spatial>();
     
     public static void main(String[] args) throws BackingStoreException {
     	Locale.setDefault(Locale.ENGLISH);
@@ -135,12 +113,38 @@ public class MainApp extends SimpleApplication implements ActionListener {
         return robot;
     }
     
-    public Spatial getTable() {
+    public Table getTable() {
         return table;
     }
     
     @Override
     public void simpleInitApp() {
+    	initBulletAppState();
+        flyCam.setMoveSpeed(10f);
+        
+        factory = new Factory(assetManager);
+        inventory = new Inventory(this);        
+        table = new Table("table", this, robotLocationNode);
+        table.reloadXml(DEFAULT_TABLE_XML_FNAME);
+        
+        rootNode.attachChild(robotLocationNode);
+        robot = new Robot("baxter", this, robotLocationNode);        
+        
+        demonstrator = new Demonstrator("demonstrator", this);
+        
+        initLighting();
+        initCamera();
+        initKeys();
+        initGui();
+        if (flyGripper) {
+            // have a gripper attached to the fly cam
+        	initFlyGripper();
+        }
+        
+        // stateManager.attach(new VideoRecorderAppState()); //start recording
+    }
+
+    private void initBulletAppState() {
         stateManager.attach(bulletAppState);
         bulletAppState.getPhysicsSpace().setAccuracy(1f/240f);
 //        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
@@ -148,47 +152,46 @@ public class MainApp extends SimpleApplication implements ActionListener {
 //        bulletAppState.getPhysicsSpace().setGravity(new Vector3f(0f, -9.81f, 0f));
         bulletAppState.getPhysicsSpace().getDynamicsWorld().getSolverInfo().splitImpulsePenetrationThreshold = -0.04f;
         bulletAppState.setSpeed(10f);
-        bulletAppState.setDebugEnabled(true);
-        
+//        bulletAppState.setDebugEnabled(true);
+
 //        DynamicsWorld dw = bulletAppState.getPhysicsSpace().getDynamicsWorld();
 //        System.err.println(dw.getSolverInfo().splitImpulse);
 //        dw.getSolverInfo().splitImpulse = true;
+    }
+    
+    private void initLighting() {        
+        // lights
+        AmbientLight ambientLight = new AmbientLight();
+        //ambientLight.setColor(ColorRGBA.White.mult(1f));
+        rootNode.addLight(ambientLight);
 
-        factory = new Factory(assetManager);
-
-        initStage();
-
-        Node node = new Node("robot location");
-        node.setLocalTranslation(0, 2, TABLE_SIZE.z / 2 + 3);
-        Quaternion q = new Quaternion(new float[] {0, FastMath.HALF_PI, 0});
-        node.setLocalRotation(q);
-        rootNode.attachChild(node);        
-        robot = new Robot("baxter", node, assetManager, renderManager, 
+        PointLight light = new PointLight();
+        light.setColor(ColorRGBA.White);
+        light.setPosition(new Vector3f(0f, 10f, 0f));
+        light.setRadius(50f);
+        rootNode.addLight(light);        
+    }
+    
+    private void initCamera() {
+        // set up camera and background
+        //viewPort.setBackgroundColor(new ColorRGBA(0.5f, 0.7f, 0.5f, 1.0f));
+        float aspect = (float)cam.getWidth() / (float)cam.getHeight();
+        cam.setFrustumPerspective(45f, aspect, 0.01f, 100f);
+        cam.setLocation(new Vector3f(0, 15, -table.getDepth() / 2 - 10));
+        cam.lookAt(new Vector3f(0, 0, table.getDepth() / 2), Vector3f.UNIT_Y);
+    }
+    
+    private void initFlyGripper() {
+        gripperNode = new Node();
+        rootNode.attachChild(gripperNode);
+        Node node = new Node();
+        gripperNode.attachChild(node);
+        node.setLocalTranslation(0, -1, -3);
+        gripper = new Gripper("baxter right-gripper", node, 
                 bulletAppState.getPhysicsSpace(), factory);
-        
-        demonstrator = new Demonstrator("demonstrator", this);
-
-        initKeys();
-        initHUD();
-        
-        flyCam.setMoveSpeed(10f);
-        
-//        stateManager.attach(new VideoRecorderAppState()); //start recording
-        
-//        Joystick[] joysticks = inputManager.getJoysticks();
-//        for( Joystick j : joysticks ) {
-//            System.out.println( "Joystick[" + j.getJoyId() + "]:" + j.getName() );
-//            System.out.println( "  buttons:" + j.getButtonCount() );
-//            for( JoystickButton b : j.getButtons() ) {
-//                System.out.println( "   " + b );
-//            }
-//            
-//            System.out.println( "  axes:" + j.getAxisCount() );
-//            for( JoystickAxis axis : j.getAxes() ) {
-//                System.out.println( "   " + axis );
-//            }
-//        }
-        
+    }
+    
+    private void initGui() {
         GuiController guiController = new GuiController(demonstrator);
         NiftyJmeDisplay niftyDisplay= new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
         Nifty nifty = niftyDisplay.getNifty();
@@ -202,109 +205,6 @@ public class MainApp extends SimpleApplication implements ActionListener {
         stateManager.attach(guiController);
 //        nifty.setDebugOptionPanelColors(true);
         guiViewPort.addProcessor(niftyDisplay);
-    }
-
-    
-    private void initStage() {
-        // table
-        table = factory.makeBigBlock("table", 
-                TABLE_SIZE.x, TABLE_SIZE.y, TABLE_SIZE.z, TABLE_COLOR, 4);
-        table.setLocalTranslation(0.0f, -TABLE_SIZE.y / 2, 0.0f);
-        rootNode.attachChild(table);
-        MyRigidBodyControl tablePhysics = new MyRigidBodyControl(0.0f);
-        table.addControl(tablePhysics);
-        bulletAppState.getPhysicsSpace().add(tablePhysics);
-        
-        // lights
-        AmbientLight ambientLight = new AmbientLight();
-        //ambientLight.setColor(ColorRGBA.White.mult(1f));
-        rootNode.addLight(ambientLight);
-
-        PointLight light = new PointLight();
-        light.setColor(ColorRGBA.White);
-        light.setPosition(new Vector3f(0f, 10f, 0f));
-        light.setRadius(50f);
-        rootNode.addLight(light);
-        
-        // set up camera and background
-        //viewPort.setBackgroundColor(new ColorRGBA(0.5f, 0.7f, 0.5f, 1.0f));
-        float aspect = (float)cam.getWidth() / (float)cam.getHeight();
-        cam.setFrustumPerspective(45f, aspect, 0.01f, 100f);
-        cam.setLocation(CAMERA_INIT_LOCATION);
-        cam.lookAt(CAMERA_INIT_LOOKAT, new Vector3f(0.0f, 1.0f, 0.0f));
-
-        
-//        // make a box        
-//        Spatial boxContainer = factory.makeBoxContainer("container", 5, 3, 5, 
-//                0.5f, ColorRGBA.Gray);
-//        rootNode.attachChild(boxContainer);
-//        boxContainer.setLocalTranslation(1f, 2f, -2f);
-//        RigidBodyControl boxContainerControl = new RigidBodyControl(1f);
-//        boxContainer.addControl(boxContainerControl);
-//        bulletAppState.getPhysicsSpace().add(boxContainerControl);
-//        inventory.addItem(boxContainer);
-        
-        // have a gripper attached to fly cam
-        if (flyGripper) {
-            gripperNode = new Node();
-            rootNode.attachChild(gripperNode);
-            Node node = new Node();
-            gripperNode.attachChild(node);
-            node.setLocalTranslation(0, -1, -3);
-            gripper = new Gripper("baxter right-gripper", node, 
-                    bulletAppState.getPhysicsSpace(), factory);
-        }
-        
-        // make a string
-        Spatial fixedBlock1 = factory.makeBlock("fixedBlock1", 2, 2, 2, TABLE_COLOR);
-        MyRigidBodyControl fixedBlockControl1 = new MyRigidBodyControl(
-                new BoxCollisionShape(new Vector3f(.1f, .1f, .1f)), 0);
-        fixedBlock1.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
-        fixedBlock1.setLocalTranslation(TABLE_SIZE.x / 2, 5, 0);
-        fixedBlock1.addControl(fixedBlockControl1);        
-        rootNode.attachChild(fixedBlock1);
-        bulletAppState.getPhysicsSpace().add(fixedBlockControl1);
-        
-        MyRigidBodyControl prevControl = fixedBlockControl1;
-        Vector3f prevJointPos = new Vector3f(0, 0, -1);
-        for (int i = 0; i < 18; ++i) {
-            Spatial s = factory.makeBlock("rope" + i, .1f, .1f, 1.2f, ColorRGBA.Yellow);
-            MyRigidBodyControl rbc = new MyRigidBodyControl(
-                    new BoxCollisionShape(new Vector3f(.05f, .05f, .45f)), 1);
-//            rbc.setCcdMotionThreshold(.06f);
-//            rbc.setAngularFactor(aspect);
-            rbc.setAngularDamping(1);
-            s.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
-            s.setLocalTranslation(TABLE_SIZE.x / 2 - 1 - i * 1, 5, 0);
-            s.addControl(rbc);
-            rootNode.attachChild(s);
-            bulletAppState.getPhysicsSpace().add(rbc);
-            inventory.addItem(s);
-
-            SixDofJoint joint = new SixDofJoint(prevControl, rbc, prevJointPos, new Vector3f(0, 0, .5f), false);
-            joint.setCollisionBetweenLinkedBodys(false);
-
-            bulletAppState.getPhysicsSpace().add(joint);
-            inventory.addPhysicsJoint(joint);
-            
-            prevControl = rbc;
-            prevJointPos = new Vector3f(0, 0, -.5f);
-        }
-        
-        Spatial fixedBlock2 = factory.makeBlock("fixedBlock2", 2, 2, 2, TABLE_COLOR);
-        MyRigidBodyControl fixedBlockControl2 = new MyRigidBodyControl(
-                new BoxCollisionShape(new Vector3f(.1f, .1f, .1f)), 0);
-        fixedBlock2.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
-        fixedBlock2.setLocalTranslation(-TABLE_SIZE.x / 2, 5, 0);
-        fixedBlock2.addControl(fixedBlockControl2);
-        rootNode.attachChild(fixedBlock2);
-        bulletAppState.getPhysicsSpace().add(fixedBlockControl2);
-
-        SixDofJoint joint = new SixDofJoint(prevControl, fixedBlockControl2, prevJointPos, new Vector3f(0, 0, 1), false);
-        joint.setCollisionBetweenLinkedBodys(false);
-
-        bulletAppState.getPhysicsSpace().add(joint);
-        inventory.addPhysicsJoint(joint);
     }
     
     private void initKeys() {
@@ -385,17 +285,6 @@ public class MainApp extends SimpleApplication implements ActionListener {
         }        
     }
     
-    private void initHUD() {
-        hudNode = new Node();
-        guiNode.attachChild(hudNode);
-        
-        hudTextBuffer.add("matlab");
-        
-        hudBackground = factory.makeUnshadedPlane("", 1, 1, ColorRGBA.Black.mult(0.5f));
-        hudBackground.setLocalTranslation(0, 0, -0.01f);
-        hudNode.attachChild(hudBackground);
-    }
-
     @Override
     public void simpleUpdate(float tpf) {
         timeAccumulator += tpf;
@@ -403,10 +292,12 @@ public class MainApp extends SimpleApplication implements ActionListener {
         if (!hasDeletedMouseTrigger) {
             // TODO this is a quick fix to disable mouse-controlled camera 
             // rotation;
-            inputManager.deleteTrigger("FLYCAM_Left", new MouseAxisTrigger(0, true));
-            inputManager.deleteTrigger("FLYCAM_Right", new MouseAxisTrigger(0, false));
-            inputManager.deleteTrigger("FLYCAM_Up", new MouseAxisTrigger(1, false));
-            inputManager.deleteTrigger("FLYCAM_Down", new MouseAxisTrigger(1, true));
+            inputManager.deleteTrigger("FLYCAM_Left", new MouseAxisTrigger(MouseInput.AXIS_X, true));
+            inputManager.deleteTrigger("FLYCAM_Right", new MouseAxisTrigger(MouseInput.AXIS_X, false));
+            inputManager.deleteTrigger("FLYCAM_Up", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+            inputManager.deleteTrigger("FLYCAM_Down", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
+            inputManager.deleteTrigger("FLYCAM_ZoomIn", new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
+            inputManager.deleteTrigger("FLYCAM_ZoomOut", new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
             hasDeletedMouseTrigger = true;
             inputManager.setCursorVisible(true);
         }
@@ -422,81 +313,16 @@ public class MainApp extends SimpleApplication implements ActionListener {
         // cleanup unused objects
         if (timeAccumulator > 2) {
             timeAccumulator = 0;
-            itemsToBeRemoved.clear();
+            itemsToRemove.clear();
             for (Spatial item : inventory.allItems()) {
                 if (item.getParent() == rootNode && item.getLocalTranslation().y < -1000) {
-                    MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
-                    // remove physics control
-                    if (rbc != null) {
-                        bulletAppState.getPhysicsSpace().remove(rbc);
-                        item.removeControl(rbc);
-                    }
-                    // remove from the scene graph
-                    rootNode.detachChild(item);
-
-                    itemsToBeRemoved.add(item);
+                    itemsToRemove.add(item);
                 }
             }
-            inventory.removeItems(itemsToBeRemoved);
+            inventory.removeItems(itemsToRemove);
         }
-        
-        if (robot.matlabAgentAlive()) {
-            hudTextBuffer.set(0, "Matlab agent: ON");
-        } else {
-            hudTextBuffer.set(0, "Matlab agent: OFF");
-        }
-        updateHUD();
     }
     
-    // if hudTextBuffer differs from hudText, update hudText
-    private void updateHUD() {
-        boolean hasChanged = false;
-        if (hudText.size() != hudTextBuffer.size()) {
-            hasChanged = true;
-            int diff = hudTextBuffer.size() - hudText.size();
-            if (diff > 0) {
-                for (int i = 0; i < diff; ++i) {
-                    BitmapText bt = new BitmapText(guiFont);
-                    hudText.add(bt);
-                    hudNode.attachChild(bt);
-                }
-            } else {
-                for (int i = 0; i < -diff; ++i) {
-                    BitmapText bt = hudText.get(hudText.size() - 1);
-                    hudText.remove(bt);
-                    hudNode.detachChild(bt);
-                }
-            }
-        } else {
-            for (int i = 0; i < hudText.size(); ++i) {
-                if (!hudTextBuffer.get(i).equals(hudText.get(i).getText())) {
-                    hasChanged = true;
-                    break;
-                }
-            }
-        }
-        
-        if (hasChanged) {
-            float width = 0;
-            float height = 0;
-            for (int i = hudText.size() - 1; i >= 0; --i) {
-                BitmapText bt = hudText.get(i);
-                String newStr = hudTextBuffer.get(i);
-                if (!bt.getText().equals(newStr)) {
-                    bt.setText(newStr);
-                }
-                if (width < bt.getLineWidth()) {
-                    width = bt.getLineWidth();
-                }
-                height += bt.getLineCount() * bt.getLineHeight();
-                bt.setLocalTranslation(0, height, 0);
-            }
-            
-            hudBackground.setLocalScale(width + 10, height, 0);
-            hudNode.setLocalTranslation(0, cam.getHeight() - height, 0);
-        }
-    }
-
     @Override
     public void stop() {
         super.stop();
@@ -504,76 +330,22 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
 
     public void onAction(String name, boolean isPressed, float tpf) {
-        if (name.equals("shiftKey")) {
-            shiftKey = isPressed;
-        } else if (name.equals("makeBlock")) {
+    	if (name.equals("makeBlock")) {
             if (isPressed) {
-                final ColorRGBA[] colors = new ColorRGBA[] {
-                    ColorRGBA.Red, ColorRGBA.Blue, ColorRGBA.Yellow,
-                    ColorRGBA.Green, ColorRGBA.Brown, ColorRGBA.Cyan,
-                    ColorRGBA.Magenta, ColorRGBA.Orange};
-                Spatial g = factory.makeBlock("big brick", 1.5f, 1.5f, 1.5f, 
-                        colors[random.nextInt(colors.length)]);
-                rootNode.attachChild(g);
-                MyRigidBodyControl c = new MyRigidBodyControl(1f);
-                g.addControl(c);
-                bulletAppState.getPhysicsSpace().add(c);
-                c.setUserObject(g);
-                Vector3f v = new Vector3f();
-                v.x = (random.nextFloat() * 2 - 1) * (TABLE_SIZE.x / 2);
-                v.y = 10;
-                v.z = (random.nextFloat() * 2 - 1) * (TABLE_SIZE.z / 2);
-                c.setPhysicsLocation(v);
-                Quaternion rot = new Quaternion();
-                rot.fromAngleAxis(FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_XYZ);
-                c.setPhysicsRotation(rot);
-                inventory.addItem(g);
+            	table.dropRandomBlock();
             }
         } else if (name.equals("makeStack")) {
             if (isPressed) {
-                final Vector3f BOX_SIZE = new Vector3f(1, 1, 1);
-                final ColorRGBA[] colors = new ColorRGBA[] {
-                    ColorRGBA.Red, ColorRGBA.Blue, ColorRGBA.Yellow,
-                    ColorRGBA.Green, ColorRGBA.Brown, ColorRGBA.Cyan,
-                    ColorRGBA.Magenta, ColorRGBA.Orange};
-                Vector3f v = new Vector3f();
-                v.x = (random.nextFloat() * 2 - 1) * (TABLE_SIZE.x / 2);
-                v.y = BOX_SIZE.y / 2;
-                v.z = (random.nextFloat() * 2 - 1) * (TABLE_SIZE.z / 2);
-                for (int i = 0; i < 5; ++i) {
-                    Spatial g = factory.makeBlock("small brick", 
-                            BOX_SIZE.x, BOX_SIZE.y, BOX_SIZE.z,
-                            colors[random.nextInt(colors.length)]);
-                    rootNode.attachChild(g);
-                    MyRigidBodyControl c = new MyRigidBodyControl(1f);
-                    g.addControl(c);
-                    bulletAppState.getPhysicsSpace().add(c);
-                    c.setUserObject(g);
-                    c.setPhysicsLocation(v);
-
-                    v.y += BOX_SIZE.y;
-                    inventory.addItem(g);
-                }
+            	table.dropRandomStackOfBlocks(5);
             }
         } else if (name.equals("clearTable")) {
-            itemsToBeRemoved.clear();
-            for (Spatial item : inventory.allItems()) {
-                if (item.getParent() == rootNode) {
-                    MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
-                    if (rbc != null) {
-                        bulletAppState.getPhysicsSpace().remove(rbc);
-                        item.removeControl(rbc);
-                    }
-                    rootNode.detachChild(item);
-                    itemsToBeRemoved.add(item);
-                }
-            }
-            inventory.removeItems(itemsToBeRemoved);
+        	if (isPressed) {
+        		inventory.removeAllFreeItems();
+        	}
         } else if (name.equals("cameraRobotHead")) {
             if (isPressed) {
                 robot.toggleHeadCameraView(rootNode);
             }
         }
-    }
-    
+    }    
 }

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://synapse.cs.umd.edu/tabletop-xml" elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tt="http://synapse.cs.umd.edu/tabletop-xml">
+	<simpleType name="colorType">
+		<restriction base="string">
+			<pattern value="black" />
+			<pattern value="blue" />
+			<pattern value="brown" />
+			<pattern value="cyan" />
+			<pattern value="darkgray" />
+			<pattern value="gray" />
+			<pattern value="green" />
+			<pattern value="lightgray" />
+			<pattern value="magenta" />
+			<pattern value="orange" />
+			<pattern value="pink" />
+			<pattern value="red" />
+			<pattern value="white" />
+			<pattern value="yellow" />
+			<pattern value="\s*#[0-9a-fA-F]{6}\s*" />
+		</restriction>
+	</simpleType>
+	<simpleType name="spanType">
+		<restriction base="float">
+			<minInclusive value="0.01" />
+		</restriction>
+	</simpleType>
+	<simpleType name="massType">
+		<restriction base="float">
+			<minInclusive value="0" />
+		</restriction>
+	</simpleType>
+    <simpleType name="countType">
+        <restriction base="int">
+            <minInclusive value="0" />
+        </restriction>
+    </simpleType>
+	<simpleType name="idType">
+		<restriction base="string">
+			<pattern value="[_a-zA-Z0-9]*" />
+		</restriction>
+	</simpleType>
+	<simpleType name="vector3Type">
+		<restriction base="string">
+			<pattern
+				value="\s*[(]\s*([-]?\d*(\.\d+)?)\s*,\s*([-]?\d*(\.\d+)?)\s*,\s*([-]?\d*(\.\d+)?)\s*[)]\s*" />
+		</restriction>
+	</simpleType>
+
+	<attributeGroup name="simpleObjectCommonAttrs">
+		<attribute name="id" type="tt:idType" use="optional"/>
+		<attribute name="location" type="tt:vector3Type" use="required" />
+		<attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)">
+			<annotation>
+				<documentation>rotation along x, y, and z axis, respectively.
+				</documentation>
+			</annotation>
+		</attribute>
+	</attributeGroup>
+
+	<attributeGroup name="blockAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+		<attributeGroup ref="tt:simpleObjectCommonAttrs"/>
+	</attributeGroup>
+
+	<attributeGroup name="cylinderAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+		<attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+        <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
+	</attributeGroup>
+
+	<attributeGroup name="sphereAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+		<attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+        <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
+	</attributeGroup>
+	
+	<attributeGroup name="boxAttrs">
+        <attributeGroup ref="tt:blockAttrs"/>
+        <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
+	</attributeGroup>
+
+    <complexType name="compositeType">
+        <sequence minOccurs="0" maxOccurs="unbounded">
+            <choice>
+                <element name="block">
+                    <complexType>
+                        <attributeGroup ref="tt:blockAttrs"/>
+                    </complexType>
+                </element>
+                <element name="cylinder">
+                    <complexType>
+                        <attributeGroup ref="tt:cylinderAttrs"/>
+                    </complexType>
+                </element>
+                <element name="sphere">
+                    <complexType>
+                        <attributeGroup ref="tt:sphereAttrs"/>
+                    </complexType>
+                </element>
+                <element name="box">
+                    <complexType>
+                        <attributeGroup ref="tt:boxAttrs"/>
+                    </complexType>
+                </element>
+                <element name="composite" type="tt:compositeType"/>
+            </choice>
+        </sequence>
+        <attributeGroup ref="tt:simpleObjectCommonAttrs" />
+    </complexType>
+
+	<element name="tabletop">
+        <complexType>
+            <sequence minOccurs="0" maxOccurs="unbounded">
+                <choice>
+	                <element name="block">
+	                    <complexType>
+	                        <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                        <attributeGroup ref="tt:blockAttrs"/>
+	                    </complexType>
+	                </element>
+	                <element name="cylinder">
+	                    <complexType>
+	                        <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                        <attributeGroup ref="tt:cylinderAttrs"/>
+	                    </complexType>
+	                </element>
+	                <element name="sphere">
+	                    <complexType>
+	                        <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                        <attributeGroup ref="tt:sphereAttrs"/>
+	                    </complexType>
+	                </element>
+	                <element name="box">
+	                    <complexType>
+                            <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                        <attributeGroup ref="tt:boxAttrs"/>
+	                    </complexType>
+	                </element>
+	                <element name="composite">
+	                    <complexType>
+	                        <complexContent>
+	                            <extension base="tt:compositeType">
+	                                <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                            </extension>
+	                        </complexContent>
+	                    </complexType>
+	                </element>
+	                <element name="chain">
+                        <complexType>
+                            <attribute name="id" type="tt:idType" use="optional"/>
+                            <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+                            <attribute name="start" type="tt:vector3Type" use="required"/>
+                            <attribute name="end" type="tt:vector3Type" use="required"/>
+                            <attribute name="linkXspan" type="tt:spanType" use="optional" default="0.1"/>
+                            <attribute name="linkYspan" type="tt:spanType" use="optional" default="1"/>
+                            <attribute name="linkZspan" type="tt:spanType" use="optional" default="0.1"/>
+                            <attribute name="linkCount" type="tt:countType" use="optional" default="0"/>
+                            <attribute name="linkPadding" type="tt:spanType" use="optional" default="0.05"/>
+                            <attribute name="linkMass" type="tt:massType" use="optional" default="1"/>
+                        </complexType>
+	                </element>
+                </choice>
+            </sequence>
+            <attribute name="xspan" type="tt:spanType"/>
+            <attribute name="yspan" type="tt:spanType"/>
+        </complexType>
+	</element>
+
+
+</schema>

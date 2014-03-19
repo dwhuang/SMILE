@@ -4,11 +4,6 @@
  */
 package tabletop2;
 
-import com.jme3.bullet.joints.PhysicsJoint;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
-import com.jme3.scene.Spatial;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,16 +11,29 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.joints.PhysicsJoint;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
+import com.jme3.scene.Spatial;
+
 /**
  *
  * @author dwhuang
  */
 public class Inventory {
+	private Node rootNode;
+	private BulletAppState bulletAppState;
+	
     private HashMap<Geometry, Spatial> itemsByGeo = new HashMap<Geometry, Spatial>();
     private HashMap<Spatial, HashSet<PhysicsJoint>> jointsForItem 
             = new HashMap<Spatial, HashSet<PhysicsJoint>>();
     
-    private transient HashSet<Spatial> items = new HashSet<Spatial>();
+    public Inventory(MainApp app) {
+    	rootNode = app.getRootNode();
+    	bulletAppState = app.getBulletAppState();
+    }
     
     public void addItem(Spatial item) {
         if (item instanceof Geometry) {
@@ -55,19 +63,41 @@ public class Inventory {
         }
         
         for (Spatial s : itemsToBeRemoved) {
-            Set<PhysicsJoint> jointsToBeRemoved = getPhysicsJointsForItem(s);
-            if (jointsToBeRemoved != null) {
-                for (PhysicsJoint joint : jointsToBeRemoved) {
-                    removePhysicsJoint(joint);
-                }
-            }
+            removeItemPhysics(s);
+            rootNode.detachChild(s);
         }
     }
     
     public void removeItem(Spatial item) {
-        items.clear();
-        items.add(item);
-        removeItems(items);
+    	HashSet<Spatial> tmpItemSet = new HashSet<Spatial>();
+        tmpItemSet.add(item);
+        removeItems(tmpItemSet);
+    }
+    
+    private void removeItemPhysics(Spatial item) {
+        MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
+        if (rbc != null) {
+            bulletAppState.getPhysicsSpace().remove(rbc);
+            item.removeControl(rbc);
+        }
+
+        // remove joints associated with item
+        Set<PhysicsJoint> jointsToBeRemoved = getPhysicsJointsForItem(item);
+        if (jointsToBeRemoved != null) {
+            for (PhysicsJoint joint : jointsToBeRemoved) {
+                removePhysicsJoint(joint);
+            }
+        }
+    }
+    
+    public void removeAllFreeItems() {
+    	HashSet<Spatial> tmpItemSet = new HashSet<Spatial>();
+        for (Spatial item : allItems()) {
+            if (item.getParent() == rootNode) {
+                tmpItemSet.add(item);
+            }
+        }
+        removeItems(tmpItemSet);
     }
     
     public Spatial getItem(Geometry g) {
@@ -87,7 +117,7 @@ public class Inventory {
             throw new IllegalArgumentException("both spatials are not valid items: " + item1 + " and " + item2);
         }
         
-        HashSet joints;
+        HashSet<PhysicsJoint> joints;
         if (item1Exists) {
             joints = jointsForItem.get(item1);
             if (joints == null) {
@@ -119,7 +149,7 @@ public class Inventory {
     private void removePhysicsJoint(PhysicsJoint joint) {
         HashSet<Spatial> itemsToBeRemoved = new HashSet<Spatial>();
         for (Map.Entry<Spatial, HashSet<PhysicsJoint>> e : jointsForItem.entrySet()) {
-            e.getValue().remove(joint);
+            e.getValue().remove(joint); // may fail because e.getValue() might not contain the joint, but it's OK
             if (e.getValue().isEmpty()) {
                 itemsToBeRemoved.add(e.getKey());
             }
@@ -128,5 +158,7 @@ public class Inventory {
         for (Spatial item : itemsToBeRemoved) {
             jointsForItem.remove(item);
         }
+
+        bulletAppState.getPhysicsSpace().remove(joint);
     }
 }

@@ -32,7 +32,6 @@ public class ImageCapturer {
     private ByteBuffer bbuf;
     private BufferedImage image;
     
-    @SuppressWarnings("LeakingThisInConstructor")
     public ImageCapturer(Camera cam, RenderManager renderManager, Node camNode, Node rootNode) {
         this.cam = cam;
         this.renderManager = renderManager;

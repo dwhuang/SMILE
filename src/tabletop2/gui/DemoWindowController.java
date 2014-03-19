@@ -4,11 +4,15 @@
  */
 package tabletop2.gui;
 
+import tabletop2.DemonstrationListener;
+import tabletop2.Demonstrator;
+
 import com.jme3.app.Application;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
+
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.Button;
@@ -20,8 +24,6 @@ import de.lessvoid.nifty.controls.Window;
 import de.lessvoid.nifty.elements.events.NiftyMousePrimaryClickedEvent;
 import de.lessvoid.nifty.elements.events.NiftyMousePrimaryReleaseEvent;
 import de.lessvoid.nifty.screen.Screen;
-import tabletop2.DemonstrationListener;
-import tabletop2.Demonstrator;
 
 /**
  *
@@ -45,8 +47,6 @@ public class DemoWindowController implements WindowController, DemonstrationList
         Vector3f.UNIT_X, Vector3f.UNIT_Z.negate(), Vector3f.UNIT_Y};
     
     private transient Quaternion targetRot = new Quaternion();
-    private transient Quaternion quat = new Quaternion();
-    private transient float[] angles = new float[3];
     
     DemoWindowController(Demonstrator demonstrator) {
         this.demonstrator = demonstrator;

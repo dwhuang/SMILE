@@ -25,13 +25,8 @@ import tabletop2.Demonstrator;
  */
 public class GuiController extends AbstractAppState implements ScreenController {
     
-    private Demonstrator demonstrator;
-    
-    // button name -> window controller 
-//    private HashMap<Button, WindowController> windowControllers 
-//            = new HashMap<Button, WindowController>();
-    private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();
-    
+    private Demonstrator demonstrator;    
+    private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();    
     
     public GuiController(Demonstrator demonstrator) {
         this.demonstrator = demonstrator;
@@ -53,14 +48,18 @@ public class GuiController extends AbstractAppState implements ScreenController 
     }
     
     public void bind(Nifty nifty, Screen screen) {
+        windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
         windowControllers.add(new DemoWindowController(demonstrator));
+        windowControllers.add(new ObjectsWindowController());
 
         for (WindowController wc : windowControllers) {
             wc.bind(nifty, screen);
             
             Window window = wc.getWindow();
-            window.getElement().hide();
+            if (wc.getClass() != StatusWindowController.class) {
+            	window.getElement().hide();
+            }
         }
         organizeWindows();
     }

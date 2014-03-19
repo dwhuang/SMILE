@@ -41,7 +41,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private Camera cam;
     private InputManager inputManager;
     private final Inventory inventory;
-    private Spatial table;
+    private Table table;
 
     private ArrayList<DemonstrationListener> demoListeners = new ArrayList<DemonstrationListener>();
     private DemonstratorSceneProcessor sceneProcessor;
@@ -79,7 +79,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         visualAid.attachChild(movingPlane);        
         Factory factory = app.getFactory();
         
-        Vector2f planeSize = new Vector2f(MainApp.TABLE_SIZE.x, MainApp.TABLE_SIZE.x);
+        Vector2f planeSize = new Vector2f(table.getWidth(), table.getWidth());
         planeSize.multLocal(4);
         Geometry g = factory.makeUnshadedPlane(name + " movingSubplane1",
                 planeSize.x, planeSize.y, new ColorRGBA(0.5f, 0.5f, 1, 0.3f));

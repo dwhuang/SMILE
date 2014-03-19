@@ -11,7 +11,11 @@
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jglfont-core.jar"/>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jinput.jar"/>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-blender.jar"/>
-	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-core.jar"/>
+	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-core.jar" sourcepath="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/vecmath.jar">
+		<attributes>
+			<attribute name="source_encoding" value="UTF-8"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-desktop.jar"/>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-effects.jar"/>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jmonkeyengine-read-only/engine/dist/lib/jME3-jbullet.jar"/>

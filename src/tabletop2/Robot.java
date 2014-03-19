@@ -4,6 +4,16 @@
  */
 package tabletop2;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.imageio.ImageIO;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
@@ -20,19 +30,9 @@ import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.debug.Arrow;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 
 /**
  *
@@ -48,8 +48,6 @@ public class Robot implements AnalogListener, ActionListener {
     public static final float HEAD_CAM_INTV = 0.25f; // sec
     public static final float HEAD_CAM_FOV = 60;
     
-
-    private String name;
     private AssetManager assetManager;
     private RenderManager renderManager;
     private PhysicsSpace physicsSpace;
@@ -109,20 +107,14 @@ public class Robot implements AnalogListener, ActionListener {
     private Quaternion quat = new Quaternion();
     
     
-    public Robot(String name, Node parentNode, AssetManager assetManager,
-            RenderManager renderManager, PhysicsSpace physicsSpace, Factory factory) {
-        this.name = name;
-        this.assetManager = assetManager;
-        this.renderManager = renderManager;
-        this.physicsSpace = physicsSpace;
-        this.factory = factory;
-        // find root node
-        this.rootNode = parentNode;
-        while (this.rootNode.getParent() != null) {
-            this.rootNode = this.rootNode.getParent();
-        }
+    public Robot(String name, MainApp app, Node robotLocationNode) {
+        assetManager = app.getAssetManager();
+        renderManager = app.getRenderManager();
+        physicsSpace = app.getBulletAppState().getPhysicsSpace();
+        factory = app.getFactory();
+        rootNode = app.getRootNode();
         
-        buildRobot(name, parentNode);
+        buildRobot(name, robotLocationNode);
 
         // the camera attached near the top of the head screen is used
         // to take pictures, which are sent to the control agent
@@ -163,11 +155,10 @@ public class Robot implements AnalogListener, ActionListener {
         node = attachLink(" H0", node, headJointStates[0], "head0");
 
         // head camera position
-        headCamNode = attachSpatialCenter(name + " head camera", node, 0.12839f, 0.06368f + 0.2f, 
-                0, 1.92f - 1.57f + FastMath.PI / 5, 1.57f, 0);
+        headCamNode = attachSpatialCenter(name + " head camera", node, 0.12839f, 0.06368f + 0.2f, 0, 
+        		1.92f - 1.57f + FastMath.PI / 5, 1.57f, 0);
         // NOTE cheat a little here to get a better view of the table,
         // by moving the real camera position up by 0.2f and rotating downward by pi/6
-        //attachCoordinateAxes(headCamNode);
         
         // head screen
         node = attachSpatialCenter(name + " H1a", node, 0.088f, 0, 0, -1.92f, -1.571f, 0);
@@ -463,30 +454,6 @@ public class Robot implements AnalogListener, ActionListener {
         }
     }
     
-    private void attachCoordinateAxes(Node parent) {
-        Arrow arrow = new Arrow(Vector3f.UNIT_X);
-        arrow.setLineWidth(4); // make arrow thicker
-        putShape(arrow, ColorRGBA.Red, parent);
-
-        arrow = new Arrow(Vector3f.UNIT_Y);
-        arrow.setLineWidth(4); // make arrow thicker
-        putShape(arrow, ColorRGBA.Green, parent);
-
-        arrow = new Arrow(Vector3f.UNIT_Z);
-        arrow.setLineWidth(4); // make arrow thicker
-        putShape(arrow, ColorRGBA.Blue, parent);
-    }
-
-    private Geometry putShape(Mesh shape, ColorRGBA color, Node parentNode) {
-        Geometry g = new Geometry("coordinate axis", shape);
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.getAdditionalRenderState().setWireframe(true);
-        mat.setColor("Color", color);
-        g.setMaterial(mat);
-        parentNode.attachChild(g);
-        return g;
-    }
-
     public void setDemoCue(boolean cue) {
         demoCue = cue;
     }
