@@ -49,7 +49,7 @@ public class StatusWindowController implements WindowController {
 		
 		boolean matlabStatus = robot.matlabAgentAlive();
 		if (matlabStatus != lastMatlabStatus) {
-			lbMatlabStatus.setText("" + matlabStatus);
+			lbMatlabStatus.setText(matlabStatus ? "online" : "offline");
 			lastMatlabStatus = matlabStatus;
 		}
 	}

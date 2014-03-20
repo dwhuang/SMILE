@@ -3,6 +3,15 @@
     <useStyles filename="nifty-default-styles.xml" />
     <useControls filename="nifty-default-controls.xml" />        
 
+    <popup id="puPause" childLayout="center" backgroundColor="#000a" inputMapping="tabletop2.gui.GuiController">
+        <panel childLayout="vertical">
+	        <control name="label" font="Fonts/Helvetica-36.fnt" text="Simulation Paused" height="40"/>
+            <control name="label" font="Fonts/Helvetica-36.fnt" text="" height="40"/>
+	        <control name="label" font="Fonts/Helvetica-36.fnt" text="Press SPACE to resume" height="40"/>
+	        <control name="label" font="Fonts/Helvetica-36.fnt" text="Press ESC to quit" height="40"/>
+        </panel>
+    </popup>
+
     <screen id="guiView" controller="tabletop2.gui.GuiController">
         <layer childLayout="horizontal">
             <panel childLayout="center" valign="bottom" width="27px" height="23px">

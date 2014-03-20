@@ -4,9 +4,14 @@
  */
 package tabletop2.gui;
 
+import java.util.ArrayList;
+
+import tabletop2.Demonstrator;
+
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.ButtonClickedEvent;
@@ -16,8 +21,6 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.tools.SizeValue;
-import java.util.ArrayList;
-import tabletop2.Demonstrator;
 
 /**
  *
@@ -25,8 +28,12 @@ import tabletop2.Demonstrator;
  */
 public class GuiController extends AbstractAppState implements ScreenController {
     
+	private Nifty nifty;
+	private Screen screen;
+	
     private Demonstrator demonstrator;    
-    private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();    
+    private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();
+    private Element puPause;
     
     public GuiController(Demonstrator demonstrator) {
         this.demonstrator = demonstrator;
@@ -46,8 +53,13 @@ public class GuiController extends AbstractAppState implements ScreenController 
             wc.update(tpf);
         }
     }
-    
+
     public void bind(Nifty nifty, Screen screen) {
+    	this.nifty = nifty;
+    	this.screen = screen;
+    	
+        puPause = nifty.createPopup("puPause");
+        
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
         windowControllers.add(new DemoWindowController(demonstrator));
@@ -68,6 +80,14 @@ public class GuiController extends AbstractAppState implements ScreenController 
     }
 
     public void onEndScreen() {
+    }
+    
+    public void showPausePopup(boolean enabled) {
+    	if (enabled) {
+    		nifty.showPopup(screen, puPause.getId(), null);
+    	} else {
+    		nifty.closePopup(puPause.getId());
+    	}
     }
     
     @NiftyEventSubscriber(pattern="bt.*")
@@ -135,4 +155,5 @@ public class GuiController extends AbstractAppState implements ScreenController 
             }
         }
     }
+
 }

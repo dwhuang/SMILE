@@ -20,6 +20,10 @@ import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
+import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -29,13 +33,14 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 
 
-public class Table {
+public class Table implements ActionListener {
 	
 	private static final Logger logger = Logger.getLogger(Table.class.getName());
 
     private static Random random = new Random(5566);
 
     private String name;
+    private boolean enabled = true;
 	private Node rootNode;
 	private Factory factory;
 	private BulletAppState bulletAppState;
@@ -75,6 +80,10 @@ public class Table {
 		return tableSpatial.getWorldBound();
 	}
 	
+	public void setEnabled(boolean v) {
+		enabled = v;
+	}
+	
 	public void reloadXml(String xmlFname) {
 		// remove the table (if exists)
 		if (tableSpatial != null) {
@@ -90,6 +99,7 @@ public class Table {
 		
 		loadXml(xmlFname);
 		
+		// relocate the robot according to table size
     	robotLocationNode.setLocalTransform(Transform.IDENTITY);
     	robotLocationNode.setLocalTranslation(0, 2, tableDepth / 2 + 3);
     	robotLocationNode.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));		
@@ -509,5 +519,35 @@ public class Table {
 		bulletAppState.getPhysicsSpace().add(boxContainerControl);
 		rootNode.attachChild(boxContainer);
 		inventory.addItem(boxContainer);
+	}
+
+	public void initKeys(InputManager inputManager) {
+        inputManager.addMapping(name + "MakeBlock", new KeyTrigger(KeyInput.KEY_B));
+        inputManager.addMapping(name + "MakeStack", new KeyTrigger(KeyInput.KEY_N));
+        inputManager.addMapping(name + "ClearTable", new KeyTrigger(KeyInput.KEY_C));        
+        
+        inputManager.addListener(this, name + "MakeBlock");
+        inputManager.addListener(this, name + "MakeStack");
+        inputManager.addListener(this, name + "ClearTable");		
+	}
+	
+	@Override
+	public void onAction(String eName, boolean isPressed, float tpf) {
+		if (!enabled) {
+			return;
+		}
+    	if (eName.equals(name + "MakeBlock")) {
+            if (!isPressed) {
+            	dropRandomBlock();
+            }
+        } else if (eName.equals(name + "MakeStack")) {
+            if (!isPressed) {
+            	dropRandomStackOfBlocks(5);
+            }
+        } else if (eName.equals(name + "ClearTable")) {
+        	if (!isPressed) {
+        		inventory.removeAllFreeItems();
+        	}
+        }
 	}
 }

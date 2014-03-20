@@ -8,6 +8,7 @@ import java.util.prefs.BackingStoreException;
 
 import tabletop2.gui.GuiController;
 
+import com.jme3.app.FlyCamAppState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.input.KeyInput;
@@ -15,7 +16,6 @@ import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
-import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.PointLight;
 import com.jme3.math.ColorRGBA;
@@ -45,7 +45,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private Node robotLocationNode = new Node("robotLocationNode");
     private Robot robot;
     private Demonstrator demonstrator;
-//    private Spatial tableSpatial;
+    private GuiController guiController;
     
     private final boolean flyGripper = false;
     private Node gripperNode;
@@ -54,6 +54,9 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private boolean hasDeletedMouseTrigger = false;
     
     private float timeAccumulator = 0;
+    
+    private boolean isRunning = true;
+    private FlyCamAppState flyCamAppState;
     
     private transient HashSet<Spatial> itemsToRemove = new HashSet<Spatial>();
     
@@ -121,6 +124,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     public void simpleInitApp() {
     	initBulletAppState();
         flyCam.setMoveSpeed(10f);
+        flyCamAppState = stateManager.getState(FlyCamAppState.class);
         
         factory = new Factory(assetManager);
         inventory = new Inventory(this);        
@@ -128,9 +132,9 @@ public class MainApp extends SimpleApplication implements ActionListener {
         table.reloadXml(DEFAULT_TABLE_XML_FNAME);
         
         rootNode.attachChild(robotLocationNode);
-        robot = new Robot("baxter", this, robotLocationNode);        
+        robot = new Robot("baxter", this, robotLocationNode); 
         
-        demonstrator = new Demonstrator("demonstrator", this);
+        demonstrator = new Demonstrator("demo", this);
         
         initLighting();
         initCamera();
@@ -192,7 +196,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
     
     private void initGui() {
-        GuiController guiController = new GuiController(demonstrator);
+        guiController = new GuiController(demonstrator);
         NiftyJmeDisplay niftyDisplay= new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
         Nifty nifty = niftyDisplay.getNifty();
         String viewFname = "Interface/guiview.xml";
@@ -210,83 +214,29 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private void initKeys() {
         inputManager.addMapping("shiftKey", new KeyTrigger(KeyInput.KEY_LSHIFT));
         inputManager.addMapping("shiftKey", new KeyTrigger(KeyInput.KEY_RSHIFT));
-        inputManager.addMapping("makeBlock", new KeyTrigger(KeyInput.KEY_B));
-        inputManager.addMapping("makeStack", new KeyTrigger(KeyInput.KEY_N));
-        inputManager.addMapping("clearTable", new KeyTrigger(KeyInput.KEY_C));        
-        inputManager.addMapping("cameraRobotHead", new KeyTrigger(KeyInput.KEY_1));
-        inputManager.addMapping("robotRightArmS0", new KeyTrigger(KeyInput.KEY_LBRACKET));
-        inputManager.addMapping("robotRightArmS1", new KeyTrigger(KeyInput.KEY_P));
-        inputManager.addMapping("robotRightArmE0", new KeyTrigger(KeyInput.KEY_O));
-        inputManager.addMapping("robotRightArmE1", new KeyTrigger(KeyInput.KEY_I));
-        inputManager.addMapping("robotRightArmW0", new KeyTrigger(KeyInput.KEY_U));
-        inputManager.addMapping("robotRightArmW1", new KeyTrigger(KeyInput.KEY_Y));
-        inputManager.addMapping("robotRightArmW2", new KeyTrigger(KeyInput.KEY_T));
-        inputManager.addMapping("robotRightGripperOpen", new KeyTrigger(KeyInput.KEY_EQUALS));
-        inputManager.addMapping("robotRightGripperClose", new KeyTrigger(KeyInput.KEY_MINUS));
-        inputManager.addMapping("robotLeftArmS0", new KeyTrigger(KeyInput.KEY_APOSTROPHE));
-        inputManager.addMapping("robotLeftArmS1", new KeyTrigger(KeyInput.KEY_SEMICOLON));
-        inputManager.addMapping("robotLeftArmE0", new KeyTrigger(KeyInput.KEY_L));
-        inputManager.addMapping("robotLeftArmE1", new KeyTrigger(KeyInput.KEY_K));
-        inputManager.addMapping("robotLeftArmW0", new KeyTrigger(KeyInput.KEY_J));
-        inputManager.addMapping("robotLeftArmW1", new KeyTrigger(KeyInput.KEY_H));
-        inputManager.addMapping("robotLeftArmW2", new KeyTrigger(KeyInput.KEY_G));
-        inputManager.addMapping("robotLeftGripperOpen", new KeyTrigger(KeyInput.KEY_0));
-        inputManager.addMapping("robotLeftGripperClose", new KeyTrigger(KeyInput.KEY_9));
-        inputManager.addMapping("robotHeadH0", new KeyTrigger(KeyInput.KEY_RBRACKET));
-        inputManager.addMapping("robotScreen", new KeyTrigger(KeyInput.KEY_BACKSLASH));
-        inputManager.addMapping("robotMatlabToggle", new KeyTrigger(KeyInput.KEY_M));
-        inputManager.addMapping("robotTakePic", new KeyTrigger(KeyInput.KEY_2));
-        inputManager.addMapping("demoLeftClick", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
-        inputManager.addMapping("demoRightClick", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
-        inputManager.addMapping("demoMouseMove", 
-                new MouseAxisTrigger(MouseInput.AXIS_X, true), 
-                new MouseAxisTrigger(MouseInput.AXIS_X, false),
-                new MouseAxisTrigger(MouseInput.AXIS_Y, true),
-                new MouseAxisTrigger(MouseInput.AXIS_Y, false));
-        inputManager.addMapping("demoPlaneRotate", new KeyTrigger(KeyInput.KEY_SLASH));
-
+        inputManager.addMapping("escapeKey", new KeyTrigger(KeyInput.KEY_ESCAPE));
+        inputManager.addMapping("spaceKey", new KeyTrigger(KeyInput.KEY_SPACE));
+        
         inputManager.addListener(this, "shiftKey");
-        inputManager.addListener(this, "makeBlock");
-        inputManager.addListener(this, "makeStack");
-        inputManager.addListener(this, "clearTable");
-        inputManager.addListener(this, "cameraRobotHead");
-        inputManager.addListener(robot, "shiftKey");
-        inputManager.addListener(robot, "robotRightArmS0");
-        inputManager.addListener(robot, "robotRightArmS1");
-        inputManager.addListener(robot, "robotRightArmE0");
-        inputManager.addListener(robot, "robotRightArmE1");
-        inputManager.addListener(robot, "robotRightArmW0");
-        inputManager.addListener(robot, "robotRightArmW1");
-        inputManager.addListener(robot, "robotRightArmW2");
-        inputManager.addListener(robot, "robotRightGripperOpen");
-        inputManager.addListener(robot, "robotRightGripperClose");
-        inputManager.addListener(robot, "robotLeftArmS0");
-        inputManager.addListener(robot, "robotLeftArmS1");
-        inputManager.addListener(robot, "robotLeftArmE0");
-        inputManager.addListener(robot, "robotLeftArmE1");
-        inputManager.addListener(robot, "robotLeftArmW0");
-        inputManager.addListener(robot, "robotLeftArmW1");
-        inputManager.addListener(robot, "robotLeftArmW2");
-        inputManager.addListener(robot, "robotLeftGripperOpen");
-        inputManager.addListener(robot, "robotLeftGripperClose");
-        inputManager.addListener(robot, "robotHeadH0");
-        inputManager.addListener(robot, "robotScreen");
-        inputManager.addListener(robot, "robotMatlabToggle");
-        inputManager.addListener(robot, "robotTakePic");
-        inputManager.addListener(demonstrator, "shiftKey");
-        inputManager.addListener(demonstrator, "demoLeftClick");
-        inputManager.addListener(demonstrator, "demoRightClick");
-        inputManager.addListener(demonstrator, "demoMouseMove");
-        inputManager.addListener(demonstrator, "demoPlaneRotate");
+        inputManager.addListener(this, "escapeKey");
+        inputManager.addListener(this, "spaceKey");
+        
+        table.initKeys(inputManager);
+        robot.initKeys(inputManager);
+        demonstrator.initKeys(inputManager);
 
         if (flyGripper) {
             inputManager.addListener(gripper, "gripperOpen");
             inputManager.addListener(gripper, "gripperClose");
-        }        
+        }
     }
     
     @Override
     public void simpleUpdate(float tpf) {
+    	if (!isRunning) {
+    		return;
+    	}
+    	
         timeAccumulator += tpf;
         
         if (!hasDeletedMouseTrigger) {
@@ -298,12 +248,13 @@ public class MainApp extends SimpleApplication implements ActionListener {
             inputManager.deleteTrigger("FLYCAM_Down", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
             inputManager.deleteTrigger("FLYCAM_ZoomIn", new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
             inputManager.deleteTrigger("FLYCAM_ZoomOut", new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
+            inputManager.deleteTrigger(SimpleApplication.INPUT_MAPPING_EXIT, new KeyTrigger(KeyInput.KEY_ESCAPE));
             hasDeletedMouseTrigger = true;
             inputManager.setCursorVisible(true);
         }
         
         robot.update(tpf);
-
+        
         if (flyGripper) {
             Matrix4f projMat = cam.getViewMatrix().invert();
             gripperNode.setLocalTranslation(projMat.toTranslationVector());
@@ -330,22 +281,30 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
 
     public void onAction(String name, boolean isPressed, float tpf) {
-    	if (name.equals("makeBlock")) {
-            if (isPressed) {
-            	table.dropRandomBlock();
-            }
-        } else if (name.equals("makeStack")) {
-            if (isPressed) {
-            	table.dropRandomStackOfBlocks(5);
-            }
-        } else if (name.equals("clearTable")) {
+    	if (name.equals("spaceKey")) {
         	if (isPressed) {
-        		inventory.removeAllFreeItems();
+        		if (isRunning) {
+        			guiController.showPausePopup(true);
+        			bulletAppState.setEnabled(false);
+        			flyCamAppState.setEnabled(false);
+        			robot.setEnabled(false);
+        			table.setEnabled(false);
+        			demonstrator.setEnabled(false);
+        			setPauseOnLostFocus(true);
+        			isRunning = false;
+        		} else {
+        			guiController.showPausePopup(false);
+        			bulletAppState.setEnabled(true);
+        			flyCamAppState.setEnabled(true);
+        			robot.setEnabled(true);
+        			table.setEnabled(true);
+        			demonstrator.setEnabled(true);
+        			setPauseOnLostFocus(false);
+        			isRunning = true;
+        		}
         	}
-        } else if (name.equals("cameraRobotHead")) {
-            if (isPressed) {
-                robot.toggleHeadCameraView(rootNode);
-            }
+        } else if (name.equals("escapeKey")) {
+        	stop();
         }
     }    
 }

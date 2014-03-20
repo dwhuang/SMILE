@@ -76,7 +76,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
 
     public void update(float tpf) {
         if (planeRotDir != 0) {
-            demonstrator.onAnalog("demoPlaneRotate", planeRotDir * tpf, tpf);
+            demonstrator.onAnalog(demonstrator.getName() + "PlaneRotate", planeRotDir * tpf, tpf);
         }
     }
 

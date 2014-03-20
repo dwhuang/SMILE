@@ -13,8 +13,13 @@ import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
+import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -36,6 +41,9 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private enum DemoState {
         Idle, Grasped, Moving
     }
+    
+    private String name;
+    private boolean enabled = true;
     private Node rootNode;
     private BulletAppState bulletAppState;
     private Camera cam;
@@ -60,6 +68,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private transient Vector3f vec = new Vector3f();
     private transient Transform transform = new Transform();
     private transient Transform graspNodeTarget = new Transform();
+    private transient Transform midTransform = new Transform();
+    private transient Transform minTransform = new Transform();
 
 //    public Demonstrator(String name, Node rootNode, ViewPort viewPort,
 //            AssetManager assetManager, InputManager inputManager, 
@@ -67,6 +77,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
 //            final HashMap<Geometry, Spatial> grabbables, 
 //            Factory factory, Robot robot) {
     public Demonstrator(String name, MainApp app) {
+    	this.name = name;
         rootNode = app.getRootNode();
         bulletAppState = app.getBulletAppState();
         cam = app.getViewPort().getCamera();
@@ -74,50 +85,79 @@ public class Demonstrator implements ActionListener, AnalogListener {
         inventory = app.getInventory();
         table = app.getTable();
         
-        visualAid = new Node(name + "visualAid");
-        movingPlane = new Node(name + " movingPlane");
+        visualAid = new Node(name + "VisualAid");
+        movingPlane = new Node(name + "MovingPlane");
         visualAid.attachChild(movingPlane);        
         Factory factory = app.getFactory();
         
         Vector2f planeSize = new Vector2f(table.getWidth(), table.getWidth());
         planeSize.multLocal(4);
-        Geometry g = factory.makeUnshadedPlane(name + " movingSubplane1",
+        Geometry g = factory.makeUnshadedPlane(name + "MovingSubplane1",
                 planeSize.x, planeSize.y, new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
         g.setLocalTranslation(-planeSize.x / 2, -planeSize.y / 2, 0);
         movingPlane.attachChild(g);
-        g = factory.makeUnshadedPlane(name + " movingSubplane2",
+        g = factory.makeUnshadedPlane(name + "MovingSubplane2",
                 planeSize.x, planeSize.y, new ColorRGBA(0.5f, 0.5f, 1, 0.3f));
         g.setLocalRotation(new Quaternion(new float[]{0, FastMath.PI, 0}));
         g.setLocalTranslation(planeSize.x / 2, -planeSize.y / 2, 0);
         movingPlane.attachChild(g);
-        g = factory.makeUnshadedLine(name + " shadowLine", Vector3f.ZERO, 
+        g = factory.makeUnshadedLine(name + "ShadowLine", Vector3f.ZERO, 
                 new Vector3f(0, -planeSize.y / 2, 0), ColorRGBA.Black);
         movingPlane.attachChild(g);
         
-        g = factory.makeUnshadedArrow(name + " axisArrowX", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowX", 
                 Vector3f.UNIT_X.mult(10), 2, ColorRGBA.Red);
         g.setLocalTranslation(Vector3f.UNIT_X.negate().multLocal(5));
         visualAid.attachChild(g);
-        g = factory.makeUnshadedArrow(name + " axisArrowY", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowY", 
                 Vector3f.UNIT_Y.mult(10), 2, ColorRGBA.Blue);
         g.setLocalTranslation(Vector3f.UNIT_Y.negate().multLocal(5));
         visualAid.attachChild(g);
-        g = factory.makeUnshadedArrow(name + " axisArrowZ", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowZ", 
                 Vector3f.UNIT_Z.mult(10).negateLocal(), 2, ColorRGBA.Green);
         g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
         visualAid.attachChild(g);
         
-        graspNode = new Node(name + " graspNode");
+        graspNode = new Node(name + "GraspNode");
         rootNode.attachChild(graspNode);
 
         sceneProcessor = new DemonstratorSceneProcessor(app.getAssetManager(), visualAid);
         app.getViewPort().addProcessor(sceneProcessor);
     }
+    
+    public void setEnabled(boolean v) {
+    	enabled = v;
+    }
+    
+    public final String getName() {
+    	return name;
+    }
+    
+    public void initKeys(InputManager inputManager) {
+        inputManager.addMapping(name + "LeftClick", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping(name + "RightClick", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+        inputManager.addMapping(name + "MouseMove", 
+                new MouseAxisTrigger(MouseInput.AXIS_X, true), 
+                new MouseAxisTrigger(MouseInput.AXIS_X, false),
+                new MouseAxisTrigger(MouseInput.AXIS_Y, true),
+                new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+        inputManager.addMapping(name + "PlaneRotate", new KeyTrigger(KeyInput.KEY_SLASH));
 
-    public void onAction(String name, boolean isPressed, float tpf) {
-        if (name.equals("shiftKey")) {
+        inputManager.addListener(this, "shiftKey");
+
+        inputManager.addListener(this, name + "LeftClick");
+        inputManager.addListener(this, name + "RightClick");
+        inputManager.addListener(this, name + "MouseMove");
+        inputManager.addListener(this, name + "PlaneRotate");
+}
+
+    public void onAction(String eName, boolean isPressed, float tpf) {
+    	if (!enabled) {
+    		return;
+    	}
+    	if (eName.equals("shiftKey")) {
             shiftKey = isPressed;
-        } else if (name.equals("demoLeftClick")) {
+        } else if (eName.equals(name + "LeftClick")) {
             if (state == DemoState.Idle) {
                 if (!isPressed) {
                     Spatial cursorObj = getCursorItem(rootNode);
@@ -139,8 +179,11 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
     }
 
-    public void onAnalog(String name, float value, float tpf) {
-        if (name.equals("demoPlaneRotate")) {
+    public void onAnalog(String eName, float value, float tpf) {
+    	if (!enabled) {
+    		return;
+    	}
+        if (eName.equals(name + "PlaneRotate")) {
             if (state == DemoState.Grasped) {
                 transform.set(movingPlane.getLocalTransform());
                 if (!shiftKey) {
@@ -164,7 +207,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 movingPlane.getLocalTransform().transformVector(vec, vec);
                 cam.lookAtDirection(vec, Vector3f.UNIT_Y);
             }
-        } else if (name.equals("demoMouseMove")) {
+        } else if (eName.equals(name + "MouseMove")) {
             if (state == DemoState.Moving) {
                 Vector3f pos = getCursorPosOnMovingPlane();
                 if (pos != null) {
@@ -355,8 +398,6 @@ public class Demonstrator implements ActionListener, AnalogListener {
         return false;
     }
     
-    private transient Transform midTransform = new Transform();
-    private transient Transform minTransform = new Transform();
     private float tryTransformingGraspNode(Transform target, float deltaRangePrecision) {
         minTransform.set(graspNode.getLocalTransform());
 

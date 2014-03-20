@@ -18,8 +18,11 @@ import com.jme3.asset.AssetManager;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.material.MatParam;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -47,13 +50,15 @@ public class Robot implements AnalogListener, ActionListener {
     public static final int HEAD_CAM_RES_HEIGHT = 150;
     public static final float HEAD_CAM_INTV = 0.25f; // sec
     public static final float HEAD_CAM_FOV = 60;
-    
+
+    private String name;
+    private boolean enabled = true;
     private AssetManager assetManager;
     private RenderManager renderManager;
     private PhysicsSpace physicsSpace;
     private Factory factory;
     private Node rootNode;
-    
+
     private Node base;
     private Geometry screen;
     private Gripper rightGripper;
@@ -103,11 +108,12 @@ public class Robot implements AnalogListener, ActionListener {
     private boolean demoCue = false;
     private float timeSinceLastHeadVision = 0;
     
-    private Vector3f vec = new Vector3f();
-    private Quaternion quat = new Quaternion();
+    private transient Vector3f vec = new Vector3f();
+    private transient Quaternion quat = new Quaternion();
     
     
     public Robot(String name, MainApp app, Node robotLocationNode) {
+    	this.name = name;
         assetManager = app.getAssetManager();
         renderManager = app.getRenderManager();
         physicsSpace = app.getBulletAppState().getPhysicsSpace();
@@ -139,6 +145,12 @@ public class Robot implements AnalogListener, ActionListener {
     
     public boolean matlabAgentAlive() {
         return matlabAgent.isAlive();
+    }
+    
+    public void setEnabled(boolean v) {
+    	enabled = v;
+    	leftGripper.setEnabled(v);
+    	rightGripper.setEnabled(v);
     }
     
     private void buildRobot(String name, Node parentNode) {
@@ -308,39 +320,94 @@ public class Robot implements AnalogListener, ActionListener {
         rbc.setKinematic(true);        
     }
     
+    public void initKeys(InputManager inputManager) {
+        inputManager.addMapping(name + "RightArmS0", new KeyTrigger(KeyInput.KEY_LBRACKET));
+        inputManager.addMapping(name + "RightArmS1", new KeyTrigger(KeyInput.KEY_P));
+        inputManager.addMapping(name + "RightArmE0", new KeyTrigger(KeyInput.KEY_O));
+        inputManager.addMapping(name + "RightArmE1", new KeyTrigger(KeyInput.KEY_I));
+        inputManager.addMapping(name + "RightArmW0", new KeyTrigger(KeyInput.KEY_U));
+        inputManager.addMapping(name + "RightArmW1", new KeyTrigger(KeyInput.KEY_Y));
+        inputManager.addMapping(name + "RightArmW2", new KeyTrigger(KeyInput.KEY_T));
+        inputManager.addMapping(name + "RightGripperOpen", new KeyTrigger(KeyInput.KEY_EQUALS));
+        inputManager.addMapping(name + "RightGripperClose", new KeyTrigger(KeyInput.KEY_MINUS));
+        inputManager.addMapping(name + "LeftArmS0", new KeyTrigger(KeyInput.KEY_APOSTROPHE));
+        inputManager.addMapping(name + "LeftArmS1", new KeyTrigger(KeyInput.KEY_SEMICOLON));
+        inputManager.addMapping(name + "LeftArmE0", new KeyTrigger(KeyInput.KEY_L));
+        inputManager.addMapping(name + "LeftArmE1", new KeyTrigger(KeyInput.KEY_K));
+        inputManager.addMapping(name + "LeftArmW0", new KeyTrigger(KeyInput.KEY_J));
+        inputManager.addMapping(name + "LeftArmW1", new KeyTrigger(KeyInput.KEY_H));
+        inputManager.addMapping(name + "LeftArmW2", new KeyTrigger(KeyInput.KEY_G));
+        inputManager.addMapping(name + "LeftGripperOpen", new KeyTrigger(KeyInput.KEY_0));
+        inputManager.addMapping(name + "LeftGripperClose", new KeyTrigger(KeyInput.KEY_9));
+        inputManager.addMapping(name + "HeadH0", new KeyTrigger(KeyInput.KEY_RBRACKET));
+        inputManager.addMapping(name + "Screen", new KeyTrigger(KeyInput.KEY_BACKSLASH));
+        inputManager.addMapping(name + "MatlabToggle", new KeyTrigger(KeyInput.KEY_M));
+        inputManager.addMapping(name + "HeadView", new KeyTrigger(KeyInput.KEY_1));
+        inputManager.addMapping(name + "TakePic", new KeyTrigger(KeyInput.KEY_2));
+
+        inputManager.addListener(this, "shiftKey");
+        
+        inputManager.addListener(this, name + "RightArmS0");
+        inputManager.addListener(this, name + "RightArmS1");
+        inputManager.addListener(this, name + "RightArmE0");
+        inputManager.addListener(this, name + "RightArmE1");
+        inputManager.addListener(this, name + "RightArmW0");
+        inputManager.addListener(this, name + "RightArmW1");
+        inputManager.addListener(this, name + "RightArmW2");
+        inputManager.addListener(this, name + "RightGripperOpen");
+        inputManager.addListener(this, name + "RightGripperClose");
+        inputManager.addListener(this, name + "LeftArmS0");
+        inputManager.addListener(this, name + "LeftArmS1");
+        inputManager.addListener(this, name + "LeftArmE0");
+        inputManager.addListener(this, name + "LeftArmE1");
+        inputManager.addListener(this, name + "LeftArmW0");
+        inputManager.addListener(this, name + "LeftArmW1");
+        inputManager.addListener(this, name + "LeftArmW2");
+        inputManager.addListener(this, name + "LeftGripperOpen");
+        inputManager.addListener(this, name + "LeftGripperClose");
+        inputManager.addListener(this, name + "HeadH0");
+        inputManager.addListener(this, name + "Screen");
+        inputManager.addListener(this, name + "MatlabToggle");
+        inputManager.addListener(this, name + "HeadView");
+        inputManager.addListener(this, name + "TakePic");
+    }
+    
     public void onAnalog(String name, float value, float tpf) {
+    	if (!enabled) {
+    		return;
+    	}
+    	
         RobotJointState[] joints = null;
-        String lowerCaseName = name.toLowerCase();
-        if (lowerCaseName.matches(".*rightarm.*")) {
+        if (name.matches(this.name + "RightArm.*")) {
             joints = rightJointStates;
-        } else if (lowerCaseName.matches(".*leftarm.*")) {
+        } else if (name.matches(this.name + "LeftArm.*")) {
             joints = leftJointStates;
-        } else if (lowerCaseName.matches(".*head.*")) {
+        } else if (name.matches(this.name + "HeadH0")) {
             joints = headJointStates;
-        } else if (lowerCaseName.matches(".*rightgripper.*")) {
+        } else if (name.matches(this.name + "RightGripper.*")) {
             rightGripper.onAnalog(name, value, tpf);
-        } else if (lowerCaseName.matches(".*leftgripper.*")) {
+        } else if (name.matches(this.name + "LeftGripper.*")) {
             leftGripper.onAnalog(name, value, tpf);
         }
         
         if (joints != null) {
-            String jName = lowerCaseName.substring(lowerCaseName.length() - 2);
+            String jName = name.substring(name.length() - 2);
             int jointIndex = -1;
-            if (jName.equals("s0")) {
+            if (jName.equals("S0")) {
                 jointIndex = S0;
-            } else if (jName.equals("s1")) {
+            } else if (jName.equals("S1")) {
                 jointIndex = S1;
-            } else if (jName.equals("e0")) {
+            } else if (jName.equals("E0")) {
                 jointIndex = E0;
-            } else if (jName.equals("e1")) {
+            } else if (jName.equals("E1")) {
                 jointIndex = E1;
-            } else if (jName.equals("w0")) {
+            } else if (jName.equals("W0")) {
                 jointIndex = W0;
-            } else if (jName.equals("w1")) {
+            } else if (jName.equals("W1")) {
                 jointIndex = W1;
-            } else if (jName.equals("w2")) {
+            } else if (jName.equals("W2")) {
                 jointIndex = W2;
-            } else if (jName.equals("h0")) {
+            } else if (jName.equals("H0")) {
                 jointIndex = 0;
             }
             if (shiftKey) {
@@ -352,14 +419,17 @@ public class Robot implements AnalogListener, ActionListener {
     }
 
     public void onAction(String name, boolean pressed, float tpf) {
-        String lowerCaseName = name.toLowerCase();
-        if (lowerCaseName.equals("shiftkey")) {
+    	if (!enabled) {
+    		return;
+    	}
+    	
+        if (name.equals("shiftKey")) {
             shiftKey = pressed;
-        } else if (lowerCaseName.matches(".*screen.*")) {
+        } else if (name.matches(this.name + "Screen")) {
             if (!pressed) {
                 showNextFacialExpression();
             }
-        } else if (lowerCaseName.matches(".*matlab.*")) {
+        } else if (name.matches(this.name + "MatlabToggle")) {
             if (!pressed) {
                 if (matlabAgent.isAlive()) {
                     matlabAgent.stop();
@@ -367,7 +437,11 @@ public class Robot implements AnalogListener, ActionListener {
                     matlabAgent.start();
                 }
             }
-        } else if (lowerCaseName.matches(".*takepic")) {            
+        } else if (name.equals(this.name + "HeadView")) {
+			if (!pressed) {
+				toggleHeadCameraView();
+			}
+        } else if (name.matches(this.name + "TakePic")) {            
             BufferedImage img = headImageCapturer.takePicture();            
             try {
                 String fname = "headcam" + (new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())) + ".png";
@@ -379,6 +453,10 @@ public class Robot implements AnalogListener, ActionListener {
     }
     
     public void update(float tpf) {
+    	if (!enabled) {
+    		return;
+    	}
+    	
         if (matlabAgent.isAlive()) {
             timeSinceLastHeadVision += tpf;
             BufferedImage img = null;
@@ -418,7 +496,7 @@ public class Robot implements AnalogListener, ActionListener {
         headCam.setRotation(headCamNode.getWorldRotation());
     }
     
-    public void toggleHeadCameraView(Node rootNode) {
+    public void toggleHeadCameraView() {
         if (headCam != null) {
             headCam = null;
             renderManager.removeMainView("robot head camera");

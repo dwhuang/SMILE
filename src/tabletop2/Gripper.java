@@ -4,6 +4,12 @@
  */
 package tabletop2;
 
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
@@ -18,11 +24,6 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.Control;
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -41,6 +42,7 @@ public class Gripper implements AnalogListener {
     private static final ColorRGBA COLOR = new ColorRGBA(0.5f, 0.1f, 0.1f, 1);
     
     private String name;
+    private boolean enabled = true;
     private PhysicsSpace physicsSpace;
     private Factory factory;
 
@@ -82,7 +84,14 @@ public class Gripper implements AnalogListener {
         physicsSpace.addCollisionListener(phy);
     }
     
+    public void setEnabled(boolean v) {
+    	enabled = v;
+    }
+    
     public void onAnalog(String name, float value, float tpf) {
+    	if (!enabled) {
+    		return;
+    	}
         if (name.toLowerCase().matches(".*gripperopen")) {
             phy.addVelocity(1);
         } else if (name.toLowerCase().matches(".*gripperclose")) {
@@ -171,6 +180,9 @@ public class Gripper implements AnalogListener {
 
         // NOTE called from the rendering thread (after update())
         public void collision(PhysicsCollisionEvent event) {
+        	if (!Gripper.this.enabled) {
+        		return;
+        	}
             if (holding.size() > 0 || velocity >= 0) {
                 return;
             }
@@ -214,6 +226,9 @@ public class Gripper implements AnalogListener {
 
         @Override
         public void update(float tpf) {
+        	if (!enabled) {
+        		return;
+        	}
             super.update(tpf);
             if (velocity > 0 && holding.size() > 0) {
                 release();
@@ -321,7 +336,7 @@ public class Gripper implements AnalogListener {
             holding.clear();
         }
 
-        public void addVelocity(float tv) {
+        void addVelocity(float tv) {
             this.velocity += tv;
         }
     }
