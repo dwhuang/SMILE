@@ -42,6 +42,10 @@ import com.jme3.scene.Spatial;
  * @author dwhuang
  */
 public class Robot implements AnalogListener, ActionListener {
+    public enum Limb {
+    	RightArm, LeftArm, Head, RightGripper, LeftGripper
+    };
+
     private static final float SCALE = 10;
     private static final String[] FACE_PIC_NAMES = new String[] {
         null, "neutral.jpg", "bluecartooneyes.jpg", "domoface.jpg"
@@ -58,6 +62,7 @@ public class Robot implements AnalogListener, ActionListener {
     private PhysicsSpace physicsSpace;
     private Factory factory;
     private Node rootNode;
+    private Node robotLocationNode;
 
     private Node base;
     private Geometry screen;
@@ -71,7 +76,8 @@ public class Robot implements AnalogListener, ActionListener {
     private ImageCapturer headImageCapturer;
     private int screenPicIndex = 0;
     private Material screenDefault;    
-    private MatlabAgent matlabAgent;    
+    private MatlabAgent matlabAgent;
+    private boolean isHidden = false;
     
     // joints & manual control
     private static final int S0 = 0;
@@ -119,6 +125,7 @@ public class Robot implements AnalogListener, ActionListener {
         physicsSpace = app.getBulletAppState().getPhysicsSpace();
         factory = app.getFactory();
         rootNode = app.getRootNode();
+        this.robotLocationNode = robotLocationNode;
         
         buildRobot(name, robotLocationNode);
 
@@ -151,6 +158,16 @@ public class Robot implements AnalogListener, ActionListener {
     	enabled = v;
     	leftGripper.setEnabled(v);
     	rightGripper.setEnabled(v);
+    }
+    
+    public void toggleHide() {
+    	if (!isHidden) {
+    		rootNode.detachChild(robotLocationNode);
+    		isHidden = true;
+    	} else {
+    		rootNode.attachChild(robotLocationNode);
+    		isHidden = false;
+    	}
     }
     
     private void buildRobot(String name, Node parentNode) {
@@ -342,6 +359,7 @@ public class Robot implements AnalogListener, ActionListener {
         inputManager.addMapping(name + "HeadH0", new KeyTrigger(KeyInput.KEY_RBRACKET));
         inputManager.addMapping(name + "Screen", new KeyTrigger(KeyInput.KEY_BACKSLASH));
         inputManager.addMapping(name + "MatlabToggle", new KeyTrigger(KeyInput.KEY_M));
+        inputManager.addMapping(name + "Visibility", new KeyTrigger(KeyInput.KEY_R));
         inputManager.addMapping(name + "HeadView", new KeyTrigger(KeyInput.KEY_1));
         inputManager.addMapping(name + "TakePic", new KeyTrigger(KeyInput.KEY_2));
 
@@ -368,6 +386,7 @@ public class Robot implements AnalogListener, ActionListener {
         inputManager.addListener(this, name + "HeadH0");
         inputManager.addListener(this, name + "Screen");
         inputManager.addListener(this, name + "MatlabToggle");
+        inputManager.addListener(this, name + "Visibility");
         inputManager.addListener(this, name + "HeadView");
         inputManager.addListener(this, name + "TakePic");
     }
@@ -377,47 +396,26 @@ public class Robot implements AnalogListener, ActionListener {
     		return;
     	}
     	
-        RobotJointState[] joints = null;
+    	float velocity = (shiftKey) ? -1 : 1;
+    	Limb limb = null;
         if (name.matches(this.name + "RightArm.*")) {
-            joints = rightJointStates;
+            limb = Limb.RightArm;
         } else if (name.matches(this.name + "LeftArm.*")) {
-            joints = leftJointStates;
+        	limb = Limb.LeftArm;
         } else if (name.matches(this.name + "HeadH0")) {
-            joints = headJointStates;
+        	setJointVelocity(Limb.Head, "", velocity, true);
         } else if (name.matches(this.name + "RightGripper.*")) {
-            rightGripper.onAnalog(name, value, tpf);
+        	setJointVelocity(Limb.RightGripper, "", velocity, true);
         } else if (name.matches(this.name + "LeftGripper.*")) {
-            leftGripper.onAnalog(name, value, tpf);
+        	setJointVelocity(Limb.LeftGripper, "", velocity, true);
+        } else {
+        	return;
         }
         
-        if (joints != null) {
-            String jName = name.substring(name.length() - 2);
-            int jointIndex = -1;
-            if (jName.equals("S0")) {
-                jointIndex = S0;
-            } else if (jName.equals("S1")) {
-                jointIndex = S1;
-            } else if (jName.equals("E0")) {
-                jointIndex = E0;
-            } else if (jName.equals("E1")) {
-                jointIndex = E1;
-            } else if (jName.equals("W0")) {
-                jointIndex = W0;
-            } else if (jName.equals("W1")) {
-                jointIndex = W1;
-            } else if (jName.equals("W2")) {
-                jointIndex = W2;
-            } else if (jName.equals("H0")) {
-                jointIndex = 0;
-            }
-            if (shiftKey) {
-                joints[jointIndex].setVelocity(-1, true);
-            } else {
-                joints[jointIndex].setVelocity(1, true);
-            }
-        }
+        String jName = name.substring(name.length() - 2);
+        setJointVelocity(limb, jName, velocity, true);
     }
-
+    
     public void onAction(String name, boolean pressed, float tpf) {
     	if (!enabled) {
     		return;
@@ -431,12 +429,12 @@ public class Robot implements AnalogListener, ActionListener {
             }
         } else if (name.matches(this.name + "MatlabToggle")) {
             if (!pressed) {
-                if (matlabAgent.isAlive()) {
-                    matlabAgent.stop();
-                } else {
-                    matlabAgent.start();
-                }
+            	toggleMatlabControl();
             }
+        } else if (name.equals(this.name + "Visibility")) {
+			if (!pressed) {
+				toggleHide();
+			}
         } else if (name.equals(this.name + "HeadView")) {
 			if (!pressed) {
 				toggleHeadCameraView();
@@ -490,7 +488,51 @@ public class Robot implements AnalogListener, ActionListener {
 //        rightEndEffector.localToWorld(Vector3f.ZERO, vec);
 //        System.err.println(vec);
     }
-    
+
+    public void setJointVelocity(Limb limb, String jName, float velocity, boolean isManual) {
+    	RobotJointState[] joints;
+    	switch (limb) {
+    	case RightArm:
+    		joints = rightJointStates;
+    		break;
+    	case LeftArm:
+    		joints = leftJointStates;
+    		break;
+    	case Head:
+    		headJointStates[0].setVelocity(velocity, isManual);
+    		return;
+    	case LeftGripper:
+    		leftGripper.setTargetVelocity(velocity);
+    		return;
+    	case RightGripper:
+    		rightGripper.setTargetVelocity(velocity);
+    		return;
+		default:
+			return;
+    	}
+    	
+        int jointIndex = -1;
+        if (jName.equals("S0")) {
+            jointIndex = S0;
+        } else if (jName.equals("S1")) {
+            jointIndex = S1;
+        } else if (jName.equals("E0")) {
+            jointIndex = E0;
+        } else if (jName.equals("E1")) {
+            jointIndex = E1;
+        } else if (jName.equals("W0")) {
+            jointIndex = W0;
+        } else if (jName.equals("W1")) {
+            jointIndex = W1;
+        } else if (jName.equals("W2")) {
+            jointIndex = W2;
+        } else {
+        	return;
+        }
+        joints[jointIndex].setVelocity(velocity, isManual);
+    }
+
+
     public void updateHeadCam() {
         headCam.setLocation(headCamNode.getWorldTranslation());
         headCam.setRotation(headCamNode.getWorldRotation());
@@ -517,6 +559,14 @@ public class Robot implements AnalogListener, ActionListener {
             vp.setClearFlags(true, true, true);
             vp.attachScene(rootNode);
         }
+    }
+    
+    public void toggleMatlabControl() {
+    	if (matlabAgent.isAlive()) {
+    		matlabAgent.stop();
+    	} else {
+    		matlabAgent.start();
+    	}
     }
 
     private void showNextFacialExpression() {

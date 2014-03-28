@@ -25,6 +25,7 @@
             </panel>
             <control name="button" id="btStatus" label="Status" valign="bottom" focusable="false"/>
             <control name="button" id="btCamNav" label="Camera" valign="bottom" focusable="false"/>
+            <control name="button" id="btRobot" label="Robot" valign="bottom" focusable="false"/>
             <control name="button" id="btDemo" label="Demo Tools" valign="bottom" focusable="false"/>
             <control name="button" id="btObjects" label="Objects" valign="bottom" focusable="false"/>
             <panel childLayout="center" valign="bottom" width="27px" height="23px">
@@ -74,26 +75,54 @@
                     <onCustom name="border" border="3px" inherit="true" length="500"/>
                 </effect>
                 <panel childLayout="horizontal">
-                    <panel id="navAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
-                        childLayout="center" width="140px" height="140px" margin="0px">
-                        <text text="drag to move" font="Interface/Fonts/Default.fnt"
-                            width="100%" height="100%" wrap="true"/>
+	                    <panel id="navAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
+	                        childLayout="center" width="140px" height="140px" margin="0px">
+	                        <text text="drag to move" font="Interface/Fonts/Default.fnt"
+	                            width="100%" height="100%" wrap="true"/>
+	                    </panel>
+	                    <panel childLayout="center" height="100%" width="40px">
+	                        <control name="button" id="btAscend" label="Asc" focusable="false" 
+	                                 width="30px" height="65px" valign="top" align="left"/>
+	                        <control name="button" id="btDescend" label="Dsc" focusable="false" 
+	                                 width="30px" height="65px" valign="bottom" align="left"/>
+	                    </panel>
+	                    <panel id="oriAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
+	                        childLayout="center" width="140px" height="140px" margin="0px">
+	                        <text text="look around" font="Interface/Fonts/Default.fnt"
+	                            width="100%" height="100%" wrap="true"/>
+	                    </panel>
+                </panel>
+            </control>
+            <control name="window" id="wdRobot" title="Robot" hideOnClose="true"
+                     width="320px" height="80px" backgroundColor="#000f">
+                <effect>
+                    <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
+                    <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
+                    <onCustom name="border" border="3px" inherit="true" length="500"/>
+                </effect>
+                <panel childLayout="vertical">
+                    <panel childLayout="horizontal">
+                        <control name="button" id="btRobotVisible" label="Show / Hide" 
+                            focusable="false" margin="0,0,0,3"/>
+                        <control name="button" id="btRobotHeadView" label="Head View" 
+                            focusable="false" margin="0,0,0,3"/>
+                        <control name="button" id="btRobotMatlab" label="Matlab Control" 
+                            focusable="false" margin="0,0,0,3"/>
                     </panel>
-                    <panel childLayout="center" height="100%" width="40px">
-                        <control name="button" id="btAscend" label="Asc" focusable="false" 
-                                 width="30px" height="65px" valign="top" align="left"/>
-                        <control name="button" id="btDescend" label="Dsc" focusable="false" 
-                                 width="30px" height="65px" valign="bottom" align="left"/>
-                    </panel>
-                    <panel id="oriAnalogPad" style="nifty-panel-simple" visibleToMouse="true"
-                        childLayout="center" width="140px" height="140px" margin="0px">
-                        <text text="look around" font="Interface/Fonts/Default.fnt"
-                            width="100%" height="100%" wrap="true"/>
+                    <panel childLayout="horizontal" margin="5,0,0,0">
+                        <control name="dropDown" id="ddRobotJoint" width="*" 
+                            focusable="false" displayItems="8"/>
+                        <control name="label" text="" width="5"/>
+                        <control name="button" id="btRobotJointL" label="+" 
+                            width="30" focusable="false"/>
+                        <control name="label" text="" width="3"/>
+                        <control name="button" id="btRobotJointR" label="-" 
+                            width="30" focusable="false"/>
                     </panel>
                 </panel>
             </control>
             <control name="window" id="wdDemo" title="Demostration Tools" hideOnClose="true"
-                     width="320px" height="200px" backgroundColor="#000f">
+                     width="320px" height="180px" backgroundColor="#000f">
                 <effect>
                     <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
                     <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
@@ -105,6 +134,7 @@
                         <control name="label" text="" width="5px"/><!--padding-->
                         <control name="label" id="lbGrasped" text="&lt;none&gt;" textHAlign="left" width="*"/>
                         <control name="button" id="btRelease" label="Release" width="60px" focusable="false"/>
+                        <control name="button" id="btDestroy" label="Destroy" width="60px" focusable="false"/>
                     </panel>
                     <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
                         <control name="label" text="Plane Rotation:" width="90px" textHAlign="right"/>
@@ -142,10 +172,6 @@
                             <control name="label" text="" width="5px"/><!--padding-->
                             <control name="label" id="lbObjAngleZ" text="" width="30px" color="#0000ff"/>
                         </panel>
-                    </panel>
-                    <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
-                        <control name="label" width="*"/>
-                        <control name="button" id="btDestroy" label="Destroy" width="60px" focusable="false"/>
                     </panel>
                 </panel>
             </control>

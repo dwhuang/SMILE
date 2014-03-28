@@ -120,6 +120,10 @@ public class MainApp extends SimpleApplication implements ActionListener {
         return table;
     }
     
+    public Demonstrator getDemonstrator() {
+    	return demonstrator;
+    }
+    
     @Override
     public void simpleInitApp() {
     	initBulletAppState();
@@ -132,7 +136,8 @@ public class MainApp extends SimpleApplication implements ActionListener {
         table.reloadXml(DEFAULT_TABLE_XML_FNAME);
         
         rootNode.attachChild(robotLocationNode);
-        robot = new Robot("baxter", this, robotLocationNode); 
+        robot = new Robot("baxter", this, robotLocationNode);
+        robot.toggleHide();
         
         demonstrator = new Demonstrator("demo", this);
         
@@ -150,9 +155,9 @@ public class MainApp extends SimpleApplication implements ActionListener {
 
     private void initBulletAppState() {
         stateManager.attach(bulletAppState);
-        bulletAppState.getPhysicsSpace().setAccuracy(1f/240f);
+        bulletAppState.getPhysicsSpace().setAccuracy(1f/120f);
 //        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
-        bulletAppState.getPhysicsSpace().setMaxSubSteps(10);
+        bulletAppState.getPhysicsSpace().setMaxSubSteps(5);
 //        bulletAppState.getPhysicsSpace().setGravity(new Vector3f(0f, -9.81f, 0f));
         bulletAppState.getPhysicsSpace().getDynamicsWorld().getSolverInfo().splitImpulsePenetrationThreshold = -0.04f;
         bulletAppState.setSpeed(10f);
@@ -181,8 +186,8 @@ public class MainApp extends SimpleApplication implements ActionListener {
         //viewPort.setBackgroundColor(new ColorRGBA(0.5f, 0.7f, 0.5f, 1.0f));
         float aspect = (float)cam.getWidth() / (float)cam.getHeight();
         cam.setFrustumPerspective(45f, aspect, 0.01f, 100f);
-        cam.setLocation(new Vector3f(0, 15, -table.getDepth() / 2 - 10));
-        cam.lookAt(new Vector3f(0, 0, table.getDepth() / 2), Vector3f.UNIT_Y);
+        cam.setLocation(new Vector3f(0, 14, table.getDepth() / 2 + 6));
+        cam.lookAt(new Vector3f(0, 0, 0), Vector3f.UNIT_Y);
     }
     
     private void initFlyGripper() {
@@ -196,7 +201,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
     
     private void initGui() {
-        guiController = new GuiController(demonstrator);
+        guiController = new GuiController();
         NiftyJmeDisplay niftyDisplay= new NiftyJmeDisplay(assetManager, inputManager, audioRenderer, guiViewPort);
         Nifty nifty = niftyDisplay.getNifty();
         String viewFname = "Interface/guiview.xml";

@@ -6,6 +6,7 @@ package tabletop2.gui;
 
 import tabletop2.DemonstrationListener;
 import tabletop2.Demonstrator;
+import tabletop2.MainApp;
 
 import com.jme3.app.Application;
 import com.jme3.math.FastMath;
@@ -48,10 +49,6 @@ public class DemoWindowController implements WindowController, DemonstrationList
     
     private transient Quaternion targetRot = new Quaternion();
     
-    DemoWindowController(Demonstrator demonstrator) {
-        this.demonstrator = demonstrator;
-    }
-
     public void bind(Nifty nifty, Screen screen) {
         window = screen.findElementByName("wdDemo").getNiftyControl(Window.class);
         lbGrasped = screen.findElementByName("lbGrasped").getNiftyControl(Label.class);
@@ -71,7 +68,8 @@ public class DemoWindowController implements WindowController, DemonstrationList
     }
 
     public void init(Application app) {
-        demonstrator.addListener(this);
+        this.demonstrator = ((MainApp) app).getDemonstrator();
+        this.demonstrator.addListener(this);
     }
 
     public void update(float tpf) {
@@ -169,5 +167,5 @@ public class DemoWindowController implements WindowController, DemonstrationList
             // ignore huge-angle rotations
             e.getScrollbar().setValue(prevObjAngles[ind]);
         }
-    }
+    }    
 }

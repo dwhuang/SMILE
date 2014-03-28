@@ -6,8 +6,6 @@ package tabletop2.gui;
 
 import java.util.ArrayList;
 
-import tabletop2.Demonstrator;
-
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
@@ -31,13 +29,8 @@ public class GuiController extends AbstractAppState implements ScreenController 
 	private Nifty nifty;
 	private Screen screen;
 	
-    private Demonstrator demonstrator;    
     private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();
     private Element puPause;
-    
-    public GuiController(Demonstrator demonstrator) {
-        this.demonstrator = demonstrator;
-    }
     
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -62,7 +55,8 @@ public class GuiController extends AbstractAppState implements ScreenController 
         
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
-        windowControllers.add(new DemoWindowController(demonstrator));
+        windowControllers.add(new RobotWindowController());
+        windowControllers.add(new DemoWindowController());
         windowControllers.add(new ObjectsWindowController());
 
         for (WindowController wc : windowControllers) {
