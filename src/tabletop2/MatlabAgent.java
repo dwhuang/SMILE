@@ -87,7 +87,37 @@ public class MatlabAgent {
 
         if (matlab != null) {
             try {
-                matlab.eval("aux = struct('path', 'matlab/', 'numLimbs', 2, 'numJoints', " + Robot.DOF + ");");
+                StringBuffer buf = new StringBuffer("aux = struct('path', 'matlab/', 'numLimbs', 2, 'numJoints', " 
+                		+ Robot.DOF + ", 'minJointAngles', [");
+                for (int i = 0; i < leftJoints.length; ++i) {
+                	buf.append(leftJoints[i].getMinAngle());
+                	if (i < leftJoints.length - 1) {
+                		buf.append(", ");
+                	}
+                }
+                buf.append("; ");
+                for (int i = 0; i < rightJoints.length; ++i) {
+                	buf.append(rightJoints[i].getMinAngle());
+                	if (i < rightJoints.length - 1) {
+                		buf.append(", ");
+                	}
+                }
+                buf.append("], 'maxJointAngles', [");
+                for (int i = 0; i < leftJoints.length; ++i) {
+                	buf.append(leftJoints[i].getMaxAngle());
+                	if (i < leftJoints.length - 1) {
+                		buf.append(", ");
+                	}
+                }
+                buf.append("; ");
+                for (int i = 0; i < rightJoints.length; ++i) {
+                	buf.append(rightJoints[i].getMaxAngle());
+                	if (i < rightJoints.length - 1) {
+                		buf.append(", ");
+                	}
+                }
+                buf.append("]);");
+                matlab.eval(buf.toString());
                 matlab.eval("initFunc();");
                 
                 // draw spatial targets (markers) for arm reaching
@@ -122,7 +152,7 @@ public class MatlabAgent {
                     }
                 }                
 
-                motorData.sendTemplateToMatlab(matlab); // so users don't have to fill out every fields
+                motorData.sendTemplateToMatlab(matlab); // so users don't have to fill out every field
                 
             } catch (MatlabInvocationException e) {
                 logger.log(Level.SEVERE, "cannot initialize agent: {0}", e.getMessage());

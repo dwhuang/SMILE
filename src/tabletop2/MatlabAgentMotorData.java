@@ -19,7 +19,10 @@ public class MatlabAgentMotorData implements Serializable {
     
     public double[][] jointVelocities = new double[2][Robot.DOF];
     public double[] gripperVelocities = new double[2];
+    public double[][] jointAngles = new double[2][Robot.DOF];
     
+    private boolean recvJointAngles = false;
+
     public void sendTemplateToMatlab(MatlabProxy matlab) throws MatlabInvocationException {
         reset();
         matlab.setVariable("motor", this);
@@ -35,6 +38,7 @@ public class MatlabAgentMotorData implements Serializable {
         for (int i = 0; i < gripperVelocities.length; ++i) {
             gripperVelocities[i] = 0;
         }
+        recvJointAngles = false;
     }
     
     public void recvFromMatlab(MatlabProxy matlab) throws MatlabInvocationException {
@@ -47,6 +51,7 @@ public class MatlabAgentMotorData implements Serializable {
         ret = matlab.returningEval("fieldnames(motor);", 1);
         String[] keys = (String[]) ret[0];
         MatlabTypeConverter processor = new MatlabTypeConverter(matlab);
+        recvJointAngles = false;
         for (String key : keys) {
             if (key.equals("jointVelocities")) {
                 MatlabNumericArray matlabArray = processor.getNumericArray("motor." + key);
@@ -80,6 +85,26 @@ public class MatlabAgentMotorData implements Serializable {
                 for (int i = 0; i < gripperVelocities.length; ++i) {
                     gripperVelocities[i] = matlabArray.getRealValue(i);
                 }
+            } else if (key.equals("jointAngles")) {
+                MatlabNumericArray matlabArray = processor.getNumericArray("motor." + key);
+                int[] sizes = matlabArray.getLengths();
+                if (sizes.length != 2) {
+                    throw new RuntimeException("invalid 'motor': jointAngles field does not contain a 2D array");
+                }
+                if (sizes[0] != jointAngles.length) {
+                    throw new RuntimeException("invalid 'motor': jointAngles field does not contain " 
+                            + jointAngles.length + " rows");
+                }
+                if (sizes[1] != jointAngles[0].length) {
+                    throw new RuntimeException("invalid 'motor': jointVelocities field does not contain " 
+                            + jointAngles[0].length + " columns");
+                }
+                recvJointAngles = true;
+                for (int i = 0; i < jointAngles.length; ++i) {
+                    for (int j = 0; j < jointAngles[0].length; ++j) {
+                        jointAngles[i][j] = matlabArray.getRealValue(i, j);
+                    }
+                }
             } else {
                 throw new RuntimeException("invalid 'motor': unrecognized field '" + key + "'");
             }
@@ -88,12 +113,21 @@ public class MatlabAgentMotorData implements Serializable {
     
     public void execute(RobotJointState[] leftJoints, RobotJointState[] rightJoints,
             Gripper leftGripper, Gripper rightGripper) {
-        for (int i = 0; i < leftJoints.length; ++i) {
-            leftJoints[i].setVelocity((float) jointVelocities[0][i], false);
-        }
-        for (int i = 0; i < rightJoints.length; ++i) {
-            rightJoints[i].setVelocity((float) jointVelocities[1][i], false);
-        }
+    	if (recvJointAngles) {
+            for (int i = 0; i < leftJoints.length; ++i) {
+                leftJoints[i].setAngle((float) jointAngles[0][i]);
+            }
+            for (int i = 0; i < rightJoints.length; ++i) {
+                rightJoints[i].setAngle((float) jointAngles[1][i]);
+            }
+    	} else {
+	        for (int i = 0; i < leftJoints.length; ++i) {
+	            leftJoints[i].setVelocity((float) jointVelocities[0][i], false);
+	        }
+	        for (int i = 0; i < rightJoints.length; ++i) {
+	            rightJoints[i].setVelocity((float) jointVelocities[1][i], false);
+	        }
+    	}
         leftGripper.setTargetVelocity((float) gripperVelocities[0]);
         rightGripper.setTargetVelocity((float) gripperVelocities[1]);
     }

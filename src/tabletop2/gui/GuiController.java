@@ -31,6 +31,7 @@ public class GuiController extends AbstractAppState implements ScreenController 
 	
     private ArrayList<WindowController> windowControllers = new ArrayList<WindowController>();
     private Element puPause;
+    private boolean isPaused = false;
     
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -42,6 +43,9 @@ public class GuiController extends AbstractAppState implements ScreenController 
     
     @Override
     public void update(float tpf) {
+    	if (isPaused) {
+    		return;
+    	}
         for (WindowController wc : windowControllers) {
             wc.update(tpf);
         }
@@ -77,6 +81,7 @@ public class GuiController extends AbstractAppState implements ScreenController 
     }
     
     public void showPausePopup(boolean enabled) {
+    	isPaused = enabled;
     	if (enabled) {
     		nifty.showPopup(screen, puPause.getId(), null);
     	} else {

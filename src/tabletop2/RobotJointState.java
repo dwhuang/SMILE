@@ -63,4 +63,12 @@ public class RobotJointState {
         }
         return false;
     }
+    
+    public float getMinAngle() {
+    	return minAngle;
+    }
+    
+    public float getMaxAngle() {
+    	return maxAngle;
+    }
 }
