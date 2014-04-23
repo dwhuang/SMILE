@@ -19,8 +19,8 @@ public class MatlabAgentMotorData implements Serializable {
     
     public double[][] jointVelocities = new double[2][Robot.DOF];
     public double[] gripperVelocities = new double[2];
-    public double[][] jointAngles = new double[2][Robot.DOF];
     
+    private double[][] jointAngles = new double[2][Robot.DOF];    
     private boolean recvJointAngles = false;
 
     public void sendTemplateToMatlab(MatlabProxy matlab) throws MatlabInvocationException {

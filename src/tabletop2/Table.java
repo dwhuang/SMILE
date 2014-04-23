@@ -8,13 +8,17 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JOptionPane;
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
@@ -111,23 +115,51 @@ public class Table implements ActionListener {
 		dbf.setValidating(true);
 		dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaLanguage", 
 				"http://www.w3.org/2001/XMLSchema");
+		DocumentBuilder db = null;
+		try {
+			db = dbf.newDocumentBuilder();
+		} catch (ParserConfigurationException e1) {
+			String msg = "parse error: " + xmlFname;
+			logger.log(Level.WARNING, msg, e1);
+			JOptionPane.showMessageDialog(null, msg + ": " + e1.getMessage());
+			makeTable();
+			return;
+		}
+		db.setErrorHandler(new ErrorHandler() {
+			@Override
+			public void warning(SAXParseException exception) throws SAXException {
+			}
+			
+			@Override
+			public void error(SAXParseException exception) throws SAXException {
+				throw exception;
+			}
+
+			@Override
+			public void fatalError(SAXParseException exception) throws SAXException {
+				throw exception;
+			}
+		});
+		
 		Document doc = null;
 		try {
-			doc = dbf.newDocumentBuilder().parse(new File(xmlFname));
+			doc = db.parse(new File(xmlFname));
 		} catch (SAXException e) {
-			logger.log(Level.WARNING, "cannot parse " + xmlFname, e);
+			String msg = "cannot parse " + xmlFname;
+			logger.log(Level.WARNING, msg, e);
+			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
 			makeTable();
 			return;
 		} catch (IOException e) {
-			logger.log(Level.WARNING, "cannot read from " + xmlFname, e);
-			makeTable();
-			return;
-		} catch (ParserConfigurationException e) {
-			logger.log(Level.WARNING, "parser error for parsing " + xmlFname, e);
+			String msg = "cannot read from " + xmlFname;
+			logger.log(Level.WARNING, msg, e);
+			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
 			makeTable();
 			return;
 		} catch (RuntimeException e) {
-			logger.log(Level.WARNING, "an error occurs in " + xmlFname, e);
+			String msg = "an error occurs in " + xmlFname;
+			logger.log(Level.WARNING, msg, e);
+			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
 			makeTable();
 			return;
 		}
@@ -187,7 +219,7 @@ public class Table implements ActionListener {
 		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
 		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
 
-		Spatial s = factory.makeBlock(id, xspan, zspan, yspan, color);
+		Spatial s = factory.makeBlock(id, xspan, yspan, zspan, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 

@@ -2,7 +2,4 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-    <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(2, 0, 1)" rotation="(0, 0, -15)" color="red" />
-    <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(-2, 0, 1)" rotation="(0, 0, 45)" color="green" />
-    
 </tabletop>

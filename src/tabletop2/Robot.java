@@ -404,10 +404,19 @@ public class Robot implements AnalogListener, ActionListener {
         	limb = Limb.LeftArm;
         } else if (name.matches(this.name + "HeadH0")) {
         	setJointVelocity(Limb.Head, "", velocity, true);
-        } else if (name.matches(this.name + "RightGripper.*")) {
-        	setJointVelocity(Limb.RightGripper, "", velocity, true);
-        } else if (name.matches(this.name + "LeftGripper.*")) {
-        	setJointVelocity(Limb.LeftGripper, "", velocity, true);
+        	return;
+        } else if (name.matches(this.name + "RightGripperOpen")) {
+        	setJointVelocity(Limb.RightGripper, "", 1, true);
+        	return;
+        } else if (name.matches(this.name + "RightGripperClose")) {
+        	setJointVelocity(Limb.RightGripper, "", -1, true);
+        	return;
+        } else if (name.matches(this.name + "LeftGripperOpen")) {
+        	setJointVelocity(Limb.LeftGripper, "", 1, true);
+        	return;
+        } else if (name.matches(this.name + "LeftGripperClose")) {
+        	setJointVelocity(Limb.LeftGripper, "", -1, true);
+        	return;
         } else {
         	return;
         }

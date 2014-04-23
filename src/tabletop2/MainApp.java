@@ -150,6 +150,14 @@ public class MainApp extends SimpleApplication implements ActionListener {
         	initFlyGripper();
         }
         
+//        // draw coordinate system
+//        Spatial s = factory.makeUnshadedArrow("", Vector3f.UNIT_X.mult(6), 6, ColorRGBA.Red);
+//        rootNode.attachChild(s);
+//        s = factory.makeUnshadedArrow("", Vector3f.UNIT_Z.mult(-6), 6, ColorRGBA.Green);
+//        rootNode.attachChild(s);
+//        s = factory.makeUnshadedArrow("", Vector3f.UNIT_Y.mult(6), 3, ColorRGBA.Blue);
+//        rootNode.attachChild(s);
+        
         // stateManager.attach(new VideoRecorderAppState()); //start recording
     }
 
