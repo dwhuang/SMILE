@@ -18,15 +18,16 @@ aux.initJointAngles(2, 3) = pi / 2;
 aux.drawMarkers = [-2, 2, 2; 2, 2, 2; 2, -2, 2; -2, -2, 2]; % draw 4 markers
 
 % Load any necessary *.mat files here (optional)
-% One example is the weight values result from training.
-% The variable aux.path recommends a folder for storing *.mat files.
+% Any files accessed by user scripts should be stored in the 'matlab/' 
+% subdirectory. Do so by prepending aux.path to any filenames appear in the
+% user script.  For example:
 fname = strcat(aux.path, 'myfile.mat')
 
 % Initialize variables here (optional)
-% Variables defined here are carried over to the callback script.
+% Variables defined here are global, and thus accessible in the callback script
 exampleVariable = 0;
-duration = 0;
+duration = 5;
 rotationDir = 1;
 
-% Set aux.exit to any value will disable this matlab agent (optional)
+% Setting aux.exit will disable this matlab agent (optional)
 % Example: aux.exit = true;

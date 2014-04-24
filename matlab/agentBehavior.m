@@ -3,9 +3,7 @@
 
 function [init, callback] = agentBehavior()
 
-% init = @dof2TestingInit;
-% callback = @dof2TestingCallback;
-init = @recordDemoInit;
-callback = @recordDemoCallback;
+init = @exampleInit;
+callback = @exampleCallback;
 
 end

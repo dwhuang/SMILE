@@ -71,7 +71,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
         AppSettings settings = new AppSettings(false);
         settings.load("tabletop2");
         settings.setTitle("tabletop2");
-        settings.setSettingsDialogImage("Interface/baxter.png");
+        settings.setSettingsDialogImage("Interface/line500px.png");
         settings.setFrameRate(60);
         settings.setSamples(2);
         settings.putBoolean("DisableJoysticks", false);
