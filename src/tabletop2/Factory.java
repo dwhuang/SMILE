@@ -96,28 +96,24 @@ public class Factory {
         float halfD = d / 2;
         float halfT = thickness / 2;
         
-        Spatial s = makeBlock(name + "(floor)", 
-                w - thickness * 2f,
-                thickness, 
-                d - thickness * 2f,
-                color);
+        Spatial s = makeBlock(name + "(floor)", w, thickness, d, color);
         s.setLocalTranslation(0f, halfT - halfH, 0f);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(left)", thickness, h, d - thickness * 2, color);
-        s.setLocalTranslation(halfT - halfW, 0, 0);
+        s = makeBlock(name + "(left)", thickness, h - thickness, d - thickness * 2, color);
+        s.setLocalTranslation(halfT - halfW, halfT, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(right)", thickness, h, d - thickness * 2, color);
-        s.setLocalTranslation(-halfT + halfW, 0, 0);
+        s = makeBlock(name + "(right)", thickness, h - thickness, d - thickness * 2, color);
+        s.setLocalTranslation(-halfT + halfW, halfT, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(near)", w, h, thickness, color);
-        s.setLocalTranslation(0, 0, halfT - halfD);
+        s = makeBlock(name + "(near)", w, h - thickness, thickness, color);
+        s.setLocalTranslation(0, halfT, halfT - halfD);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(far)", w, h, thickness, color);
-        s.setLocalTranslation(0, 0, -halfT + halfD);
+        s = makeBlock(name + "(far)", w, h - thickness, thickness, color);
+        s.setLocalTranslation(0, halfT, -halfT + halfD);
         boxContainer.attachChild(s);
         
         return boxContainer;

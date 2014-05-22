@@ -24,6 +24,7 @@ import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
+import com.jme3.bullet.joints.SliderJoint;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -187,6 +188,8 @@ public class Table implements ActionListener {
 					s = processCompositeElement(elm, true);
 				} else if (elm.getNodeName().equals("chain")) {
 					processChainElement(elm);
+				} else if (elm.getNodeName().equals("lidbox")) {
+					processLidBoxElement(elm);
 				}
 				if (s != null) {
 					rootNode.attachChild(s);
@@ -204,10 +207,11 @@ public class Table implements ActionListener {
 		rootNode.attachChild(tableSpatial);
 	}
 	
-	private void addPhysicsControl(Spatial s, float mass) {
+	private MyRigidBodyControl addPhysicsControl(Spatial s, float mass) {
 		MyRigidBodyControl rbc = new MyRigidBodyControl(mass);
 		s.addControl(rbc);
 		bulletAppState.getPhysicsSpace().add(rbc);
+		return rbc;
 	}
 	
 	private Spatial processBlockElement(Element elm, boolean hasPhysics) {
@@ -430,6 +434,73 @@ public class Table implements ActionListener {
 		joint.setCollisionBetweenLinkedBodys(false);
 		bulletAppState.getPhysicsSpace().add(joint);
 		inventory.addPhysicsJoint(joint);
+	}
+
+	private void processLidBoxElement(Element elm) {
+		String id = elm.getAttribute("id");
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
+		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
+		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));		
+
+		Transform tf = new Transform();
+		Spatial box = factory.makeBoxContainer(id + "-box", yspan, zspan, xspan, thickness, color);		
+		box.setLocalTranslation(location);
+		box.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		tf.setRotation(new Quaternion().fromAngles(0, -FastMath.HALF_PI, -FastMath.HALF_PI));
+		tf.combineWithParent(box.getLocalTransform());
+		box.setLocalTransform(tf);
+		float mass = Float.parseFloat(elm.getAttribute("mass"));
+		MyRigidBodyControl boxRbc = addPhysicsControl(box, mass * 0.9f);
+		rootNode.attachChild(box);
+		inventory.addItem(box);
+		
+		Node lid = new Node(); 
+		Spatial lidPlate = factory.makeBlock(id + "-lid", yspan, thickness, xspan, color);
+		lid.attachChild(lidPlate);
+		Spatial lidHandle = factory.makeBlock(id + "-lid", handleYspan, handleZspan, handleXspan, handleColor);
+		lidHandle.setLocalTranslation(0, thickness, 0);
+		lid.attachChild(lidHandle);		
+		lid.setLocalTranslation(location);
+		lid.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		tf.setTranslation(0, 0, zspan / 2 + thickness / 2);
+		tf.setRotation(new Quaternion().fromAngles(0, -FastMath.HALF_PI, -FastMath.HALF_PI));
+		tf.combineWithParent(lid.getLocalTransform());
+		lid.setLocalTransform(tf);
+		mass = Float.parseFloat(elm.getAttribute("mass"));
+		MyRigidBodyControl lidRbc = addPhysicsControl(lid, mass * 0.9f);
+		rootNode.attachChild(lid);
+		inventory.addItem(lid);
+		
+//		HingeJoint joint = new HingeJoint(boxRbc, lidRbc, new Vector3f(-xspan / 2, yspan / 2, 0), 
+//				new Vector3f(-xspan / 2, -thickness / 2, 0), Vector3f.UNIT_Z, Vector3f.UNIT_Z);
+//		joint.setLimit(-80 * FastMath.DEG_TO_RAD, 0);
+//		joint.setCollisionBetweenLinkedBodys(false);
+//		joint.enableMotor(true, 1, 1);
+
+		SliderJoint joint = new SliderJoint(boxRbc, lidRbc, new Vector3f(0, zspan / 2, 0), 
+				new Vector3f(0, -thickness / 2, 0), false);
+		joint.setCollisionBetweenLinkedBodys(false);
+		joint.setLowerLinLimit(0);
+		joint.setUpperLinLimit(yspan - thickness);
+//		joint.setPoweredLinMotor(true);
+//		joint.setMaxLinMotorForce(1);
+//		joint.setTargetLinMotorVelocity(-1);
+		bulletAppState.getPhysicsSpace().add(joint);
+		inventory.addPhysicsJoint(joint);		
 	}
 
 	private Vector3f parseVector3(String str) {
