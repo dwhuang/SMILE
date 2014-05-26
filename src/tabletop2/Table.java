@@ -465,10 +465,10 @@ public class Table implements ActionListener {
 		rootNode.attachChild(box);
 		inventory.addItem(box);
 		
-		Node lid = new Node(); 
-		Spatial lidPlate = factory.makeBlock(id + "-lid", yspan, thickness, xspan, color);
+		Node lid = new Node(id + "-lid"); 
+		Spatial lidPlate = factory.makeBlock(id + "-lidbody", yspan, thickness, xspan, color);
 		lid.attachChild(lidPlate);
-		Spatial lidHandle = factory.makeBlock(id + "-lid", handleYspan, handleZspan, handleXspan, handleColor);
+		Spatial lidHandle = factory.makeBlock(id + "-lidhandle", handleYspan, handleZspan, handleXspan, handleColor);
 		lidHandle.setLocalTranslation(0, thickness, 0);
 		lid.attachChild(lidHandle);		
 		lid.setLocalTranslation(location);

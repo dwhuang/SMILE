@@ -104,11 +104,11 @@ public class MainApp extends SimpleApplication implements ActionListener {
         return bulletAppState;
     }
     
-    public final Factory getFactory() {
+    public Factory getFactory() {
         return factory;
     }
     
-    public final Inventory getInventory() {
+    public Inventory getInventory() {
         return inventory;
     }
     

@@ -96,12 +96,20 @@ public class GuiController extends AbstractAppState implements ScreenController 
             Window window = wc.getWindow();
             if (window.getId().equals(windowId)) {
                 Element windowElement = window.getElement();
-                if (!windowElement.isVisible()) {
-                    windowElement.show();
+                if (windowElement.isVisible()) {
+                	break;
                 }
-                windowElement.markForMove(window.getElement().getParent());
+                // move the selected window to the top layer
+                windowElement.markForMove(windowElement.getParent());
                 windowElement.reactivate();
                 windowElement.startEffect(EffectEventId.onCustom);
+
+                windowElement.show();
+                for (Element elm : windowElement.getElements()) {
+                	// have to do this after markForMove(), otherwise radio button selections 
+                	// are not displayed properly
+                	elm.show();
+                }
                 break;
             }
         }

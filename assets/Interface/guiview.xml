@@ -122,7 +122,7 @@
                 </panel>
             </control>
             <control name="window" id="wdDemo" title="Demostration Tools" hideOnClose="true"
-                     width="320px" height="180px" backgroundColor="#000f">
+                     width="320px" height="205px" backgroundColor="#000f">
                 <effect>
                     <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
                     <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
@@ -130,6 +130,19 @@
                 </effect>
                 <panel childLayout="vertical">
                     <panel childLayout="horizontal" width="100%">
+                        <control name="radioButtonGroup" id="rbgHand"/>
+                        <control name="label" text="Current Hand:" width="90px" textHAlign="right"/>
+                        <control name="label" text="" width="5px"/><!--padding-->
+                        <control name="radioButton" id="rbLeftHand" group="rbgHand" focusable="false"/>
+                        <control name="label" text="Left"/>
+                        <control name="label" text="" width="15px"/><!--padding-->
+                        <control name="radioButton" id="rbRightHand" group="rbgHand" focusable="false"/>
+                        <control name="label" text="Right"/>
+                        <control name="label" text="" width="15px"/><!--padding-->
+                        <control name="radioButton" id="rbBothHands" group="rbgHand" focusable="false"/>
+                        <control name="label" text="Both"/>
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
                         <control name="label" text="Current Object:" width="90px" textHAlign="right"/>
                         <control name="label" text="" width="5px"/><!--padding-->
                         <control name="label" id="lbGrasped" text="&lt;none&gt;" textHAlign="left" width="*"/>
@@ -140,8 +153,8 @@
                         <control name="label" text="Plane Rotation:" width="90px" textHAlign="right"/>
                         <control name="label" text="" width="5px"/><!--padding-->
                         <control name="label" text="" width="*"/><!--padding-->
-                        <control name="button" id="btPlaneRotL" label="L" width="100px" focusable="fasle"/>
-                        <control name="button" id="btPlaneRotR" label="R" width="100px" focusable="fasle"/>
+                        <control name="button" id="btPlaneRotL" label="CCW" width="100px" focusable="fasle"/>
+                        <control name="button" id="btPlaneRotR" label="CW" width="100px" focusable="fasle"/>
                     </panel>
                     <panel childLayout="horizontal" align="left" width="100%" padding="3px,0,0,0">
                         <control name="label" text="Object Rotation:" width="90px" textHAlign="right"/>

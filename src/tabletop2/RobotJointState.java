@@ -46,7 +46,7 @@ public class RobotJointState {
         return angles[1];
     }
 
-    public final void setAngle(float ang) {
+    public void setAngle(float ang) {
         angles[1] = ang;
         angles[1] = FastMath.clamp(angles[1], minAngle, maxAngle);
         quat.fromAngles(angles);

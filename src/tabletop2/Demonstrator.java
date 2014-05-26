@@ -5,6 +5,7 @@
 package tabletop2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 
 import com.bulletphysics.collision.dispatch.CollisionObject;
@@ -38,8 +39,20 @@ import com.jme3.scene.Spatial;
  */
 public class Demonstrator implements ActionListener, AnalogListener {
 
-    private enum DemoState {
+    private enum HandState {
         Idle, Grasped, Moving
+    }
+    
+    public enum HandId {
+    	LeftHand(0), RightHand(1), BothHands(2);
+    	
+    	private final int value;
+    	private HandId(int value) {
+    		this.value = value;
+    	}
+    	public int getValue() {
+    		return value;
+    	}
     }
     
     private String name;
@@ -54,11 +67,10 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private ArrayList<DemonstrationListener> demoListeners = new ArrayList<DemonstrationListener>();
     private DemonstratorSceneProcessor sceneProcessor;
 
-    private DemoState state = DemoState.Idle;
+    private Hand[] hands = new Hand[HandId.values().length];
+    private Hand currHand = null;
     private Node visualAid;
     private Node movingPlane;
-    private Node graspNode;
-    private Spatial graspedItem = null;
     private Vector3f movingCursorOffset;
     
     private boolean shiftKey = false;
@@ -70,12 +82,317 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private transient Transform graspNodeTarget = new Transform();
     private transient Transform midTransform = new Transform();
     private transient Transform minTransform = new Transform();
+    private transient Quaternion quat = new Quaternion();
+    
+    public class Hand {
+    	private HandId id;
+    	private HandState state = HandState.Idle;
+    	private Node graspNode = null;
+    	private Spatial graspedItem = null;
+    	private float[] userRotAngles = {0, 0, 0};
+        
+        private Hand(String name, HandId id) {
+        	this.id = id;
+        	graspNode = new Node(name);
+        	rootNode.attachChild(graspNode);
+        }
+        
+        public boolean isIdle() {
+        	return state == HandState.Idle;
+        }
+        
+        public String getGraspedItemName() {
+        	if (isIdle()) {
+        		return "<empty>";
+        	} else {
+        		return new String(graspedItem.getName());
+        	}
+        }
+        
+        public float[] getUserRotAngles() {
+        	if (isIdle()) {
+        		return new float[]{0, 0, 0};
+        	} else {
+        		return Arrays.copyOf(userRotAngles, 3);
+        	}
+        }
+        
+        private void processSelect() {
+        	if (state == HandState.Idle) {
+        		Demonstrator.this.showVisualAid(null);
+        	} else {
+        		Demonstrator.this.setVisualAid(graspNode);
+        		Demonstrator.this.showVisualAid(graspedItem);
+        	}
+        }
+        
+        private void processDeselect() {
+        	if (state == HandState.Moving) {
+        		movingEnd();
+        	}
+        }
+        
+        private void processMouseButtonEvent(boolean isPressed) {
+            if (state == HandState.Idle) {
+                if (!isPressed) {
+                    Spatial cursorObj = getCursorItem(rootNode);
+                    if (cursorObj != null) { 
+                        grasp(cursorObj);
+                    }
+                }
+            } else if (state == HandState.Grasped) {
+                if (isPressed) {
+                    if (!movingStart()) {
+                        release();
+                    }
+                }
+            } else if (state == HandState.Moving) {
+                if (!isPressed) {
+                    movingEnd();
+                }
+            }
+        }
+        
+        private void processMouseMoveEvent() {
+            if (state == HandState.Moving) {
+                Vector3f pos = getCursorPosOnMovingPlane();
+                if (pos != null) {
+                    pos.addLocal(movingCursorOffset);
+                    if (move(pos, 0.1f) < 1 && !movingStart()) {
+                        movingEnd();
+                    }
+                } else {
+                    movingEnd();
+                }
+            }
+        }
 
-//    public Demonstrator(String name, Node rootNode, ViewPort viewPort,
-//            AssetManager assetManager, InputManager inputManager, 
-//            Vector2f movingPlaneSize, 
-//            final HashMap<Geometry, Spatial> grabbables, 
-//            Factory factory, Robot robot) {
+    	private void grasp(Spatial s) {
+            if (state != HandState.Idle) {
+                throw new IllegalStateException("illegal operation");
+            }
+            if (s == null) {
+                throw new NullPointerException();
+            }
+            
+        	// if it is currently being grasped by another hand
+            if (s.getParent() != rootNode) {
+            	Hand graspingHand = null;
+            	for (Hand h : hands) {
+            		if (h.graspedItem == s) {
+            			graspingHand = h;
+            			break;
+            		}
+            	}
+            	if (graspingHand == null) {
+            		throw new IllegalStateException("item " + s 
+            				+ " is neither free nor being grapsed by a demonstrator hand.");
+            	}
+            	graspingHand.release();
+            }
+
+            // if left/right hand is going to grasp an item, release any item held by both hands
+            if (id == HandId.LeftHand || id == HandId.RightHand) {
+            	if (hands[HandId.BothHands.getValue()].state != HandState.Idle) {
+            		hands[HandId.BothHands.getValue()].release();
+            	}
+            }
+            // if both hands are going to grasp an item (together), release any items held by
+            // left and right hands
+            if (id == HandId.BothHands) {
+            	if (hands[HandId.LeftHand.getValue()].state != HandState.Idle) {
+            		hands[HandId.LeftHand.getValue()].release();
+            	}
+            	if (hands[HandId.RightHand.getValue()].state != HandState.Idle) {
+            		hands[HandId.RightHand.getValue()].release();
+            	}
+            }
+
+            graspedItem = s;
+            graspNode.setLocalTransform(s.getLocalTransform());
+            
+            rootNode.detachChild(s);
+            s.setLocalTransform(Transform.IDENTITY);
+            graspNode.attachChild(s);
+
+            MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+            rbc.setMass(rbc.getMass() + 9999);    
+            rbc.setKinematic(true);
+            
+            // wake up connected (by joints) items and prevent them from going into sleep,
+            // so that they are aware of any translation/rotation occurring at the grasped item.
+            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+            if (joints != null) {
+                for (PhysicsJoint joint : joints) {
+                    MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
+                    c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
+                    c.activate();
+                    c = (MyRigidBodyControl)joint.getBodyB();
+                    c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
+                    c.activate();
+                }
+            }
+
+            Demonstrator.this.setVisualAid(graspNode);
+            Demonstrator.this.showVisualAid(graspedItem);
+            
+            state = HandState.Grasped;
+            userRotAngles[0] = 0;
+            userRotAngles[1] = 0;
+            userRotAngles[2] = 0;
+            
+            // notify listeners
+            for (DemonstrationListener l : Demonstrator.this.demoListeners) {
+                l.demoGrasp(graspedItem, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
+            }
+        }
+    	
+        private boolean movingStart() {
+            Spatial cursorObj = getCursorItem(rootNode);
+            movingCursorOffset = getCursorPosOnMovingPlane();
+            if (cursorObj == graspedItem && movingCursorOffset != null) {
+                movingCursorOffset.negateLocal();
+                movingCursorOffset.addLocal(graspNode.getLocalTranslation());
+                state = HandState.Moving;
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        private float move(Vector3f pos, float deltaRangePrecision) {
+            if (state != HandState.Grasped && state != HandState.Moving) {
+                throw new IllegalStateException("illegal operation");
+            }
+            
+            if (pos == null) {
+                throw new NullPointerException();
+            }
+            graspNodeTarget.set(graspNode.getLocalTransform());
+            graspNodeTarget.setTranslation(pos);
+            float delta = tryTransformingGraspNode(graspNode, graspNodeTarget, deltaRangePrecision);
+            if (delta < 1) {
+                pos.set(graspNode.getLocalTranslation());
+            }
+            visualAid.setLocalTranslation(pos);
+            return delta;
+        }
+        
+        private void movingEnd() {
+            state = HandState.Grasped;
+        }
+        
+        private float rotate(Quaternion rot, float deltaRangePrecision) {
+            if (state != HandState.Grasped) {
+                throw new IllegalStateException("illegal operation");
+            }
+            if (rot == null) {
+                throw new NullPointerException();
+            }
+            graspNodeTarget.set(graspNode.getLocalTransform());
+            graspNodeTarget.setRotation(rot);
+            float delta = tryTransformingGraspNode(graspNode, graspNodeTarget, deltaRangePrecision);
+            if (delta < 1) {
+                rot.set(graspNode.getLocalRotation());
+            }
+            return delta;
+        }
+        
+        private float rotateAroundCanonicalAxis(int axisIndex, float angle, float deltaRangePrecision) {
+        	Vector3f rotAxis = null;
+        	if (axisIndex == 0) {
+        		rotAxis = Vector3f.UNIT_X;
+        	} else if (axisIndex == 1) {
+        		rotAxis = Vector3f.UNIT_Y;
+        	} else if (axisIndex == 2) {
+        		rotAxis = Vector3f.UNIT_Z;
+        	} else {
+        		throw new IllegalArgumentException("unknown axis index " + axisIndex);
+        	}
+        	float angleDiff = angle - userRotAngles[axisIndex];    	
+        	quat.fromAngleNormalAxis(angleDiff, rotAxis);
+        	quat.multLocal(graspNode.getLocalRotation());
+        	float delta = rotate(quat, deltaRangePrecision);
+    		userRotAngles[axisIndex] += angleDiff * delta;
+        	return userRotAngles[axisIndex];
+        }
+            
+        private void release() {
+            if (state != HandState.Grasped) {
+                throw new IllegalStateException("illegal operation");
+            }
+
+            graspNode.detachChild(graspedItem);
+            graspedItem.setLocalTransform(graspNode.getLocalTransform());
+            rootNode.attachChild(graspedItem);
+
+            MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+            rbc.setKinematic(false);
+            rbc.setMass(rbc.getMass() - 9999);
+
+            // allow the connected (by joints) items of the grasped item to go back to sleep
+            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+            if (joints != null) {
+                for (PhysicsJoint joint : joints) {
+                    MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
+                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                    c.activate();
+                    c = (MyRigidBodyControl)joint.getBodyB();
+                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                    c.activate();
+                }
+            }
+
+            graspedItem = null;
+            
+            Demonstrator.this.showVisualAid(null);
+            
+            state = HandState.Idle;
+            
+            // notify listeners
+            for (DemonstrationListener l : demoListeners) {
+                l.demoRelease();
+            }
+        }
+
+        private void destroy() {
+            if (state != HandState.Grasped) {
+                throw new IllegalStateException("illegal operation");
+            }
+
+            graspNode.detachChild(graspedItem);
+            
+            // wake up connected (by joints) items
+            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+            if (joints != null) {
+                for (PhysicsJoint j : joints) {
+                    bulletAppState.getPhysicsSpace().remove(j);
+                    
+                    MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
+                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                    c.activate();
+                    c = (MyRigidBodyControl)j.getBodyB();
+                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+                    c.activate();
+                }
+            }
+            MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
+            bulletAppState.getPhysicsSpace().remove(rbc);
+
+            inventory.removeItem(graspedItem);        
+            graspedItem = null;
+            
+            Demonstrator.this.showVisualAid(null);
+            
+            state = HandState.Idle;
+            
+            // notify listeners
+            for (DemonstrationListener l : demoListeners) {
+                l.demoRelease();
+            }
+        }
+    }    
+    
     public Demonstrator(String name, MainApp app) {
     	this.name = name;
         rootNode = app.getRootNode();
@@ -118,19 +435,34 @@ public class Demonstrator implements ActionListener, AnalogListener {
         g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
         visualAid.attachChild(g);
         
-        graspNode = new Node(name + "GraspNode");
-        rootNode.attachChild(graspNode);
-
         sceneProcessor = new DemonstratorSceneProcessor(app.getAssetManager(), visualAid);
         app.getViewPort().addProcessor(sceneProcessor);
+
+        for (HandId hId : HandId.values()) {
+        	int hIndex = hId.getValue();
+        	hands[hIndex] = new Hand(name + " graspNode" + hIndex, hId);
+        }
+        selectHand(HandId.LeftHand);
     }
     
     public void setEnabled(boolean v) {
     	enabled = v;
     }
     
-    public final String getName() {
+    public String getName() {
     	return name;
+    }
+    
+    public void selectHand(HandId handId) {
+    	if (currHand != null) {
+    		currHand.processDeselect();
+    	}
+		currHand = hands[handId.getValue()];
+		currHand.processSelect();
+    }
+    
+    public Hand getCurrHand() {
+    	return currHand;
     }
     
     public void initKeys(InputManager inputManager) {
@@ -149,7 +481,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         inputManager.addListener(this, name + "RightClick");
         inputManager.addListener(this, name + "MouseMove");
         inputManager.addListener(this, name + "PlaneRotate");
-}
+    }
 
     public void onAction(String eName, boolean isPressed, float tpf) {
     	if (!enabled) {
@@ -158,24 +490,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (eName.equals("shiftKey")) {
             shiftKey = isPressed;
         } else if (eName.equals(name + "LeftClick")) {
-            if (state == DemoState.Idle) {
-                if (!isPressed) {
-                    Spatial cursorObj = getCursorItem(rootNode);
-                    if (cursorObj != null) { 
-                        grasp(cursorObj);
-                    }
-                }
-            } else if (state == DemoState.Grasped) {
-                if (isPressed) {
-                    if (!movingStart()) {
-                        release();
-                    }
-                }
-            } else if (state == DemoState.Moving) {
-                if (!isPressed) {
-                    movingEnd();
-                }
-            }
+        	currHand.processMouseButtonEvent(isPressed);
         }
     }
 
@@ -184,7 +499,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     		return;
     	}
         if (eName.equals(name + "PlaneRotate")) {
-            if (state == DemoState.Grasped) {
+            if (currHand.state == HandState.Grasped) {
                 transform.set(movingPlane.getLocalTransform());
                 if (!shiftKey) {
                     movingPlane.rotate(0, value * 0.3f, 0);
@@ -208,188 +523,43 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 cam.lookAtDirection(vec, Vector3f.UNIT_Y);
             }
         } else if (eName.equals(name + "MouseMove")) {
-            if (state == DemoState.Moving) {
-                Vector3f pos = getCursorPosOnMovingPlane();
-                if (pos != null) {
-                    pos.addLocal(movingCursorOffset);
-                    if (move(pos, 0.1f) < 1 && !movingStart()) {
-                        movingEnd();
-                    }
-                } else {
-                    movingEnd();
-                }
-            }
+        	currHand.processMouseMoveEvent();
         }
-    }
-
-    public void grasp(Spatial s) {
-        if (state != DemoState.Idle) {
-            throw new IllegalStateException("illegal operation");
-        }
-        if (s == null) {
-            throw new NullPointerException();
-        }
-        
-        graspedItem = s;
-        graspNode.setLocalTransform(s.getLocalTransform());
-        rootNode.detachChild(s);
-        s.setLocalTransform(Transform.IDENTITY);
-        graspNode.attachChild(s);
-
-        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-        rbc.setMass(rbc.getMass() + 9999);    
-        rbc.setKinematic(true);
-        
-        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-        if (joints != null) {
-            for (PhysicsJoint joint : joints) {
-                MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
-                c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
-                c.activate();
-                c = (MyRigidBodyControl)joint.getBodyB();
-                c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
-                c.activate();
-            }
-        }
-
-        visualAid.setLocalTranslation(graspNode.getLocalTranslation());
-        // init the moving plane such that it is perpendicular to the camera direction
-        float[] angles = new float[3];
-        cam.getRotation().toAngles(angles);
-        movingPlane.setLocalRotation(new Quaternion().fromAngleAxis(angles[1], Vector3f.UNIT_Y));
-        // draw visual aid
-        sceneProcessor.setShowVisualAid(true);
-        sceneProcessor.highlightSpatial(s);
-        
-        state = DemoState.Grasped;
-        for (DemonstrationListener l : demoListeners) {
-            l.demoGrasp(graspedItem, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
-        }
-    }
-
-    private boolean movingStart() {
-        Spatial cursorObj = getCursorItem(rootNode);
-        movingCursorOffset = getCursorPosOnMovingPlane();
-        if (cursorObj == graspedItem && movingCursorOffset != null) {
-            movingCursorOffset.negateLocal();
-            movingCursorOffset.addLocal(graspNode.getLocalTranslation());
-            state = DemoState.Moving;
-            return true;
-        } else {
-            return false;
-        }
-    }
-    
-    public float move(Vector3f pos, float deltaRangePrecision) {
-        if (state != DemoState.Grasped && state != DemoState.Moving) {
-            throw new IllegalStateException("illegal operation");
-        }
-        
-        if (pos == null) {
-            throw new NullPointerException();
-        }
-        graspNodeTarget.set(graspNode.getLocalTransform());
-        graspNodeTarget.setTranslation(pos);
-        float delta = tryTransformingGraspNode(graspNodeTarget, deltaRangePrecision);
-        if (delta < 1) {
-            pos.set(graspNode.getLocalTranslation());
-        }
-        visualAid.setLocalTranslation(pos);
-        return delta;
-    }
-    
-    private void movingEnd() {
-        state = DemoState.Grasped;
-    }
-    
-    public float rotate(Quaternion rot, float deltaRangePrecision) {
-        if (state != DemoState.Grasped) {
-            throw new IllegalStateException("illegal operation");
-        }
-        if (rot == null) {
-            throw new NullPointerException();
-        }
-        graspNodeTarget.set(graspNode.getLocalTransform());
-        graspNodeTarget.setRotation(rot);
-        float delta = tryTransformingGraspNode(graspNodeTarget, deltaRangePrecision);
-        if (delta < 1) {
-            rot.set(graspNode.getLocalRotation());
-        }
-        return delta;
     }
     
     public void release() {
-        if (state != DemoState.Grasped) {
-            throw new IllegalStateException("illegal operation");
-        }
-
-        graspNode.detachChild(graspedItem);
-        graspedItem.setLocalTransform(graspNode.getLocalTransform());
-        rootNode.attachChild(graspedItem);
-
-        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-        rbc.setKinematic(false);
-        rbc.setMass(rbc.getMass() - 9999);
-
-        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-        if (joints != null) {
-            for (PhysicsJoint joint : joints) {
-                MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
-                c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                c.activate();
-                c = (MyRigidBodyControl)joint.getBodyB();
-                c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                c.activate();
-            }
-        }
-
-        graspedItem = null;
-        
-        sceneProcessor.setShowVisualAid(false);
-        sceneProcessor.highlightSpatial(null);
-        
-        state = DemoState.Idle;
-        for (DemonstrationListener l : demoListeners) {
-            l.demoRelease();
-        }
+    	currHand.release();
     }
-
+    
     public void destroy() {
-        if (state != DemoState.Grasped) {
-            throw new IllegalStateException("illegal operation");
-        }
-
-        graspNode.detachChild(graspedItem);
-        
-        Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-        if (joints != null) {
-            for (PhysicsJoint j : joints) {
-                bulletAppState.getPhysicsSpace().remove(j);
-                
-                MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
-                c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                c.activate();
-                c = (MyRigidBodyControl)j.getBodyB();
-                c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                c.activate();
-            }
-        }
-        MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-        bulletAppState.getPhysicsSpace().remove(rbc);
-
-        inventory.removeItem(graspedItem);        
-        graspedItem = null;
-        
-        sceneProcessor.setShowVisualAid(false);
-        sceneProcessor.highlightSpatial(null);
-        
-        state = DemoState.Idle;
-        for (DemonstrationListener l : demoListeners) {
-            l.demoRelease();
-        }
+    	currHand.destroy();
+    }
+    
+    public float rotate(int axisInd, float targetUserAngle) {
+    	return currHand.rotateAroundCanonicalAxis(axisInd, targetUserAngle, 0.02f);
     }
 
-    private boolean graspNodeCollidedWithTable() {
+    private void setVisualAid(Node graspNode) {
+        visualAid.setLocalTranslation(graspNode.getLocalTranslation());
+        // init the moving plane to be perpendicular to the camera's horizontal direction
+        float[] angles = new float[3];
+        cam.getRotation().toAngles(angles);
+        movingPlane.setLocalRotation(new Quaternion().fromAngleAxis(angles[1], Vector3f.UNIT_Y));
+    }
+    
+    private void showVisualAid(Spatial highlightSpatial) {
+    	if (highlightSpatial != null) {
+            // draw visual aid
+            sceneProcessor.setShowVisualAid(true);
+            sceneProcessor.highlightSpatial(null);
+            sceneProcessor.highlightSpatial(highlightSpatial);
+    	} else {
+            sceneProcessor.setShowVisualAid(false);
+            sceneProcessor.highlightSpatial(null);    		
+    	}
+    }
+
+    private boolean graspNodeCollidedWithTable(Node graspNode) {
         collisionResults.clear();
         graspNode.collideWith(table.getWorldBound(), collisionResults);
         if (collisionResults.size() > 0) {
@@ -398,12 +568,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
         return false;
     }
     
-    private float tryTransformingGraspNode(Transform target, float deltaRangePrecision) {
+    private float tryTransformingGraspNode(Node graspNode, Transform target, float deltaRangePrecision) {
         minTransform.set(graspNode.getLocalTransform());
 
         // if transforming to the target does not cause a collision, do it.
         graspNode.setLocalTransform(target);
-        if (!graspNodeCollidedWithTable()) {
+        if (!graspNodeCollidedWithTable(graspNode)) {
             return 1;
         }
         
@@ -414,7 +584,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             delta = (min + max) / 2f;
             midTransform.interpolateTransforms(minTransform, target, delta);
             graspNode.setLocalTransform(midTransform);
-            if (graspNodeCollidedWithTable()) {
+            if (graspNodeCollidedWithTable(graspNode)) {
                 midTransform.interpolateTransforms(minTransform, target, min);
                 graspNode.setLocalTransform(midTransform);
                 max = delta;
