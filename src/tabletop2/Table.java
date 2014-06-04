@@ -2,6 +2,7 @@ package tabletop2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,11 +21,12 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import tabletop2.util.MyRigidBodyControl;
+
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
-import com.jme3.bullet.joints.SliderJoint;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -57,7 +59,8 @@ public class Table implements ActionListener {
 	private static final float TABLE_HEIGHT = 4;
 	private Spatial tableSpatial = null;
 	
-	private int randomItemSN = 0;
+	private int idSN = 0;
+	private HashSet<String> uniqueIds = new HashSet<String>();
 
 
 	public Table(String name, MainApp app, Node robotLocationNode) {
@@ -101,6 +104,11 @@ public class Table implements ActionListener {
 		}
 		// remove all free items (items not currently being grasped)
 		inventory.removeAllFreeItems();
+		uniqueIds.clear();
+		for (Spatial s : inventory.allItems()) {
+			uniqueIds.add(s.getName());
+		}
+		idSN = 0;
 		
 		loadXml(xmlFname);
 		
@@ -175,25 +183,20 @@ public class Table implements ActionListener {
 			org.w3c.dom.Node node = docRoot.getChildNodes().item(i);
 			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
 				Element elm = (Element) node;
-				Spatial s = null;
 				if (elm.getNodeName().equals("block")) {
-					s = processBlockElement(elm, true);
+					processBlockElement(elm, true);
 				} else if (elm.getNodeName().equals("cylinder")) {
-					s = processCylinderElement(elm, true);
+					processCylinderElement(elm, true);
 				} else if (elm.getNodeName().equals("sphere")) {
-					s = processSphereElement(elm, true);
+					processSphereElement(elm, true);
 				} else if (elm.getNodeName().equals("box")) {
-					s = processBoxElement(elm, true);
+					processBoxElement(elm, true);
 				} else if (elm.getNodeName().equals("composite")) {
-					s = processCompositeElement(elm, true);
+					processCompositeElement(elm, true);
 				} else if (elm.getNodeName().equals("chain")) {
 					processChainElement(elm);
 				} else if (elm.getNodeName().equals("lidbox")) {
 					processLidBoxElement(elm);
-				}
-				if (s != null) {
-					rootNode.attachChild(s);
-					inventory.addItem(s);
 				}
 			}
 		}
@@ -203,19 +206,17 @@ public class Table implements ActionListener {
 		// make table
 		tableSpatial = factory.makeBigBlock(name, tableWidth, TABLE_HEIGHT, tableDepth, ColorRGBA.White, 4);
 		tableSpatial.setLocalTranslation(0, -TABLE_HEIGHT / 2, 0);
-		addPhysicsControl(tableSpatial, 0);
+		MyRigidBodyControl rbc = new MyRigidBodyControl(0);
+		tableSpatial.addControl(rbc);
+		bulletAppState.getPhysicsSpace().add(rbc);		
 		rootNode.attachChild(tableSpatial);
 	}
 	
-	private MyRigidBodyControl addPhysicsControl(Spatial s, float mass) {
-		MyRigidBodyControl rbc = new MyRigidBodyControl(mass);
-		s.addControl(rbc);
-		bulletAppState.getPhysicsSpace().add(rbc);
-		return rbc;
-	}
-	
-	private Spatial processBlockElement(Element elm, boolean hasPhysics) {
+	private Spatial processBlockElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -230,16 +231,19 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
 		
-		if (hasPhysics) {
+		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			addPhysicsControl(s, mass);
+			inventory.addItem(s, mass);
 		}
-		
+				
 		return s;
 	}
 
-	private Spatial processCylinderElement(Element elm, boolean hasPhysics) {
+	private Spatial processCylinderElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -253,16 +257,19 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
 		
-		if (hasPhysics) {
+		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			addPhysicsControl(s, mass);
+			inventory.addItem(s, mass);
 		}
 		
 		return s;
 	}
 
-	private Spatial processSphereElement(Element elm, boolean hasPhysics) {
+	private Spatial processSphereElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -275,16 +282,19 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
 
-		if (hasPhysics) {
+		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			addPhysicsControl(s, mass);
+			inventory.addItem(s, mass);
 		}
 		
 		return s;
 	}
 
-	private Spatial processBoxElement(Element elm, boolean hasPhysics) {
+	private Spatial processBoxElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -300,16 +310,19 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
 		
-		if (hasPhysics) {
+		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			addPhysicsControl(s, mass);
+			inventory.addItem(s, mass);
 		}
 		
 		return s;
 	}
 
-	private Spatial processCompositeElement(Element elm, boolean hasPhysics) {
+	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 
@@ -337,16 +350,18 @@ public class Table implements ActionListener {
 			}
 		}
 
-		if (hasPhysics) {
+		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			addPhysicsControl(node, mass);
+			inventory.addItem(node, mass);
+
+			node.setUserData("shape", "composite");
 		}
 		
 		return node;
 	}
 
 	private void processChainElement(Element elm) {
-		String id = elm.getAttribute("id");
+		String groupId = getUniqueId(elm.getAttribute("id"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
 		Vector3f start = parseVector3(elm.getAttribute("start"));
 		Vector3f end = parseVector3(elm.getAttribute("end"));
@@ -361,7 +376,7 @@ public class Table implements ActionListener {
 		float dist = start.distance(end);
 		if (linkCount == 0) {
 			linkCount = (int) FastMath.ceil(dist / linkZspan);
-			logger.log(Level.INFO, "chain " + id + ": linkCount=" + linkCount);
+			logger.log(Level.INFO, "chain " + groupId + ": linkCount=" + linkCount);
 		} else {
 			if ((float) linkCount * linkZspan < dist - linkZspan * .5f) {
 				throw new IllegalArgumentException("linkCount " + linkCount 
@@ -372,8 +387,6 @@ public class Table implements ActionListener {
 		// start making a chain
 		//		
 		Vector3f vec = new Vector3f(); // temporary storage
-		MyRigidBodyControl rbc;
-		SixDofJoint joint;
 		final Vector3f endNodesSize = new Vector3f(.1f, .1f, .1f);
 		final Vector3f linkPhysicsSize = new Vector3f(linkXspan / 2, linkYspan / 2, linkZspan / 2);
 		// rotate the z axis to the start->end direction
@@ -382,62 +395,49 @@ public class Table implements ActionListener {
 		rotStartEndDir.lookAt(start.subtract(end), Vector3f.UNIT_Y);
 
 		// make start node (static)
-		Spatial startNode = factory.makeBlock(id + "-start", 
-				endNodesSize.x, endNodesSize.y, endNodesSize.z, ColorRGBA.White);
+		String id;
+		id = getUniqueId(groupId + "-start");
+		Spatial startNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z, 
+				ColorRGBA.White);
 		startNode.setLocalTranslation(start);
 		startNode.setLocalRotation(rotStartEndDir);
-		rbc = new MyRigidBodyControl(0);
-		startNode.addControl(rbc);
-		bulletAppState.getPhysicsSpace().add(rbc);
-		rootNode.attachChild(startNode);
-		inventory.addItem(startNode);
+		inventory.addItem(startNode, 0);
 		
 		// make end node (static)
-		Spatial endNode = factory.makeBlock(id + "-end", 
-				endNodesSize.x, endNodesSize.y, endNodesSize.z, ColorRGBA.White);
+		id = getUniqueId(groupId + "-end");
+		Spatial endNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z, 
+				ColorRGBA.White);
 		endNode.setLocalTranslation(end);
 		endNode.setLocalRotation(rotStartEndDir);
-		rbc = new MyRigidBodyControl(0);
-		endNode.addControl(rbc);
-		bulletAppState.getPhysicsSpace().add(rbc);
-		rootNode.attachChild(endNode);
-		inventory.addItem(endNode);
+		inventory.addItem(endNode, 0);
 		
-		MyRigidBodyControl prevRbc = startNode.getControl(MyRigidBodyControl.class);
+		Spatial prevSpatial = startNode;
 		Vector3f prevJointPt = new Vector3f(0, 0, -endNodesSize.z);
 		for (int i = 0; i < linkCount; ++i) {
 			// make a link
-			Spatial link = factory.makeBlock(id + "-link" + i, 
-					linkXspan, linkYspan, linkZspan + linkPadding * 2, color);
+			id = getUniqueId(groupId + "-link" + i);
+			Spatial link = factory.makeBlock(id, linkXspan, linkYspan, linkZspan + linkPadding * 2, color);
 			link.setLocalRotation(rotStartEndDir);
 			vec.interpolateLocal(start, end, (i + .5f) / linkCount);
 			link.setLocalTranslation(vec);
-			rbc = new MyRigidBodyControl(new BoxCollisionShape(linkPhysicsSize), linkMass);
-			link.addControl(rbc);
-			rbc.setAngularDamping(1);
-			bulletAppState.getPhysicsSpace().add(rbc);
-			rootNode.attachChild(link);
-			inventory.addItem(link);
+			inventory.addItem(link, linkMass, new BoxCollisionShape(linkPhysicsSize));
+			link.getControl(MyRigidBodyControl.class).setAngularDamping(1);
 			
 			// connect the link using a joint (or constraint)
-			joint = new SixDofJoint(prevRbc, rbc, prevJointPt, new Vector3f(0, 0, linkZspan / 2), false);
+			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link, 
+					prevJointPt, new Vector3f(0, 0, linkZspan / 2));
 			joint.setCollisionBetweenLinkedBodys(false);
-			bulletAppState.getPhysicsSpace().add(joint);
-			inventory.addPhysicsJoint(joint);
-			
-			prevRbc = rbc;
+
+			prevSpatial = link;
 			prevJointPt = new Vector3f(0, 0, -linkZspan / 2);
 		}
 		// connect the last link to the end node
 		vec.set(0, 0, endNodesSize.z);
-		joint = new SixDofJoint(prevRbc, endNode.getControl(MyRigidBodyControl.class), prevJointPt, vec, false);
-		joint.setCollisionBetweenLinkedBodys(false);
-		bulletAppState.getPhysicsSpace().add(joint);
-		inventory.addPhysicsJoint(joint);
+		inventory.addSixDofJoint(prevSpatial, endNode, prevJointPt, vec);
 	}
 
 	private void processLidBoxElement(Element elm) {
-		String id = elm.getAttribute("id");
+		String groupId = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -448,59 +448,56 @@ public class Table implements ActionListener {
 		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
 		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
 		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
-		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));		
+		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
+		float handleThickness = Math.min(handleXspan, handleYspan) / 3f;
 
 		Transform tf = new Transform();
-		Spatial box = factory.makeBoxContainer(id + "-box", yspan, zspan, xspan, thickness, color);		
-		box.setLocalTranslation(location);
-		box.setLocalRotation(new Quaternion().fromAngles(
+		tf.setTranslation(location);
+		tf.setRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
-		tf.setRotation(new Quaternion().fromAngles(0, -FastMath.HALF_PI, -FastMath.HALF_PI));
-		tf.combineWithParent(box.getLocalTransform());
+		
+		String id;
+		id = getUniqueId(groupId + "-box");
+		Spatial box = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);		
 		box.setLocalTransform(tf);
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
-		MyRigidBodyControl boxRbc = addPhysicsControl(box, mass * 0.9f);
-		rootNode.attachChild(box);
-		inventory.addItem(box);
+		inventory.addItem(box, mass * 0.9f);
 		
-		Node lid = new Node(id + "-lid"); 
-		Spatial lidPlate = factory.makeBlock(id + "-lidbody", yspan, thickness, xspan, color);
+		id = getUniqueId(groupId + "-lid");
+		Node lid = new Node(id); 
+		Spatial lidPlate = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
 		lid.attachChild(lidPlate);
-		Spatial lidHandle = factory.makeBlock(id + "-lidhandle", handleYspan, handleZspan, handleXspan, handleColor);
-		lidHandle.setLocalTranslation(0, thickness, 0);
+		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan, 
+				handleThickness, handleColor);
+		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
 		lid.attachChild(lidHandle);		
-		lid.setLocalTranslation(location);
-		lid.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));
-		tf.setTranslation(0, 0, zspan / 2 + thickness / 2);
-		tf.setRotation(new Quaternion().fromAngles(0, -FastMath.HALF_PI, -FastMath.HALF_PI));
-		tf.combineWithParent(lid.getLocalTransform());
-		lid.setLocalTransform(tf);
-		mass = Float.parseFloat(elm.getAttribute("mass"));
-		MyRigidBodyControl lidRbc = addPhysicsControl(lid, mass * 0.9f);
-		rootNode.attachChild(lid);
-		inventory.addItem(lid);
+		lid.setLocalTranslation(0, yspan / 2 + thickness / 2, 0);
+		lid.setLocalTransform(lid.getLocalTransform().combineWithParent(tf));
+		inventory.addItem(lid, mass * 0.1f);
 		
-//		HingeJoint joint = new HingeJoint(boxRbc, lidRbc, new Vector3f(-xspan / 2, yspan / 2, 0), 
-//				new Vector3f(-xspan / 2, -thickness / 2, 0), Vector3f.UNIT_Z, Vector3f.UNIT_Z);
-//		joint.setLimit(-80 * FastMath.DEG_TO_RAD, 0);
+		lid.setUserData("shape", "lid");
+		lid.setUserData("width", lidPlate.getUserData("width"));
+		lid.setUserData("height", lidPlate.getUserData("height"));
+		lid.setUserData("depth", lidPlate.getUserData("depth"));
+		lid.setUserData("handleWidth", lidHandle.getUserData("width"));
+		lid.setUserData("handleHeight", lidHandle.getUserData("height"));
+		lid.setUserData("handleDepth", lidHandle.getUserData("depth"));
+		lid.setUserData("handleThickness", lidHandle.getUserData("thickness"));		
+		
+		inventory.addSliderJoint(box, lid, new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), 
+				0, xspan);
 //		joint.setCollisionBetweenLinkedBodys(false);
-//		joint.enableMotor(true, 1, 1);
-
-		SliderJoint joint = new SliderJoint(boxRbc, lidRbc, new Vector3f(0, zspan / 2, 0), 
-				new Vector3f(0, -thickness / 2, 0), false);
-		joint.setCollisionBetweenLinkedBodys(false);
-		joint.setLowerLinLimit(0);
-		joint.setUpperLinLimit(yspan - thickness);
+//		joint.setLowerLinLimit(0);
+//		joint.setUpperLinLimit(xspan);
+		
+//		joint.setDampingDirLin(.001f);
+//		joint.setRestitutionOrthoLin(.5f);
+//		joint.setRestitutionDirLin(0);
 //		joint.setPoweredLinMotor(true);
 //		joint.setMaxLinMotorForce(1);
 //		joint.setTargetLinMotorVelocity(-1);
-		bulletAppState.getPhysicsSpace().add(joint);
-		inventory.addPhysicsJoint(joint);		
 	}
 
 	private Vector3f parseVector3(String str) {
@@ -551,7 +548,9 @@ public class Table implements ActionListener {
 				int r = Integer.parseInt(m.group(1), 16);
 				int g = Integer.parseInt(m.group(2), 16);
 				int b = Integer.parseInt(m.group(3), 16);
-				return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1);
+				ColorRGBA color = new ColorRGBA();
+				color.fromIntRGBA((r << 24) + (g << 16) + (b << 8));
+				return color;
 			}
 			throw new IllegalArgumentException("could not parse '" + str + "'");
 		}
@@ -562,9 +561,8 @@ public class Table implements ActionListener {
 				ColorRGBA.Blue, ColorRGBA.Yellow, ColorRGBA.Green,
 				ColorRGBA.Brown, ColorRGBA.Cyan, ColorRGBA.Magenta,
 				ColorRGBA.Orange };
-		Spatial s = factory.makeBlock("larger-block-" + randomItemSN, 1.5f, 1.5f, 1.5f,
+		Spatial s = factory.makeBlock(getUniqueId("largeblock"), 1.5f, 1.5f, 1.5f,
 				colors[random.nextInt(colors.length)]);
-		++randomItemSN;
 		s.setLocalTranslation(
 				(random.nextFloat() * 2 - 1) * (tableWidth / 2), 
 				10,
@@ -572,11 +570,7 @@ public class Table implements ActionListener {
 		s.setLocalRotation(new Quaternion().fromAngleAxis(
 				FastMath.HALF_PI * random.nextFloat(),
 				Vector3f.UNIT_XYZ));
-		MyRigidBodyControl rbc = new MyRigidBodyControl(1);
-		s.addControl(rbc);
-		bulletAppState.getPhysicsSpace().add(rbc);
-		rootNode.attachChild(s);
-		inventory.addItem(s);
+		inventory.addItem(s, 1);
 	}
 
 	public void dropRandomStackOfBlocks(int blockCount) {
@@ -592,38 +586,44 @@ public class Table implements ActionListener {
         Quaternion rot = new Quaternion().fromAngleAxis(
         		FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_Y);
         for (int i = 0; i < blockCount; ++i) {
-            Spatial s = factory.makeBlock("small-block-" + randomItemSN, 
+            Spatial s = factory.makeBlock(getUniqueId("smallblock"), 
                     BOX_SIZE.x, BOX_SIZE.y, BOX_SIZE.z,
                     colors[random.nextInt(colors.length)]);
-            ++randomItemSN;
             s.setLocalTranslation(pos);
             s.setLocalRotation(rot);
-            MyRigidBodyControl rbc = new MyRigidBodyControl(1f);
-            s.addControl(rbc);
-            bulletAppState.getPhysicsSpace().add(rbc);            
-            rootNode.attachChild(s);
+            inventory.addItem(s, 1);
 
             pos.y += BOX_SIZE.y;
-            inventory.addItem(s);
         }
 	}
 	
 	public void dropRandomBoxContainer() {
-		Spatial boxContainer = factory.makeBoxContainer("container-" + randomItemSN, 5, 3, 5,
+		Spatial boxContainer = factory.makeBoxContainer(getUniqueId("container"), 5, 3, 5,
 				0.5f, ColorRGBA.Gray);
-		++randomItemSN;
 		boxContainer.setLocalTranslation((random.nextFloat() * 2 - 1) * (tableWidth / 2), 
 				10, 
 				(random.nextFloat() * 2 - 1) * (tableDepth / 2));
 		boxContainer.setLocalRotation(new Quaternion().fromAngleAxis(
 				FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_XYZ));
-		MyRigidBodyControl boxContainerControl = new MyRigidBodyControl(3f);
-		boxContainer.addControl(boxContainerControl);
-		bulletAppState.getPhysicsSpace().add(boxContainerControl);
-		rootNode.attachChild(boxContainer);
-		inventory.addItem(boxContainer);
+		inventory.addItem(boxContainer, 3);
 	}
 
+	private boolean isValidId(String id) {
+		return id != null && !id.isEmpty() && !uniqueIds.contains(id);
+	}
+	
+	private String getUniqueId(String prefix) {
+		if (prefix == null || prefix.isEmpty()) {
+			prefix = "obj";
+		}
+		String id = prefix;
+		while (!isValidId(id)) {
+			id = prefix + "#" + (idSN++);
+		}
+		uniqueIds.add(id);
+		return id;
+	}
+	
 	public void initKeys(InputManager inputManager) {
         inputManager.addMapping(name + "MakeBlock", new KeyTrigger(KeyInput.KEY_B));
         inputManager.addMapping(name + "MakeStack", new KeyTrigger(KeyInput.KEY_N));

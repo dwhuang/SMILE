@@ -10,6 +10,8 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import tabletop2.util.MyRigidBodyControl;
+
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
@@ -309,7 +311,7 @@ public class Gripper implements AnalogListener {
             // kinematic
             MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
             rbc.setKinematic(true);
-            rbc.setMass(rbc.getMass() + FINGER_MASS);
+            rbc.changeMass(rbc.getMass() + FINGER_MASS);
             
             holding.add(s);
         }
@@ -330,7 +332,7 @@ public class Gripper implements AnalogListener {
                 s.setLocalScale(mat.toScaleVector());
 
                 MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
-                rbc.setMass(rbc.getMass() - FINGER_MASS);
+                rbc.changeMass(rbc.getMass() - FINGER_MASS);
                 rbc.setKinematic(false);
             }
             holding.clear();

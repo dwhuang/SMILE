@@ -30,6 +30,7 @@ public class ObjectsWindowController implements WindowController {
 	private DropDown<String> ddXml;
 	private DropDown<String> ddPresetObject;
 	
+	private String dirName;
 	private Table table;
 	private Inventory inventory;
 	
@@ -41,8 +42,9 @@ public class ObjectsWindowController implements WindowController {
 		ddPresetObject = screen.findNiftyControl("ddPresetObject", DropDown.class);
 		nifty.subscribeAnnotations(this);
 		
-		String defaultFname = MainApp.DEFAULT_TABLE_XML_FNAME;
+		String defaultFname = MainApp.DEFAULT_TABLESETUP_FNAME;
 		int n = defaultFname.lastIndexOf('/');
+		dirName = defaultFname.substring(0, n);
 		refreshDdXml(defaultFname.substring(n + 1));
 		
 		ddPresetObject.addAllItems(Arrays.asList(PRESET_OBJECTS));
@@ -65,7 +67,7 @@ public class ObjectsWindowController implements WindowController {
 	
 	private void refreshDdXml(String selectItem) {
 		ddXml.clear();
-		File dir = new File("xml/");
+		File dir = new File(dirName + "/");
 		for (final File file : dir.listFiles()) {
 			if (file.isFile() && file.getName().endsWith(".xml")) {
 				ddXml.addItem(file.getName());
@@ -82,7 +84,7 @@ public class ObjectsWindowController implements WindowController {
 	@NiftyEventSubscriber(id="btLoadXml")
 	public void onBtLoadXml(String id, ButtonClickedEvent e) {
 		String xmlFname = ddXml.getSelection();
-		table.reloadXml("xml/" + xmlFname);
+		table.reloadXml(dirName + "/" + xmlFname);
 	}
 
 	@NiftyEventSubscriber(id="btExecute")

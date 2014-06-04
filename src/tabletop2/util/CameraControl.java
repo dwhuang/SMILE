@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package tabletop2;
+package tabletop2.util;
 
 import com.jme3.input.FlyByCamera;
 import com.jme3.math.Vector3f;

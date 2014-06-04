@@ -146,6 +146,10 @@ public class Robot implements AnalogListener, ActionListener {
                 leftGripper, rightGripper, rootNode, factory);
     }
     
+    public BufferedImage getVisualImage() {
+    	return headImageCapturer.takePicture();    	
+    }
+    
     public void stop() {
         matlabAgent.stop();
     }
@@ -449,7 +453,7 @@ public class Robot implements AnalogListener, ActionListener {
 				toggleHeadCameraView();
 			}
         } else if (name.matches(this.name + "TakePic")) {            
-            BufferedImage img = headImageCapturer.takePicture();            
+            BufferedImage img = getVisualImage();            
             try {
                 String fname = "headcam" + (new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())) + ".png";
                 ImageIO.write(img, "png", new File(fname));

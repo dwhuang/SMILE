@@ -4,7 +4,8 @@
  */
 package tabletop2.gui;
 
-import tabletop2.DemonstrationListener;
+import tabletop2.DemoActionListener;
+import tabletop2.DemoRecorder;
 import tabletop2.Demonstrator;
 import tabletop2.Demonstrator.HandId;
 import tabletop2.MainApp;
@@ -33,10 +34,11 @@ import de.lessvoid.nifty.screen.Screen;
  *
  * @author dwhuang
  */
-public class DemoWindowController implements WindowController, DemonstrationListener {
+public class DemoWindowController implements WindowController, DemoActionListener {
     private Demonstrator demonstrator;
+    private DemoRecorder demoRecorder;
     private Window window;
-    private RadioButton[] rbHand = new RadioButton[3];
+    private RadioButton[] rbHand = new RadioButton[4];
     private Label lbGrasped;
     private Button btRelease;
     private Button btDestroy;
@@ -44,6 +46,9 @@ public class DemoWindowController implements WindowController, DemonstrationList
     private Button btPlaneRotR;
     private Scrollbar[] sbObjRot = new Scrollbar[3];
     private Label[] lbObjAngles = new Label[3];
+    private Button btRecStart;
+    private Button btRecFinish;
+    private Button btRecUndo;
     
     private float planeRotDir = 0;
     
@@ -52,6 +57,7 @@ public class DemoWindowController implements WindowController, DemonstrationList
         rbHand[0] = screen.findElementByName("rbLeftHand").getNiftyControl(RadioButton.class);
         rbHand[1] = screen.findElementByName("rbRightHand").getNiftyControl(RadioButton.class);
         rbHand[2] = screen.findElementByName("rbBothHands").getNiftyControl(RadioButton.class);
+        rbHand[3] = screen.findElementByName("rbAnyHand").getNiftyControl(RadioButton.class);
         lbGrasped = screen.findElementByName("lbGrasped").getNiftyControl(Label.class);
         btRelease = screen.findElementByName("btRelease").getNiftyControl(Button.class);
         btDestroy = screen.findElementByName("btDestroy").getNiftyControl(Button.class);
@@ -62,15 +68,20 @@ public class DemoWindowController implements WindowController, DemonstrationList
         sbObjRot[2] = screen.findElementByName("sbObjRotZ").getNiftyControl(Scrollbar.class);
         lbObjAngles[0] = screen.findElementByName("lbObjAngleX").getNiftyControl(Label.class);
         lbObjAngles[1] = screen.findElementByName("lbObjAngleY").getNiftyControl(Label.class);
-        lbObjAngles[2] = screen.findElementByName("lbObjAngleZ").getNiftyControl(Label.class);        
+        lbObjAngles[2] = screen.findElementByName("lbObjAngleZ").getNiftyControl(Label.class);
+        btRecStart = screen.findNiftyControl("btRecStart", Button.class);
+        btRecFinish = screen.findNiftyControl("btRecFinish", Button.class);
+        btRecUndo = screen.findNiftyControl("btRecUndo", Button.class);
         nifty.subscribeAnnotations(this);
-        
-        updateInfo();
     }
 
     public void init(Application app) {
         this.demonstrator = ((MainApp) app).getDemonstrator();
-        this.demonstrator.addListener(this);
+        this.demonstrator.addActionListener(this);
+        this.demoRecorder = ((MainApp) app).getDemoRecorder();
+        
+        updateRbHand();
+        updateRecInfo();
     }
 
     public void update(float tpf) {
@@ -84,17 +95,36 @@ public class DemoWindowController implements WindowController, DemonstrationList
     }
 
 	@Override
-	public void demoGrasp(Spatial s, Vector3f pos, Quaternion rot) {
-		updateInfo();
+	public void demoGrasp(HandId hId, Spatial s, Vector3f pos, Quaternion rot) {
+		updateHandInfo();
+        updateRecInfo();
 	}
 
 	@Override
-	public void demoRelease() {
-		updateInfo();
+	public void demoRelease(HandId hId) {
+		updateHandInfo();
+        updateRecInfo();
 	}
 	
-    private void updateInfo() {
-    	if (demonstrator == null || demonstrator.getCurrHand().isIdle()) {
+	@Override
+	public void demoDestroy(HandId hId) {
+		updateHandInfo();
+        updateRecInfo();
+	}
+	
+	private void updateRbHand() {
+		Demonstrator.Hand hand = demonstrator.getCurrHand();
+		rbHand[hand.getId().getValue()].select();
+	}
+	
+    private void updateHandInfo() {
+    	if (demonstrator == null) {
+    		return;
+    	}
+    	
+    	Demonstrator.Hand hand = demonstrator.getCurrHand();
+    	
+    	if (hand.isIdle()) {
             lbGrasped.setText("<empty>");
             btRelease.disable();
             btDestroy.disable();
@@ -106,7 +136,6 @@ public class DemoWindowController implements WindowController, DemonstrationList
                 lbObjAngles[i].setText("0");
             }
     	} else {
-        	Demonstrator.Hand hand = demonstrator.getCurrHand();
             lbGrasped.setText(hand.getGraspedItemName());
             btRelease.enable();
             btDestroy.enable();
@@ -124,7 +153,13 @@ public class DemoWindowController implements WindowController, DemonstrationList
                 lbObjAngles[i].setText("" + angleRounded);
                 sbObjRot[i].enable();
             }
-    	}    	
+    	}
+    }
+    
+    private void updateRecInfo() {
+		btRecStart.setEnabled(!demoRecorder.isRecording());
+		btRecFinish.setEnabled(demoRecorder.isRecording());
+		btRecUndo.setEnabled(demoRecorder.isRecording() && demoRecorder.isUndoable());
     }
     
     @NiftyEventSubscriber(id="rbgHand")
@@ -139,20 +174,22 @@ public class DemoWindowController implements WindowController, DemonstrationList
     		demonstrator.selectHand(HandId.RightHand);
     	} else if (e.getSelectedId().equals(rbHand[2].getId())) {
     		demonstrator.selectHand(HandId.BothHands);
+    	} else if (e.getSelectedId().equals(rbHand[3].getId())) {
+    		demonstrator.selectHand(HandId.AnyHand);
     	}
-    	updateInfo();
+    	updateHandInfo();
     }
     
     @NiftyEventSubscriber(id="btRelease")
     public void onBtRelease(String id, ButtonClickedEvent e) {
         demonstrator.release();
-        updateInfo();
+        updateHandInfo();
     }
     
     @NiftyEventSubscriber(id="btDestroy")
     public void onBtDestroy(String id, ButtonClickedEvent e) {
         demonstrator.destroy();
-        updateInfo();
+        updateHandInfo();
     }
     
     @NiftyEventSubscriber(pattern="btPlaneRot(L|R)")
@@ -214,5 +251,25 @@ public class DemoWindowController implements WindowController, DemonstrationList
             e.getScrollbar().setValue(180 + prevAngle);
             e.getScrollbar().enable();
         }
+    }
+
+    @NiftyEventSubscriber(id="btRecStart")
+    public void onBtRecStart(String id, ButtonClickedEvent e) {
+    	demoRecorder.processStart();
+    	updateRecInfo();
+    }
+    
+    @NiftyEventSubscriber(id="btRecFinish")
+    public void onBtRecFinish(String id, ButtonClickedEvent e) {
+    	demoRecorder.processFinish();
+    	updateRecInfo();
+    }
+    
+    @NiftyEventSubscriber(id="btRecUndo")
+    public void onBtRecUndo(String id, ButtonClickedEvent e) {
+    	demoRecorder.undo();
+    	updateRbHand();
+    	updateRecInfo();
+    	updateHandInfo();
     }
 }

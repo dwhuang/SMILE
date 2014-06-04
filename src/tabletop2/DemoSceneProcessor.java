@@ -29,7 +29,7 @@ import java.util.ArrayList;
  *
  * @author dwhuang
  */
-public class DemonstratorSceneProcessor implements SceneProcessor {
+public class DemoSceneProcessor implements SceneProcessor {
     private boolean isInit = false;
     private boolean showVisualAid = false;
     private ArrayList<Geometry> visualAidGeos = new ArrayList<Geometry>();
@@ -41,7 +41,7 @@ public class DemonstratorSceneProcessor implements SceneProcessor {
     
     private Matrix4f mat = new Matrix4f();
     
-    public DemonstratorSceneProcessor(AssetManager assetManager, Node visualAid) {
+    public DemoSceneProcessor(AssetManager assetManager, Node visualAid) {
         visualAid.depthFirstTraversal(new SceneGraphVisitor() {
             public void visit(Spatial s) {
                 if (s instanceof Geometry) {

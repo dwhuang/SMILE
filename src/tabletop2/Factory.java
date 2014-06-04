@@ -40,9 +40,16 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
-        Geometry box = new Geometry(name, new Box(w / 2, h / 2, d / 2));
-        box.setMaterial(mat);
-        return box;
+        Geometry block = new Geometry(name, new Box(w / 2, h / 2, d / 2));
+        block.setMaterial(mat);
+
+        block.setUserData("shape", "block");
+        block.setUserData("width", w);
+        block.setUserData("height", h);
+        block.setUserData("depth", d);
+        block.setUserData("color", color);
+        
+        return block;
     }
     
     public Spatial makeBigBlock(String name, float w, float h, float d, 
@@ -84,6 +91,13 @@ public class Factory {
             c.x += unitBlockSize;
         }
         
+        bigBlock.setUserData("shape", "bigblock");
+        bigBlock.setUserData("width", w);
+        bigBlock.setUserData("height", h);
+        bigBlock.setUserData("depth", d);
+        bigBlock.setUserData("color", color);
+        bigBlock.setUserData("unitBlockSize", unitBlockSize); 
+        
 //        return GeometryBatchFactory.optimize(bigBlock);
         return bigBlock;
     }
@@ -116,6 +130,13 @@ public class Factory {
         s.setLocalTranslation(0, halfT, -halfT + halfD);
         boxContainer.attachChild(s);
         
+        boxContainer.setUserData("shape", "box");
+        boxContainer.setUserData("width", w);
+        boxContainer.setUserData("height", h);
+        boxContainer.setUserData("depth", d);
+        boxContainer.setUserData("color", color);
+        boxContainer.setUserData("thickness", thickness); 
+
         return boxContainer;
     }
     
@@ -130,6 +151,12 @@ public class Factory {
 //        mat.setBoolean("HighQuality", false);
         Geometry cylinder = new Geometry(name, new Cylinder(32, 32, radius, height, true));
         cylinder.setMaterial(mat);
+
+        cylinder.setUserData("shape", "cylinder");
+        cylinder.setUserData("radius", radius);
+        cylinder.setUserData("height", height);
+        cylinder.setUserData("color", color);
+
         return cylinder;        
     }
 
@@ -145,6 +172,11 @@ public class Factory {
 //        mat.setBoolean("HighQuality", false);
         Geometry sphere = new Geometry(name, new Sphere(16, 16, radius));
         sphere.setMaterial(mat);
+
+        sphere.setUserData("shape", "cylinder");
+        sphere.setUserData("radius", radius);
+        sphere.setUserData("color", color);
+
         return sphere;
     }
 
@@ -157,6 +189,12 @@ public class Factory {
 //        mat.setBoolean("HighQuality", false);
         Geometry plane = new Geometry(name, new Quad(width, height));
         plane.setMaterial(mat);
+
+        plane.setUserData("shape", "plane");
+        plane.setUserData("width", width);
+        plane.setUserData("height", height);
+        plane.setUserData("color", color);
+
         return plane;
     }
     
@@ -167,6 +205,12 @@ public class Factory {
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Geometry line = new Geometry(name, new Line(start, end));
         line.setMaterial(mat);
+
+        line.setUserData("shape", "line");
+        line.setUserData("start", start);
+        line.setUserData("end", end);
+        line.setUserData("color", color);
+
         return line;
     }
 
@@ -179,6 +223,12 @@ public class Factory {
         arrow.setLineWidth(lineWidth);
         Geometry line = new Geometry(name, arrow);
         line.setMaterial(mat);
+
+        line.setUserData("shape", "arrow");
+        line.setUserData("extend", extend);
+        line.setUserData("lineWidth", lineWidth);
+        line.setUserData("color", color);
+
         return line;
     }
 }

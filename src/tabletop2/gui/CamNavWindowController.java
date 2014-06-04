@@ -5,13 +5,14 @@
 package tabletop2.gui;
 
 import com.jme3.app.Application;
+
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.Window;
 import de.lessvoid.nifty.elements.events.NiftyMousePrimaryClickedEvent;
 import de.lessvoid.nifty.elements.events.NiftyMousePrimaryReleaseEvent;
 import de.lessvoid.nifty.screen.Screen;
-import tabletop2.CameraControl;
+import tabletop2.util.CameraControl;
 
 /**
  *

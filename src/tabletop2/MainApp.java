@@ -1,6 +1,5 @@
 package tabletop2;
 
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +35,8 @@ import de.lessvoid.nifty.Nifty;
 public class MainApp extends SimpleApplication implements ActionListener {
     private static final Logger logger = Logger.getLogger(MainApp.class.getName());
 	
-    public static final String DEFAULT_TABLE_XML_FNAME = "xml/default.xml";
+    public static final String DEFAULT_TABLESETUP_FNAME = "tablesetup/default.xml";
+    public static final String DEMO_RECORDING_DIRNAME = "demo";
     
     private BulletAppState bulletAppState = new BulletAppState();    
     private Factory factory;
@@ -45,6 +45,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private Node robotLocationNode = new Node("robotLocationNode");
     private Robot robot;
     private Demonstrator demonstrator;
+	private DemoRecorder demoRecorder;
     private GuiController guiController;
     
     private final boolean flyGripper = false;
@@ -57,8 +58,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     
     private boolean isRunning = true;
     private FlyCamAppState flyCamAppState;
-    
-    private transient HashSet<Spatial> itemsToRemove = new HashSet<Spatial>();
+
     
     public static void main(String[] args) throws BackingStoreException {
     	Locale.setDefault(Locale.ENGLISH);
@@ -124,6 +124,10 @@ public class MainApp extends SimpleApplication implements ActionListener {
     	return demonstrator;
     }
     
+    public DemoRecorder getDemoRecorder() {
+    	return demoRecorder;
+    }
+    
     @Override
     public void simpleInitApp() {
     	initBulletAppState();
@@ -131,15 +135,16 @@ public class MainApp extends SimpleApplication implements ActionListener {
         flyCamAppState = stateManager.getState(FlyCamAppState.class);
         
         factory = new Factory(assetManager);
-        inventory = new Inventory(this);        
+        inventory = new Inventory(this);
         table = new Table("table", this, robotLocationNode);
-        table.reloadXml(DEFAULT_TABLE_XML_FNAME);
+        table.reloadXml(DEFAULT_TABLESETUP_FNAME);
         
         rootNode.attachChild(robotLocationNode);
         robot = new Robot("baxter", this, robotLocationNode);
         robot.toggleHide();
         
         demonstrator = new Demonstrator("demo", this);
+        demoRecorder = new DemoRecorder(this);
         
         initLighting();
         initCamera();
@@ -158,7 +163,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
 //        s = factory.makeUnshadedArrow("", Vector3f.UNIT_Y.mult(6), 3, ColorRGBA.Blue);
 //        rootNode.attachChild(s);
         
-        // stateManager.attach(new VideoRecorderAppState()); //start recording
+//         stateManager.attach(new VideoRecorderAppState()); //start recording
     }
 
     private void initBulletAppState() {
@@ -268,6 +273,8 @@ public class MainApp extends SimpleApplication implements ActionListener {
         
         robot.update(tpf);
         
+        demoRecorder.update(tpf);
+        
         if (flyGripper) {
             Matrix4f projMat = cam.getViewMatrix().invert();
             gripperNode.setLocalTranslation(projMat.toTranslationVector());
@@ -277,13 +284,11 @@ public class MainApp extends SimpleApplication implements ActionListener {
         // cleanup unused objects
         if (timeAccumulator > 2) {
             timeAccumulator = 0;
-            itemsToRemove.clear();
             for (Spatial item : inventory.allItems()) {
                 if (item.getParent() == rootNode && item.getLocalTranslation().y < -1000) {
-                    itemsToRemove.add(item);
+                	inventory.removeItem(item);
                 }
             }
-            inventory.removeItems(itemsToRemove);
         }
     }
     
@@ -319,5 +324,9 @@ public class MainApp extends SimpleApplication implements ActionListener {
         } else if (name.equals("escapeKey")) {
         	stop();
         }
+    }    
+    
+    public void showMessage(String str) {
+    	guiController.showMessagePopup(str, 1);
     }    
 }

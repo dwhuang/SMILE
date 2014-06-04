@@ -11,6 +11,13 @@
 	        <control name="label" font="Fonts/Helvetica-36.fnt" text="Press ESC to quit" height="40"/>
         </panel>
     </popup>
+    
+    <popup id="puMessage" childLayout="center" inputMapping="tabletop2.gui.GuiController">
+        <panel childLayout="horizontal">
+            <control name="label" id="lbMessage" font="Fonts/Helvetica-36.fnt" text="msg" height="40"
+                width="100%" backgroundColor="#000a"/>
+        </panel>
+    </popup>
 
     <screen id="guiView" controller="tabletop2.gui.GuiController">
         <layer childLayout="horizontal">
@@ -122,7 +129,7 @@
                 </panel>
             </control>
             <control name="window" id="wdDemo" title="Demostration Tools" hideOnClose="true"
-                     width="320px" height="205px" backgroundColor="#000f">
+                     width="320px" height="235px" backgroundColor="#000f">
                 <effect>
                     <onHide name="move" mode="out" direction="bottom" inherit="true" length="100"/>
                     <onShow name="move" mode="in" direction="bottom" inherit="true" length="100"/>
@@ -135,12 +142,15 @@
                         <control name="label" text="" width="5px"/><!--padding-->
                         <control name="radioButton" id="rbLeftHand" group="rbgHand" focusable="false"/>
                         <control name="label" text="Left"/>
-                        <control name="label" text="" width="15px"/><!--padding-->
+                        <control name="label" text="" width="8px"/><!--padding-->
                         <control name="radioButton" id="rbRightHand" group="rbgHand" focusable="false"/>
                         <control name="label" text="Right"/>
-                        <control name="label" text="" width="15px"/><!--padding-->
+                        <control name="label" text="" width="8px"/><!--padding-->
                         <control name="radioButton" id="rbBothHands" group="rbgHand" focusable="false"/>
                         <control name="label" text="Both"/>
+                        <control name="label" text="" width="8px"/><!--padding-->
+                        <control name="radioButton" id="rbAnyHand" group="rbgHand" focusable="false"/>
+                        <control name="label" text="Any"/>
                     </panel>
                     <panel childLayout="horizontal" width="100%" padding="3px,0,0,0">
                         <control name="label" text="Current Object:" width="90px" textHAlign="right"/>
@@ -185,6 +195,14 @@
                             <control name="label" text="" width="5px"/><!--padding-->
                             <control name="label" id="lbObjAngleZ" text="" width="30px" color="#0000ff"/>
                         </panel>
+                    </panel>
+                    <panel childLayout="horizontal" padding="8px,0,0,0">
+                        <control name="label" text="Recording:" width="*" textHAlign="left"/>
+                        <control name="label" text="" width="5px"/>
+                        <control name="button" id="btRecStart" label="Start" width="80px" focusable="fasle"/>
+                        <control name="button" id="btRecFinish" label="Finish" width="80px" focusable="fasle"/>
+                        <control name="label" text="" width="15px"/>
+                        <control name="button" id="btRecUndo" label="Undo" width="60px" focusable="fasle"/>
                     </panel>
                 </panel>
             </control>

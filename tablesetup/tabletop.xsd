@@ -42,7 +42,7 @@
 	<simpleType name="vector3Type">
 		<restriction base="string">
 			<pattern
-				value="\s*[(]\s*([-]?\d*(\.\d+)?)\s*,\s*([-]?\d*(\.\d+)?)\s*,\s*([-]?\d*(\.\d+)?)\s*[)]\s*" />
+				value="\s*[(]\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*[)]\s*" />
 		</restriction>
 	</simpleType>
 

@@ -13,6 +13,7 @@ import com.jme3.app.state.AppStateManager;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.controls.ButtonClickedEvent;
+import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Window;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
@@ -33,6 +34,11 @@ public class GuiController extends AbstractAppState implements ScreenController 
     private Element puPause;
     private boolean isPaused = false;
     
+    private Element puMessage;
+    private Label lbMessage;
+    private float messageDuration = 0;
+    private float messageTimeElapsed;
+    
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
@@ -49,6 +55,14 @@ public class GuiController extends AbstractAppState implements ScreenController 
         for (WindowController wc : windowControllers) {
             wc.update(tpf);
         }
+
+        if (messageDuration > 0) {
+	        messageTimeElapsed += tpf;
+	        if (messageTimeElapsed >= messageDuration) {
+	        	nifty.closePopup(puMessage.getId());
+	        	messageDuration = 0;
+	        }
+        }
     }
 
     public void bind(Nifty nifty, Screen screen) {
@@ -56,6 +70,8 @@ public class GuiController extends AbstractAppState implements ScreenController 
     	this.screen = screen;
     	
         puPause = nifty.createPopup("puPause");
+        puMessage = nifty.createPopup("puMessage");
+        lbMessage = puMessage.findNiftyControl("lbMessage", Label.class);
         
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
@@ -87,6 +103,15 @@ public class GuiController extends AbstractAppState implements ScreenController 
     	} else {
     		nifty.closePopup(puPause.getId());
     	}
+    }
+    
+    public void showMessagePopup(String str, float duration) {
+    	if (messageDuration <= 0) {
+        	nifty.showPopup(screen, puMessage.getId(), null);
+    	}
+    	messageDuration = duration;
+    	messageTimeElapsed = 0;
+    	lbMessage.setText(str);
     }
     
     @NiftyEventSubscriber(pattern="bt.*")

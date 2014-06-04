@@ -6,11 +6,10 @@ package tabletop2;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Set;
+
+import tabletop2.util.MyRigidBodyControl;
 
 import com.bulletphysics.collision.dispatch.CollisionObject;
-import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
@@ -44,7 +43,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     }
     
     public enum HandId {
-    	LeftHand(0), RightHand(1), BothHands(2);
+    	LeftHand(0), RightHand(1), BothHands(2), AnyHand(3);
     	
     	private final int value;
     	private HandId(int value) {
@@ -57,15 +56,16 @@ public class Demonstrator implements ActionListener, AnalogListener {
     
     private String name;
     private boolean enabled = true;
+    private MainApp app;
     private Node rootNode;
-    private BulletAppState bulletAppState;
     private Camera cam;
     private InputManager inputManager;
     private final Inventory inventory;
     private Table table;
 
-    private ArrayList<DemonstrationListener> demoListeners = new ArrayList<DemonstrationListener>();
-    private DemonstratorSceneProcessor sceneProcessor;
+    private ArrayList<DemoActionListener> demoActionListeners = new ArrayList<DemoActionListener>();
+    private ArrayList<DemoPreActionListener> demoPreActionListeners = new ArrayList<DemoPreActionListener>();
+    private DemoSceneProcessor sceneProcessor;
 
     private Hand[] hands = new Hand[HandId.values().length];
     private Hand currHand = null;
@@ -95,6 +95,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
         	this.id = id;
         	graspNode = new Node(name);
         	rootNode.attachChild(graspNode);
+        }
+        
+        private Hand() {}
+        
+        public HandId getId() {
+        	return id;
         }
         
         public boolean isIdle() {
@@ -188,24 +194,53 @@ public class Demonstrator implements ActionListener, AnalogListener {
             		throw new IllegalStateException("item " + s 
             				+ " is neither free nor being grapsed by a demonstrator hand.");
             	}
+            	HandId currHandId = currHand.id;
+            	selectHand(graspingHand.id);
             	graspingHand.release();
+            	selectHand(currHandId);
             }
 
-            // if left/right hand is going to grasp an item, release any item held by both hands
+            // make sure only two hands are in use
             if (id == HandId.LeftHand || id == HandId.RightHand) {
-            	if (hands[HandId.BothHands.getValue()].state != HandState.Idle) {
-            		hands[HandId.BothHands.getValue()].release();
+            	if (getHand(HandId.BothHands).state != HandState.Idle) {
+            		getHand(HandId.BothHands).release();
             	}
+                if (id == HandId.LeftHand 
+                		&& getHand(HandId.RightHand).state != HandState.Idle
+            			&& getHand(HandId.AnyHand).state != HandState.Idle) {
+            		getHand(HandId.AnyHand).release();
+                }
+                if (id == HandId.RightHand 
+                		&& getHand(HandId.LeftHand).state != HandState.Idle
+            			&& getHand(HandId.AnyHand).state != HandState.Idle) {
+            		getHand(HandId.AnyHand).release();
+                }
             }
             // if both hands are going to grasp an item (together), release any items held by
-            // left and right hands
+            // all other hands
             if (id == HandId.BothHands) {
-            	if (hands[HandId.LeftHand.getValue()].state != HandState.Idle) {
-            		hands[HandId.LeftHand.getValue()].release();
+            	for (HandId id : HandId.values()) {
+            		if (id != HandId.BothHands) {
+            			getHand(id).release();
+            		}
             	}
-            	if (hands[HandId.RightHand.getValue()].state != HandState.Idle) {
-            		hands[HandId.RightHand.getValue()].release();
+            }
+            // if "any" hand is used, release all other hands
+            if (id == HandId.AnyHand) {
+            	if (getHand(HandId.BothHands).state != HandState.Idle) {
+            		app.showMessage("both hands are occupied");
+            		return;
             	}
+            	if (getHand(HandId.LeftHand).state != HandState.Idle
+            			&& getHand(HandId.RightHand).state != HandState.Idle) {
+            		app.showMessage("both hands are occupied");
+            		return;
+            	}
+            }
+
+            // notify listeners
+            for (DemoPreActionListener l : Demonstrator.this.demoPreActionListeners) {
+                l.demoPreGrasp(currHand.id);
             }
 
             graspedItem = s;
@@ -216,22 +251,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
             graspNode.attachChild(s);
 
             MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-            rbc.setMass(rbc.getMass() + 9999);    
+            rbc.changeMass(rbc.getMass() + 9999);    
             rbc.setKinematic(true);
             
             // wake up connected (by joints) items and prevent them from going into sleep,
             // so that they are aware of any translation/rotation occurring at the grasped item.
-            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-            if (joints != null) {
-                for (PhysicsJoint joint : joints) {
-                    MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
-                    c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
-                    c.activate();
-                    c = (MyRigidBodyControl)joint.getBodyB();
-                    c.forceActivationState(CollisionObject.DISABLE_DEACTIVATION);
-                    c.activate();
-                }
-            }
+            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.DISABLE_DEACTIVATION);
 
             Demonstrator.this.setVisualAid(graspNode);
             Demonstrator.this.showVisualAid(graspedItem);
@@ -242,8 +267,9 @@ public class Demonstrator implements ActionListener, AnalogListener {
             userRotAngles[2] = 0;
             
             // notify listeners
-            for (DemonstrationListener l : Demonstrator.this.demoListeners) {
-                l.demoGrasp(graspedItem, graspNode.getLocalTranslation(), graspNode.getLocalRotation());
+            for (DemoActionListener l : Demonstrator.this.demoActionListeners) {
+                l.demoGrasp(currHand.id, graspedItem, 
+                		graspNode.getLocalTranslation(), graspNode.getLocalRotation());
             }
         }
     	
@@ -322,26 +348,21 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 throw new IllegalStateException("illegal operation");
             }
 
+            // notify listeners
+            for (DemoPreActionListener l : Demonstrator.this.demoPreActionListeners) {
+                l.demoPreRelease(currHand.id);
+            }
+
             graspNode.detachChild(graspedItem);
             graspedItem.setLocalTransform(graspNode.getLocalTransform());
             rootNode.attachChild(graspedItem);
 
             MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
             rbc.setKinematic(false);
-            rbc.setMass(rbc.getMass() - 9999);
+            rbc.changeMass(rbc.getMass() - 9999);
 
             // allow the connected (by joints) items of the grasped item to go back to sleep
-            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-            if (joints != null) {
-                for (PhysicsJoint joint : joints) {
-                    MyRigidBodyControl c = (MyRigidBodyControl)joint.getBodyA();
-                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                    c.activate();
-                    c = (MyRigidBodyControl)joint.getBodyB();
-                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                    c.activate();
-                }
-            }
+            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.ACTIVE_TAG);
 
             graspedItem = null;
             
@@ -350,8 +371,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
             state = HandState.Idle;
             
             // notify listeners
-            for (DemonstrationListener l : demoListeners) {
-                l.demoRelease();
+            for (DemoActionListener l : demoActionListeners) {
+                l.demoRelease(currHand.id);
             }
         }
 
@@ -360,26 +381,28 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 throw new IllegalStateException("illegal operation");
             }
 
-            graspNode.detachChild(graspedItem);
-            
-            // wake up connected (by joints) items
-            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
-            if (joints != null) {
-                for (PhysicsJoint j : joints) {
-                    bulletAppState.getPhysicsSpace().remove(j);
-                    
-                    MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
-                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                    c.activate();
-                    c = (MyRigidBodyControl)j.getBodyB();
-                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
-                    c.activate();
-                }
+            // notify listeners
+            for (DemoPreActionListener l : Demonstrator.this.demoPreActionListeners) {
+                l.demoPreDestroy(currHand.id);
             }
-            MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-            bulletAppState.getPhysicsSpace().remove(rbc);
 
-            inventory.removeItem(graspedItem);        
+            // wake up connected (by joints) items
+            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.ACTIVE_TAG);
+//            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
+//            if (joints != null) {
+//                for (PhysicsJoint j : joints) {
+//                    bulletAppState.getPhysicsSpace().remove(j);
+//                    
+//                    MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
+//                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+//                    c.activate();
+//                    c = (MyRigidBodyControl)j.getBodyB();
+//                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
+//                    c.activate();
+//                }
+//            }
+
+            inventory.removeItem(graspedItem);
             graspedItem = null;
             
             Demonstrator.this.showVisualAid(null);
@@ -387,16 +410,54 @@ public class Demonstrator implements ActionListener, AnalogListener {
             state = HandState.Idle;
             
             // notify listeners
-            for (DemonstrationListener l : demoListeners) {
-                l.demoRelease();
+            for (DemoActionListener l : demoActionListeners) {
+                l.demoDestroy(currHand.id);
             }
+        }
+        
+        private class Memento {
+        	private HandId id;
+        	private HandState state;
+//        	private Transform graspNodeTrans;
+        	private Spatial graspedItem;
+        	private float[] userRotAngles;
+        }
+        
+        private Memento saveToMemento() {
+        	Memento m = new Memento();
+        	m.id = id;
+        	m.state = state;
+//        	m.graspNodeTrans = graspNode.getLocalTransform().clone();
+        	m.graspedItem = graspedItem;
+        	m.userRotAngles = userRotAngles.clone();
+        	return m;
+        }
+        
+        private void restoreFromMemento(Memento m) {
+        	if (m.id != id) {
+        		throw new IllegalArgumentException("inconsistent memento hand id: " + m.id 
+        				+ " (my id is " + id + ")");
+        	}
+        	state = m.state;
+        	if (state != HandState.Idle) {
+        		// attach grasped item
+        		graspedItem = m.graspedItem;
+        		graspedItem.getParent().detachChild(graspedItem);
+        		graspNode.attachChild(graspedItem);
+            	graspNode.setLocalTransform(graspedItem.getLocalTransform());
+            	graspedItem.setLocalTransform(Transform.IDENTITY);
+            	// set userRotAngles
+            	userRotAngles[0] = m.userRotAngles[0];
+            	userRotAngles[1] = m.userRotAngles[1];
+            	userRotAngles[2] = m.userRotAngles[2];
+        	}
         }
     }    
     
     public Demonstrator(String name, MainApp app) {
     	this.name = name;
+    	this.app = app;
         rootNode = app.getRootNode();
-        bulletAppState = app.getBulletAppState();
         cam = app.getViewPort().getCamera();
         inputManager = app.getInputManager();
         inventory = app.getInventory();
@@ -435,14 +496,14 @@ public class Demonstrator implements ActionListener, AnalogListener {
         g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
         visualAid.attachChild(g);
         
-        sceneProcessor = new DemonstratorSceneProcessor(app.getAssetManager(), visualAid);
+        sceneProcessor = new DemoSceneProcessor(app.getAssetManager(), visualAid);
         app.getViewPort().addProcessor(sceneProcessor);
 
         for (HandId hId : HandId.values()) {
         	int hIndex = hId.getValue();
         	hands[hIndex] = new Hand(name + " graspNode" + hIndex, hId);
         }
-        selectHand(HandId.LeftHand);
+        selectHand(HandId.AnyHand);
     }
     
     public void setEnabled(boolean v) {
@@ -457,12 +518,16 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (currHand != null) {
     		currHand.processDeselect();
     	}
-		currHand = hands[handId.getValue()];
+		currHand = getHand(handId);
 		currHand.processSelect();
     }
     
     public Hand getCurrHand() {
     	return currHand;
+    }
+    
+    private Hand getHand(HandId id) {
+    	return hands[id.getValue()];
     }
     
     public void initKeys(InputManager inputManager) {
@@ -633,11 +698,35 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
     }
     
-    public void addListener(DemonstrationListener listener) {
-        demoListeners.add(listener);
+    public void addActionListener(DemoActionListener listener) {
+        demoActionListeners.add(listener);
     }
     
-    public void removeListener(DemonstrationListener listener) {
-        demoListeners.remove(listener);
+    public void addPreActionListener(DemoPreActionListener listener) {
+    	demoPreActionListeners.add(listener);
+    }
+    
+    public class Memento {
+    	private Hand.Memento[] handMementos;
+    	private HandId currHandId;
+    	private Memento(int size) {
+    		handMementos = new Hand.Memento[size];
+    	}
+    }
+    
+    public Memento saveToMemento() {
+    	Memento m = new Memento(hands.length);
+    	for (int h = 0; h < hands.length; ++h) {
+    		m.handMementos[h] = hands[h].saveToMemento();
+    	}
+    	m.currHandId = currHand.id;
+    	return m;
+    }
+    
+    public void restoreFromMemento(Memento m) {
+    	for (int h = 0; h < hands.length; ++h) {
+    		hands[h].restoreFromMemento(m.handMementos[h]);
+    	}
+    	selectHand(m.currHandId);
     }
 }
