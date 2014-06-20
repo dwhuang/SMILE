@@ -358,8 +358,8 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 			buf.append(",color,#");
 			ColorRGBA color = item.getUserData("color");
 			int rgba = color.asIntRGBA();
+			rgba &= 0xffffff00;
 			rgba >>= 8;
-			rgba &= 0x00ffffff;
 			String hex = Integer.toHexString(rgba);
 			if (hex.length() < 6) {
 				for (int i = 0; i < 6 - hex.length(); ++i) {

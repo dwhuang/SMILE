@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+  <composite location="(0,0,1)" rotation="(0,0,-30)" mass="10" id="hammer">
+    <composite id="head" location="(-0.2,0,0)">
+      <block color="darkgray" id="head0" location="(0,0,0)"/>
+      <cylinder color="darkgray" id="head1" radius="0.75" yspan="0.8" location="(0,0.9,0)"/>
+      <cylinder color="darkgray" id="head2" radius="0.75" yspan="0.8" location="(0,-0.9,0)"/>
+    </composite>
+    <cylinder id="handle" color="orange" radius="0.35" yspan="5" rotation="(0, 0, 90)" location="(2.8,0,0)"/>
+  </composite>
+</tabletop>

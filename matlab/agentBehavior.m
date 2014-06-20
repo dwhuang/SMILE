@@ -3,7 +3,13 @@
 
 function [init, callback] = agentBehavior()
 
-init = @exampleInit;
-callback = @exampleCallback;
+% init = @exampleInit;
+% callback = @exampleCallback;
+
+init = @planInit;
+callback = @planCallback;
+
+% init = @passInit;
+% callback = @passCallback;
 
 end

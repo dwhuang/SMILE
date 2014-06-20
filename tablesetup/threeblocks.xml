@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+    <block id="RedBlock" xspan="1" yspan="1" zspan="1" location="(2, 3, 1)" rotation="(0, 0, -15)" color="red" mass="1"/>
+    <block id="GreenBlock" xspan="1" yspan="1" zspan="1" location="(-3, 0, 1)" rotation="(0, 0, 45)" color="green" />
+    <block id="BlueBlock" xspan="1" yspan="1" zspan="1" location="(3, -4, 1)" rotation="(0, 0, 30)" color="blue" />
+</tabletop>

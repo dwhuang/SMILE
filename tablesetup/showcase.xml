@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+  <chain color="red" start="(9.8, 1, 2)" end="(2.2, 1, 2)" linkCount="15" linkYspan="0.5"/>
+  <block mass="0" xspan="0.2" yspan="2" zspan="3" color="gray" location="(9.9, 0.5, 1.5)" rotation="(0, 0, 0)"/>
+  <chain color="blue" start="(9.8, 0, 2)" end="(2.2, 0, 2)" linkCount="15" linkYspan="0.5"/>
+  <block mass="0" xspan="0.2" yspan="2" zspan="3" color="gray" location="(2.1, 0.5, 1.5)" rotation="(0, 0, 0)"/>
+
+  <box xspan="4" yspan="4" zspan="1.5" thickness="0.3" location="(5, -4, 0.75)" color="gray" mass="3"/>
+  <cylinder yspan="2" radius="0.5" location="(5, -4, 0.7)" color="brown"/>
+  <cylinder yspan="2" radius="0.5" location="(3.7, -4, 0.7)" color="brown"/>
+  <cylinder yspan="2" radius="0.5" location="(6.3, -4, 0.7)" color="brown"/>
+  <cylinder yspan="2" radius="0.5" location="(4.4, -4, 1.7)" color="brown"/>
+  <cylinder yspan="2" radius="0.5" location="(5.7, -4, 1.7)" color="brown"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -3, 0.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -4.4, 0.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-4.3, -3.7, 0.755)" rotation="(0, 0, 90)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5.7, -3.7, 0.755)" rotation="(0, 0, 90)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -3, 1.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -4.4, 1.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-4.3, -3.7, 1.755)" rotation="(0, 0, 90)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5.7, -3.7, 1.755)" rotation="(0, 0, 90)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -3, 2.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5, -4.4, 2.255)" rotation="(0, 0, 0)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-4.3, -3.7, 2.755)" rotation="(0, 0, 90)"/>
+  <block xspan="2" yspan="0.5" zspan="0.5" color="orange" location="(-5.7, -3.7, 2.755)" rotation="(0, 0, 90)"/>
+  <box xspan="4" yspan="4" zspan="3" thickness="0.2" location="(-6, 4, 1.5)" rotation="(0, 0, 30)" color="pink" mass="3"/>
+  <sphere color="#338877" radius="1" location="(-6, 4, 2)"/>
+  <sphere color="#338877" radius="1" location="(-6.1, 4.1, 4)"/>
+  <sphere color="#338877" radius="1" location="(-6.2, 4.1, 10)"/>
+  <sphere color="#338877" radius="1" location="(-6.2, 4.6, 20)"/>
+  <!-- um -->
+  <block xspan="4" yspan="1" zspan="1" color="yellow" location="(0, 3, 0.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="green" location="(-1.5, 3, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="red" location="(-1.5, 3, 2.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="blue" location="(-1.5, 3, 3.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="red" location="(1.5, 3, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="blue" location="(1.5, 3, 2.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="green" location="(1.5, 3, 3.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="green" location="(4.5, 3, 0.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="lightgray" location="(4.5, 3, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="magenta" location="(4.5, 3, 2.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="cyan" location="(6.5, 3, 0.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="yellow" location="(6.5, 3, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="orange" location="(6.5, 3, 2.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="magenta" location="(8.5, 3, 0.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="pink" location="(8.5, 3, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="1" yspan="1" zspan="1" color="blue" location="(8.5, 3, 2.5)" rotation="(0, 0, 0)"/>
+  <block xspan="5" yspan="1" zspan="1" color="red" location="(6.5, 3, 3.5)" rotation="(0, 0, 0)"/>
+
+  <block xspan="1" yspan="3" zspan="1" color="blue" location="(0, -1, 0.5)" rotation="(0, 0, 0)"/>
+  <lidbox xspan="5" yspan="3" zspan="1" thickness="0.3" location="(-1, -1, 1.5)" color="darkgray" handleColor="gray" handleZspan="0.3"/>
+  <block xspan="4" yspan="0.5" zspan="0.5" color="red" location="(-1, -1.5, 1.5)" rotation="(0, 0, 0)"/>
+  <block xspan="4" yspan="0.5" zspan="0.5" color="green" location="(-1, -0.5, 1.5)" rotation="(0, 0, 0)"/>
+
+  <composite location="(-8, 0, 3)" rotation="(0, 0, -90)" mass="10" id="hammer">
+    <block color="darkgray" location="(-0.2, 0, 0)"/>
+    <cylinder color="darkgray" radius="0.65" yspan="0.8" location="(-0.2, 0.9, 0)"/>
+    <cylinder color="darkgray" radius="0.65" yspan="0.8" location="(-0.2, -0.9, 0)"/>
+    <cylinder color="orange" radius="0.35" yspan="5" rotation="(0, 0, 90)" location="(2.8, 0, 0)"/>
+  </composite>
+  
+</tabletop>

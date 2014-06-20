@@ -37,10 +37,10 @@ public class Gripper implements AnalogListener {
     static {
         logger.setLevel(Level.SEVERE);
     }
-
+    
     public static final Vector3f FINGER_SIZE = new Vector3f(0.3f, 0.4f, 1.5f);
     private static final float MAX_OPENING = 2;
-    private static final float FINGER_MASS = 5;
+    private static final float FINGER_MASS = 100;
     private static final ColorRGBA COLOR = new ColorRGBA(0.5f, 0.1f, 0.1f, 1);
     
     private String name;
@@ -95,9 +95,9 @@ public class Gripper implements AnalogListener {
     		return;
     	}
         if (name.toLowerCase().matches(".*gripperopen")) {
-            phy.addVelocity(1);
+        	setTargetVelocity(1);
         } else if (name.toLowerCase().matches(".*gripperclose")) {
-            phy.addVelocity(-1);
+            setTargetVelocity(-1);
         }
     }
     
@@ -180,47 +180,37 @@ public class Gripper implements AnalogListener {
             return phy;
         }
 
-        // NOTE called from the rendering thread (after update())
+        // NOTE called from the rendering thread 
+        // call order seems to be like: input events -> collision -> update
         public void collision(PhysicsCollisionEvent event) {
         	if (!Gripper.this.enabled) {
         		return;
         	}
-            if (holding.size() > 0 || velocity >= 0) {
+            if (holding.size() > 0 || velocity > 0) {
                 return;
             }
             Spatial nodeA = event.getNodeA();
             Spatial nodeB = event.getNodeB();
-            Spatial grabbable = null;
-            TreeMap<Float, Spatial> contacts = null;
 
             if (nodeA == leftFinger || nodeA == rightFinger) {
-                if (nodeB == leftFinger || nodeB == rightFinger) {
+                if (nodeB == leftFinger || nodeB == rightFinger || nodeB == null) {
                     return;
                 }
                 if (nodeA == leftFinger) {
-                    contacts = leftContacts;
+                	leftContacts.put(event.getLocalPointA().z, nodeB);
                 } else {
-                    contacts = rightContacts;
+                	rightContacts.put(event.getLocalPointA().z, nodeB);
                 }
-                grabbable = nodeB;
             } else if (nodeB == leftFinger) {
-                grabbable = nodeA;
-                contacts = leftContacts;
+            	if (nodeA == null) {
+            		return;
+            	}
+            	leftContacts.put(event.getLocalPointB().z, nodeA);
             } else if (nodeB == rightFinger) {
-                grabbable = nodeA;
-                contacts = rightContacts;
-            }
-            
-            if (contacts == null || grabbable == null) {
-                return;
-            }
-
-            contacts.put(event.getLocalPointA().z, grabbable);
-            
-            if (contacts == leftContacts) {
-                logger.log(Level.INFO, "left {0}", event.getLocalPointA().z);
-            } else {
-                logger.log(Level.INFO, "right {0}", event.getLocalPointA().z);
+            	if (nodeA == null) {
+            		return;
+            	}
+            	rightContacts.put(event.getLocalPointB().z, nodeA);
             }
             
             fingerPressure += event.getAppliedImpulse();
@@ -240,6 +230,38 @@ public class Gripper implements AnalogListener {
                 velocity = 0;
                 return;
             }
+            
+            // check holding objects
+            float maxDiff = opening * FastMath.tan(FastMath.QUARTER_PI / 4);
+            for (Entry<Float, Spatial> e1 : leftContacts.entrySet()) {
+                for (Entry<Float, Spatial> e2 : rightContacts.entrySet()) {
+                    if (e1.getValue() != e2.getValue()) {
+                        continue;
+                    }
+                    if (FastMath.abs(e1.getKey() - e2.getKey()) > maxDiff) {
+                        continue;
+                    }
+                	
+                    Spatial s = e1.getValue();
+                    if (holding.contains(s)) {
+                        continue;
+                    }
+                    MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
+                    if (rbc == null || rbc.getMass() == 0 || rbc.isKinematic()) {
+                        continue;
+                    }
+                    hold(s);
+                    logger.log(Level.INFO, "hold");
+                }
+            }
+            
+            if ((leftContacts.size() > 0 || rightContacts.size() > 0) && holding.size() <= 0) {
+                logger.log(Level.INFO, "cannot hold: {0}", maxDiff);
+            }
+                        
+            leftContacts.clear();
+            rightContacts.clear();
+
             
             if (velocity != 0) {
                 if (velocity < 0) {
@@ -264,36 +286,6 @@ public class Gripper implements AnalogListener {
                 fingerPressure = 0;
                 velocity = 0;
             }
-
-            // check holding objects
-            float maxDiff = opening * FastMath.tan(FastMath.QUARTER_PI / 4);
-            for (Entry<Float, Spatial> e1 : leftContacts.entrySet()) {
-                for (Entry<Float, Spatial> e2 : rightContacts.entrySet()) {
-                    if (e1.getValue() != e2.getValue()) {
-                        continue;
-                    }
-                    if (FastMath.abs(e1.getKey() - e2.getKey()) > maxDiff) {
-                        continue;
-                    }
-                    Spatial s = e1.getValue();
-                    if (holding.contains(s)) {
-                        continue;
-                    }
-                    MyRigidBodyControl rbc = s.getControl(MyRigidBodyControl.class);
-                    if (rbc == null || rbc.getMass() == 0 || rbc.isKinematic()) {
-                        continue;
-                    }
-                    hold(s);
-                    logger.log(Level.INFO, "hold");
-                }
-            }
-            
-            if ((leftContacts.size() > 0 || rightContacts.size() > 0) && holding.size() <= 0) {
-                logger.log(Level.INFO, "cannot hold: {0}", maxDiff);
-            }
-                        
-            leftContacts.clear();
-            rightContacts.clear();
         }
         
         private void hold(Spatial s) {
@@ -336,10 +328,6 @@ public class Gripper implements AnalogListener {
                 rbc.setKinematic(false);
             }
             holding.clear();
-        }
-
-        void addVelocity(float tv) {
-            this.velocity += tv;
         }
     }
 }

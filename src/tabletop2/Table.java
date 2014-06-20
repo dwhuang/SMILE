@@ -549,7 +549,7 @@ public class Table implements ActionListener {
 				int g = Integer.parseInt(m.group(2), 16);
 				int b = Integer.parseInt(m.group(3), 16);
 				ColorRGBA color = new ColorRGBA();
-				color.fromIntRGBA((r << 24) + (g << 16) + (b << 8));
+				color.fromIntRGBA((r << 24) + (g << 16) + (b << 8) + 0xff);
 				return color;
 			}
 			throw new IllegalArgumentException("could not parse '" + str + "'");

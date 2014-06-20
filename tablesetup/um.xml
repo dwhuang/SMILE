@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+    <block id="lb1" xspan="4" yspan="1" zspan="1" location="(3, -5, 1)" rotation="(0, 0, 0)" color="yellow"/>
+    <block id="llb1" xspan="5" yspan="1" zspan="1" location="(-3, -5, 1)" rotation="(0, 0, 0)" color="brown"/>
+
+    <block id="b01" xspan="1" yspan="1" zspan="1" location="(1, -1, 1)" rotation="(0, 0, 0)" color="red"/>
+    <block id="b02" xspan="1" yspan="1" zspan="1" location="(1, -3, 1)" rotation="(0, 0, 0)" color="green" />
+    <block id="b03" xspan="1" yspan="1" zspan="1" location="(3, -1, 1)" rotation="(0, 0, 0)" color="blue" />
+    <block id="b04" xspan="1" yspan="1" zspan="1" location="(3, -3, 1)" rotation="(0, 0, 0)" color="magenta"/>
+    <block id="b05" xspan="1" yspan="1" zspan="1" location="(5, -1, 1)" rotation="(0, 0, 0)" color="orange" />
+    <block id="b06" xspan="1" yspan="1" zspan="1" location="(5, -3, 1)" rotation="(0, 0, 0)" color="cyan" />
+    <block id="b07" xspan="1" yspan="1" zspan="1" location="(-1, -1, 1)" rotation="(0, 0, 0)" color="magenta"/>
+    <block id="b08" xspan="1" yspan="1" zspan="1" location="(-1, -3, 1)" rotation="(0, 0, 0)" color="blue" />
+    <block id="b09" xspan="1" yspan="1" zspan="1" location="(-3, -1, 1)" rotation="(0, 0, 0)" color="orange" />
+    <block id="b10" xspan="1" yspan="1" zspan="1" location="(-3, -3, 1)" rotation="(0, 0, 0)" color="red"/>
+</tabletop>

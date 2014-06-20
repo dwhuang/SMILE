@@ -3,6 +3,8 @@
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
     <target name="create_run_jar">
+    	<delete dir="export"/>
+    	<mkdir dir="export"/>
         <jar destfile="export/tabletop.jar">
             <manifest>
                 <attribute name="Main-Class" value="tabletop2.MainApp"/>
@@ -47,14 +49,17 @@
 
     	<delete dir="export/matlab"/>
         <mkdir dir="export/matlab"/>
-    	<copy todir="export/matlab">
+    	<copy file="matlab/agentBehavior.m" todir="export/matlab"/>
+    	<copy file="matlab/exampleInit.m" todir="export/matlab"/>
+    	<copy file="matlab/exampleCallback.m" todir="export/matlab"/>
+<!--    	<copy todir="export/matlab">
     	    <fileset dir="matlab"/>
-    	</copy>
+    	</copy>-->
 
-    	<delete dir="export/xml"/>
-        <mkdir dir="export/xml"/>
-        <copy todir="export/xml">
-            <fileset dir="xml"/>
+    	<delete dir="export/tablesetup"/>
+        <mkdir dir="export/tablesetup"/>
+        <copy todir="export/tablesetup">
+            <fileset dir="tablesetup"/>
         </copy>
     </target>
 </project>
