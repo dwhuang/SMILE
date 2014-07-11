@@ -58,7 +58,7 @@
 	</attributeGroup>
 
 	<attributeGroup name="blockAttrs">
-        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
 		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
@@ -66,14 +66,14 @@
 	</attributeGroup>
 
 	<attributeGroup name="cylinderAttrs">
-        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
 		<attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
 		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
         <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
 	</attributeGroup>
 
 	<attributeGroup name="sphereAttrs">
-        <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
 		<attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
         <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
 	</attributeGroup>
@@ -152,7 +152,7 @@
 	                <element name="chain">
                         <complexType>
                             <attribute name="id" type="tt:idType" use="optional"/>
-                            <attribute name="color" type="tt:colorType" use="optional" default="white"/>
+                            <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
                             <attribute name="start" type="tt:vector3Type" use="required"/>
                             <attribute name="end" type="tt:vector3Type" use="required"/>
                             <attribute name="linkXspan" type="tt:spanType" use="optional" default="0.1"/>
@@ -167,7 +167,7 @@
 	                    <complexType>
                             <attribute name="mass" type="tt:massType" use="optional" default="1"/>
                             <attributeGroup ref="tt:boxAttrs"/>
-                            <attribute name="handleColor" type="tt:colorType" use="optional" default="white"/>
+                            <attribute name="handleColor" type="tt:colorType" use="optional" default="gray"/>
                             <attribute name="handleXspan" type="tt:spanType" use="optional" default="0.5"/>
                             <attribute name="handleYspan" type="tt:spanType" use="optional" default="0.5"/>
                             <attribute name="handleZspan" type="tt:spanType" use="optional" default="0.5"/>

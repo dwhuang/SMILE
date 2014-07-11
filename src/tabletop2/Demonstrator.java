@@ -220,7 +220,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             // all other hands
             if (id == HandId.BothHands) {
             	for (HandId id : HandId.values()) {
-            		if (id != HandId.BothHands) {
+            		if (id != HandId.BothHands && getHand(id).state != HandState.Idle) {
             			getHand(id).release();
             		}
             	}

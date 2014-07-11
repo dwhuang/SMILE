@@ -122,6 +122,7 @@ public class Gripper implements AnalogListener {
         private TreeMap<Float, Spatial> leftContacts = new TreeMap<Float, Spatial>();
         private TreeMap<Float, Spatial> rightContacts = new TreeMap<Float, Spatial>();
         private HashSet<Spatial> holding = new HashSet<Spatial>();
+        private boolean checkDigitCollision = false;
 
         // temporary variables
         private Matrix4f mat = new Matrix4f();
@@ -186,7 +187,7 @@ public class Gripper implements AnalogListener {
         	if (!Gripper.this.enabled) {
         		return;
         	}
-            if (holding.size() > 0 || velocity > 0) {
+            if (holding.size() > 0 || !checkDigitCollision) {
                 return;
             }
             Spatial nodeA = event.getNodeA();
@@ -270,8 +271,10 @@ public class Gripper implements AnalogListener {
                     float offset = impulse / (FINGER_MASS * 2);
                     offset = FastMath.clamp(offset, 0, offset);
                     opening -= offset;
+                    checkDigitCollision = true;
                 } else {
                     opening += velocity * tpf;
+                    checkDigitCollision = false;
                 }
                 opening = FastMath.clamp(opening, 0, Gripper.MAX_OPENING);
 
@@ -285,6 +288,8 @@ public class Gripper implements AnalogListener {
                 
                 fingerPressure = 0;
                 velocity = 0;
+            } else {
+                checkDigitCollision = false;
             }
         }
         
