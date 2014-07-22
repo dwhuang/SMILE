@@ -37,6 +37,7 @@ public class MatlabAgent {
     private RobotJointState[] rightJoints;
     private Gripper leftGripper;
     private Gripper rightGripper;
+    private RobotLocTracker locTracker;
     private Node rootNode;
     private Factory factory;
     
@@ -50,12 +51,13 @@ public class MatlabAgent {
     private MatlabTypeConverter processor;
     
     public MatlabAgent(RobotJointState[] leftJoints, RobotJointState[] rightJoints, 
-            Gripper leftGripper, Gripper rightGripper,
+            Gripper leftGripper, Gripper rightGripper, RobotLocTracker locTracker,
             Node rootNode, Factory factory) {
         this.leftJoints = leftJoints;
         this.rightJoints = rightJoints;
         this.leftGripper = leftGripper;
         this.rightGripper = rightGripper;
+        this.locTracker = locTracker;
         this.rootNode = rootNode;
         this.factory = factory;
     }
@@ -195,7 +197,7 @@ public class MatlabAgent {
         try {
             sensorData.populate(tpf, leftJoints, rightJoints,
                     leftGripper.getOpening(), rightGripper.getOpening(),
-                    leftEndEffPos, rightEndEffPos, vision, demoCue);
+                    leftEndEffPos, rightEndEffPos, locTracker.getLocations(), vision, demoCue);
             sensorData.sendToMatlab(matlab);
 
             matlab.eval("callbackFunc();");

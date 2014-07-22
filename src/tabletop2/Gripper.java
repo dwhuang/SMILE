@@ -68,7 +68,7 @@ public class Gripper implements AnalogListener {
                 FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(-MAX_OPENING / 2 - FINGER_SIZE.x / 2, 0, 0);
         base.attachChild(g);        
-        
+
         g = factory.makeBlock(name + " right-finger", 
                 FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(MAX_OPENING / 2 + FINGER_SIZE.x / 2, 0, 0);
@@ -79,7 +79,8 @@ public class Gripper implements AnalogListener {
         g.setLocalRotation(new Quaternion(new float[] {0, FastMath.HALF_PI, 0}));
         g.setLocalTranslation(0, 0, FINGER_SIZE.z / 2);
         base.attachChild(g);
-
+        
+        
         phy = new Physics();
         base.addControl(phy);
         physicsSpace.add(phy);
@@ -107,6 +108,33 @@ public class Gripper implements AnalogListener {
     
     public float getOpening() {
         return phy.opening;
+    }
+    
+    public void addLocTrackers(String prefix, RobotLocTracker trackers) {
+        // add "location sensors" that report their spatial locations
+        float offset;
+        Node tracker;
+        offset = base.getChild(name + " left-finger").getLocalTranslation().x;
+        tracker = new Node(prefix + "-ln");
+        tracker.setLocalTranslation(offset, 0, FINGER_SIZE.z / 2);
+        base.attachChild(tracker);
+        trackers.put(tracker.getName(), tracker);
+        
+        tracker = new Node(prefix + "-lf");
+        tracker.setLocalTranslation(offset, 0, -FINGER_SIZE.z / 2);
+        base.attachChild(tracker);
+        trackers.put(tracker.getName(), tracker);
+        
+        offset = base.getChild(name + " right-finger").getLocalTranslation().x;
+        tracker = new Node(prefix + "-rn");
+        tracker.setLocalTranslation(offset, 0, FINGER_SIZE.z / 2);
+        base.attachChild(tracker);
+        trackers.put(tracker.getName(), tracker);
+
+        tracker = new Node(prefix + "-rf");
+        tracker.setLocalTranslation(offset, 0, -FINGER_SIZE.z / 2);
+        base.attachChild(tracker);
+        trackers.put(tracker.getName(), tracker);
     }
 
     private class Physics extends AbstractPhysicsControl implements PhysicsCollisionListener {

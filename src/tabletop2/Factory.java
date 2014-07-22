@@ -52,7 +52,7 @@ public class Factory {
         return block;
     }
     
-    public Spatial makeBigBlock(String name, float w, float h, float d, 
+    public Node makeBigBlock(String name, float w, float h, float d, 
             ColorRGBA color, float unitBlockSize) {
         int wCount = (int) FastMath.ceil(w / unitBlockSize);
         int hCount = (int) FastMath.ceil(h / unitBlockSize);
@@ -102,7 +102,7 @@ public class Factory {
         return bigBlock;
     }
     
-    public Spatial makeBoxContainer(String name, float w, float h, float d, 
+    public Node makeBoxContainer(String name, float w, float h, float d, 
             float thickness, ColorRGBA color) {        
         Node boxContainer = new Node(name);
         float halfW = w / 2;
@@ -230,5 +230,24 @@ public class Factory {
         line.setUserData("color", color);
 
         return line;
+    }
+    
+    public Node makeUnshadedAxisArrows(String name, float length, float lineWidth, boolean isInternalCoordsSystem) {
+    	Node base = new Node(name);
+    	Geometry g = makeUnshadedArrow(name + "-x", Vector3f.UNIT_X.mult(length), lineWidth, ColorRGBA.Red);
+    	base.attachChild(g);
+    	if (isInternalCoordsSystem) {
+    		g = makeUnshadedArrow(name + "-y", Vector3f.UNIT_Y.mult(length), lineWidth, ColorRGBA.Green);
+    	} else {
+    		g = makeUnshadedArrow(name + "-y", Vector3f.UNIT_Z.mult(-length), lineWidth, ColorRGBA.Green);
+    	}
+    	base.attachChild(g);
+    	if (isInternalCoordsSystem) {
+        	g = makeUnshadedArrow(name + "-z", Vector3f.UNIT_Z.mult(length), lineWidth, ColorRGBA.Blue);
+    	} else {
+    		g = makeUnshadedArrow(name + "-z", Vector3f.UNIT_Y.mult(length), lineWidth, ColorRGBA.Blue);
+    	}
+    	base.attachChild(g);
+    	return base;
     }
 }

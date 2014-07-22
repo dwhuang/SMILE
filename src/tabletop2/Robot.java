@@ -111,12 +111,13 @@ public class Robot implements AnalogListener, ActionListener {
         new RobotJointState(0, -1.571f, 1.571f, 1)
     };
     
+    private RobotLocTracker locTrackers = new RobotLocTracker();
+    
     private boolean demoCue = false;
     private float timeSinceLastHeadVision = 0;
     
     private transient Vector3f vec = new Vector3f();
-    private transient Quaternion quat = new Quaternion();
-    
+    private transient Quaternion quat = new Quaternion();    
     
     public Robot(String name, MainApp app, Node robotLocationNode) {
     	this.name = name;
@@ -143,7 +144,7 @@ public class Robot implements AnalogListener, ActionListener {
         
         // control agent
         matlabAgent = new MatlabAgent(leftJointStates, rightJointStates, 
-                leftGripper, rightGripper, rootNode, factory);
+                leftGripper, rightGripper, locTrackers, rootNode, factory);
     }
     
     public BufferedImage getVisualImage() {
@@ -204,8 +205,10 @@ public class Robot implements AnalogListener, ActionListener {
         node = attachSpatialCenter(name + " right limb", base, 
                 0.024645f, 0.118588f, 0.219645f,
                 0, -0.7845f, 0);
-        node = attachLimb(name + " right", node, rightJointStates);        
+        node = attachLimb(name + " right", node, rightJointStates);
+        addLocTrackers(name + " right", "r");
         rightGripper = new Gripper(name + "right-gripper", node, physicsSpace, factory);
+        rightGripper.addLocTrackers("rg", locTrackers);
         rightEndEffector = node;
         
         // left arm
@@ -213,7 +216,9 @@ public class Robot implements AnalogListener, ActionListener {
                 0.024645f, 0.118588f, -0.219645f,
                 0, 0.7845f, 0);
         node = attachLimb(name + " left", node, leftJointStates);
+        addLocTrackers(name + " left", "l");
         leftGripper = new Gripper(name + "left-gripper", node, physicsSpace, factory);
+        leftGripper.addLocTrackers("lg", locTrackers);
         leftEndEffector = node;
 
         // enhance ambient color
@@ -339,6 +344,15 @@ public class Robot implements AnalogListener, ActionListener {
         node.addControl(rbc);
         physicsSpace.add(rbc);
         rbc.setKinematic(true);        
+    }
+    
+    private void addLocTrackers(String nodeNamePrefix, String prefix) {
+    	Node node = (Node) base.getChild(nodeNamePrefix + " S1 center");
+    	locTrackers.put(prefix + "-S1", node);
+    	node = (Node) base.getChild(nodeNamePrefix + " E1 center");
+    	locTrackers.put(prefix + "-E1", node);
+    	node = (Node) base.getChild(nodeNamePrefix + " W1 center");
+    	locTrackers.put(prefix + "-W1", node);
     }
     
     public void initKeys(InputManager inputManager) {

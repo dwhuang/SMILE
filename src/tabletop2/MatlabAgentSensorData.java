@@ -5,8 +5,11 @@
 package tabletop2;
 
 import com.jme3.math.Vector3f;
+
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
+import java.util.Map;
+
 import matlabcontrol.MatlabInvocationException;
 import matlabcontrol.MatlabProxy;
 
@@ -22,6 +25,7 @@ public class MatlabAgentSensorData implements Serializable {
     private double[][] jointAngles = new double[2][Robot.DOF];
     private double[] gripperOpening = new double[2];
     private double[][] endEffPos = new double[2][3];
+    private Map<String, Vector3f> trackerLoc; 
     private double[] rgbVision = new double[Robot.HEAD_CAM_RES_HEIGHT * Robot.HEAD_CAM_RES_WIDTH * 3];
     private boolean demoCue;
     
@@ -31,6 +35,7 @@ public class MatlabAgentSensorData implements Serializable {
     public void populate(float tpf, final RobotJointState[] leftJoints, final RobotJointState[] rightJoints,
             double leftGripperOpening, double rightGripperOpening,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
+            final Map<String, Vector3f> trackerLoc,
             final BufferedImage vision, boolean demoCue) {
         timeElapsed = tpf;
         if (leftJoints.length != jointAngles[0].length) {
@@ -60,6 +65,8 @@ public class MatlabAgentSensorData implements Serializable {
         endEffPos[1][1] = -rightEndEffPos.z;
         endEffPos[1][2] = rightEndEffPos.y;
 
+        this.trackerLoc = trackerLoc;
+        
         // convert image to matlab rgb array
         if (vision != null) {
             if (vision.getWidth() != Robot.HEAD_CAM_RES_WIDTH 
@@ -111,6 +118,26 @@ public class MatlabAgentSensorData implements Serializable {
         matlab.eval(buf.toString());
 
         matlab.eval("sensor.gripperOpening = [" + gripperOpening[0] + ", " + gripperOpening[1] + "];");
+        
+        buf = new StringBuilder();
+        buf.append("sensor.trackerLoc = containers.Map({");
+        for (String k : trackerLoc.keySet()) {
+        	buf.append("'");
+        	buf.append(k);
+        	buf.append("' ");
+        }
+        buf.append("}, {");
+        for (Map.Entry<String, Vector3f> e : trackerLoc.entrySet()) {
+        	buf.append("[");
+        	buf.append(e.getValue().x);
+        	buf.append(" ");
+        	buf.append(-e.getValue().z);
+        	buf.append(" ");
+        	buf.append(e.getValue().y);
+        	buf.append("] ");
+        }
+        buf.append("});");
+        matlab.eval(buf.toString());
         
         if (rgbVisionReady) {
             Object[] ret = matlab.returningEval("genvarname('rgbVision', who)", 1);
