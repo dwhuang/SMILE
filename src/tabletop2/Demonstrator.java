@@ -90,6 +90,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	private Node graspNode = null;
     	private Spatial graspedItem = null;
     	private float[] userRotAngles = {0, 0, 0};
+    	private boolean graspedItemIsKinematic = false;
         
         private Hand(String name, HandId id) {
         	this.id = id;
@@ -135,6 +136,15 @@ public class Demonstrator implements ActionListener, AnalogListener {
         private void processDeselect() {
         	if (state == HandState.Moving) {
         		movingEnd();
+        	}
+        }
+        
+        private void processRotatePlane90() {
+        	movingPlane.rotate(0, FastMath.HALF_PI, 0);
+        	if (state == HandState.Moving) {
+        		if (!movingStart()) {
+        			movingEnd();
+        		}
         	}
         }
         
@@ -251,8 +261,11 @@ public class Demonstrator implements ActionListener, AnalogListener {
             graspNode.attachChild(s);
 
             MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-            rbc.changeMass(rbc.getMass() + 9999);    
-            rbc.setKinematic(true);
+            graspedItemIsKinematic = (rbc.getMass() == 0);
+            if (!graspedItemIsKinematic) {
+                rbc.changeMass(rbc.getMass() + 9999);
+                rbc.setKinematic(true);
+            }
             
             // wake up connected (by joints) items and prevent them from going into sleep,
             // so that they are aware of any translation/rotation occurring at the grasped item.
@@ -358,8 +371,10 @@ public class Demonstrator implements ActionListener, AnalogListener {
             rootNode.attachChild(graspedItem);
 
             MyRigidBodyControl rbc = graspedItem.getControl(MyRigidBodyControl.class);
-            rbc.setKinematic(false);
-            rbc.changeMass(rbc.getMass() - 9999);
+            if (!graspedItemIsKinematic) {
+                rbc.setKinematic(false);
+                rbc.changeMass(rbc.getMass() - 9999);
+            }
 
             // allow the connected (by joints) items of the grasped item to go back to sleep
             inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.ACTIVE_TAG);
@@ -539,6 +554,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 new MouseAxisTrigger(MouseInput.AXIS_Y, true),
                 new MouseAxisTrigger(MouseInput.AXIS_Y, false));
         inputManager.addMapping(name + "PlaneRotate", new KeyTrigger(KeyInput.KEY_SLASH));
+        inputManager.addMapping(name + "PlaneRotate90", new KeyTrigger(KeyInput.KEY_LCONTROL));
 
         inputManager.addListener(this, "shiftKey");
 
@@ -546,6 +562,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         inputManager.addListener(this, name + "RightClick");
         inputManager.addListener(this, name + "MouseMove");
         inputManager.addListener(this, name + "PlaneRotate");
+        inputManager.addListener(this, name + "PlaneRotate90");
     }
 
     public void onAction(String eName, boolean isPressed, float tpf) {
@@ -556,6 +573,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
             shiftKey = isPressed;
         } else if (eName.equals(name + "LeftClick")) {
         	currHand.processMouseButtonEvent(isPressed);
+        } else if (eName.equals(name + "PlaneRotate90")) {
+        	currHand.processRotatePlane90();
         }
     }
 

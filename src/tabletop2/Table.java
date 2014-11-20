@@ -418,7 +418,7 @@ public class Table implements ActionListener {
 			id = getUniqueId(groupId + "-link" + i);
 			Spatial link = factory.makeBlock(id, linkXspan, linkYspan, linkZspan + linkPadding * 2, color);
 			link.setLocalRotation(rotStartEndDir);
-			vec.interpolateLocal(start, end, (i + .5f) / linkCount);
+			vec.interpolate(start, end, (i + .5f) / linkCount);
 			link.setLocalTranslation(vec);
 			inventory.addItem(link, linkMass, new BoxCollisionShape(linkPhysicsSize));
 			link.getControl(MyRigidBodyControl.class).setAngularDamping(1);
@@ -449,7 +449,7 @@ public class Table implements ActionListener {
 		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
 		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
 		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
-		float handleThickness = Math.min(handleXspan, handleYspan) / 3f;
+		float handleThickness = Float.parseFloat(elm.getAttribute("handleThickness"));
 
 		Transform tf = new Transform();
 		tf.setTranslation(location);
@@ -463,7 +463,7 @@ public class Table implements ActionListener {
 		Spatial box = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);		
 		box.setLocalTransform(tf);
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
-		inventory.addItem(box, mass * 0.9f);
+		inventory.addItem(box, mass);
 		
 		id = getUniqueId(groupId + "-lid");
 		Node lid = new Node(id); 
@@ -475,7 +475,8 @@ public class Table implements ActionListener {
 		lid.attachChild(lidHandle);		
 		lid.setLocalTranslation(0, yspan / 2 + thickness / 2, 0);
 		lid.setLocalTransform(lid.getLocalTransform().combineWithParent(tf));
-		inventory.addItem(lid, mass * 0.1f);
+		float lidMass = Float.parseFloat(elm.getAttribute("lidMass"));
+		inventory.addItem(lid, lidMass);
 		
 		lid.setUserData("shape", "lid");
 		lid.setUserData("width", lidPlate.getUserData("width"));

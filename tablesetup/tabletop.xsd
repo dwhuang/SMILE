@@ -166,11 +166,13 @@
 	                <element name="lidbox">
 	                    <complexType>
                             <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+                            <attribute name="lidMass" type="tt:massType" use="optional" default="0.1"/>
                             <attributeGroup ref="tt:boxAttrs"/>
                             <attribute name="handleColor" type="tt:colorType" use="optional" default="gray"/>
                             <attribute name="handleXspan" type="tt:spanType" use="optional" default="0.5"/>
                             <attribute name="handleYspan" type="tt:spanType" use="optional" default="0.5"/>
                             <attribute name="handleZspan" type="tt:spanType" use="optional" default="0.5"/>
+                            <attribute name="handleThickness" type="tt:spanType" use="optional" default="0.5"/>
 	                    </complexType>
 	                </element>
                 </choice>

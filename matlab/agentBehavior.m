@@ -9,6 +9,9 @@ function [init, callback] = agentBehavior()
 init = @planInit;
 callback = @planCallback;
 
+%init = @dataInit;
+%callback = @dataCallback;
+
 % init = @passInit;
 % callback = @passCallback;
 

@@ -97,6 +97,13 @@ public class Robot implements AnalogListener, ActionListener {
         new RobotJointState(-1.529f, -3.059f, 3.059f, -1),
         new RobotJointState(1.5f, -1.571f, 2.094f, 1),
         new RobotJointState(0, -3.059f, 3.059f, -1)
+//        new RobotJointState(-0.200184f, -1.7f, 1.7f, -1),
+//        new RobotJointState(-1.69682f, -2.147f, 1.047f, 1),
+//        new RobotJointState(0, -3.054f, 3.054f, -1),
+//        new RobotJointState(2.59161f, -0.05f, 2.618f, 1),
+//        new RobotJointState(0, -3.059f, 3.059f, -1),
+//        new RobotJointState(0, -1.571f, 2.094f, 1),
+//        new RobotJointState(0, -3.059f, 3.059f, -1)
     };    
     private RobotJointState[] leftJointStates = new RobotJointState[] {
         new RobotJointState(0.25f, -1.7f, 1.7f, 1),
@@ -245,7 +252,7 @@ public class Robot implements AnalogListener, ActionListener {
     }
     
     private Node attachLimb(String name, Node parentNode, RobotJointState[] jointStates) {
-        Node node = attachSpatialCenter(name + " S0", parentNode, 
+    	Node node = attachSpatialCenter(name + " S0", parentNode, 
                 0.055695f, 0, -0.011038f,
                 0, 0, 0);
         node = attachLink(name + " S0", node, jointStates[S0], "shoulder0");

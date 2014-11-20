@@ -96,7 +96,7 @@ public class MatlabAgentMotorData implements Serializable {
                             + jointAngles.length + " rows");
                 }
                 if (sizes[1] != jointAngles[0].length) {
-                    throw new RuntimeException("invalid 'motor': jointVelocities field does not contain " 
+                    throw new RuntimeException("invalid 'motor': jointAngles field does not contain " 
                             + jointAngles[0].length + " columns");
                 }
                 recvJointAngles = true;

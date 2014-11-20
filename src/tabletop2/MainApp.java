@@ -250,7 +250,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
     
     @Override
-    public void simpleUpdate(float tpf) {
+    public void simpleUpdate(float tpf) {    	
     	if (!isRunning) {
     		return;
     	}
