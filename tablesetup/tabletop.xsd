@@ -45,12 +45,10 @@
 				value="\s*[(]\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*[)]\s*" />
 		</restriction>
 	</simpleType>
-    <simpleType name="functionalSpotTypeType">
+    <simpleType name="functionTypeType">
         <restriction base="string">
-            <pattern value="screwdriverTip"/>
-            <pattern value="screwHead"/>
-            <pattern value="screwTip"/>
-            <pattern value="screwHole"/>
+            <pattern value="magnet_s"/>
+            <pattern value="magnet_n"/>
         </restriction>
     </simpleType>
 
@@ -91,7 +89,7 @@
         <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
 	</attributeGroup>
 
-    <complexType name="functionalSpot">
+    <complexType name="function">
         <attributeGroup ref="tt:simpleObjectCommonAttrs">
             <annotation>
                 <documentation>without any rotation, the direction of the
@@ -99,7 +97,7 @@
                 </documentation>
             </annotation>
         </attributeGroup>
-		<attribute name="type" type="tt:functionalSpotTypeType" use="required"/>
+		<attribute name="type" type="tt:functionTypeType" use="required"/>
     </complexType>
 
     <complexType name="compositeType">
@@ -126,7 +124,7 @@
                     </complexType>
                 </element>
                 <element name="composite" type="tt:compositeType"/>
-                <element name="functionalSpot" type="tt:functionalSpot"/>
+                <element name="function" type="tt:function"/>
             </choice>
         </sequence>
         <attributeGroup ref="tt:simpleObjectCommonAttrs" />

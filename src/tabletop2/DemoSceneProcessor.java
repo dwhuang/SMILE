@@ -6,6 +6,8 @@ package tabletop2;
 
 import java.util.ArrayList;
 
+import tabletop2.FunctionalItemPhysics.FunctionType;
+
 import com.jme3.bounding.BoundingBox;
 import com.jme3.bounding.BoundingSphere;
 import com.jme3.bounding.BoundingVolume;
@@ -125,7 +127,7 @@ public class DemoSceneProcessor implements SceneProcessor {
                         hlGeos.add(g);
                     } else if (s instanceof Node) {
                     	Node node = (Node) s;
-                    	if (Inventory.isFunctionalSpot(node)) {
+                    	if (FunctionalItemPhysics.getFunctionType(node) != FunctionType.NONE) {
 	                    	Geometry g = factory.makeUnshadedArrow("viz", Vector3f.UNIT_Z, 1, ColorRGBA.Yellow);
 	                    	node.attachChild(g);
 	                    	hlGeos.add(g);

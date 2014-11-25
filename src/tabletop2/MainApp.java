@@ -41,7 +41,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     private BulletAppState bulletAppState = new BulletAppState();    
     private Factory factory;
     private Inventory inventory;
-    private FunctionalItemPhysics fsPhy;
+    private FunctionalItemPhysics funcItemPhy;
     private Table table;
     private Node robotLocationNode = new Node("robotLocationNode");
     private Robot robot;
@@ -113,6 +113,10 @@ public class MainApp extends SimpleApplication implements ActionListener {
         return inventory;
     }
     
+    public FunctionalItemPhysics getFuncItemPhy() {
+    	return funcItemPhy;
+    }
+    
     public Robot getRobot() {
         return robot;
     }
@@ -137,8 +141,8 @@ public class MainApp extends SimpleApplication implements ActionListener {
         
         factory = new Factory(assetManager);
         inventory = new Inventory(this);
-        fsPhy = new FunctionalItemPhysics(this);
-        bulletAppState.getPhysicsSpace().addCollisionListener(fsPhy);
+        funcItemPhy = new FunctionalItemPhysics(this);
+        bulletAppState.getPhysicsSpace().addCollisionListener(funcItemPhy);
         table = new Table("table", this, robotLocationNode);
         table.reloadXml(DEFAULT_TABLESETUP_FNAME);
         
@@ -276,7 +280,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
         
         robot.update(tpf);
         
-        fsPhy.update(tpf);
+        funcItemPhy.update(tpf);
         
         demoRecorder.update(tpf);
         
