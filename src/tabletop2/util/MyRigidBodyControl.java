@@ -46,6 +46,10 @@ public class MyRigidBodyControl extends RigidBodyControl {
         rBody.forceActivationState(state);
     }
     
+    public int getActivationState() {
+    	return rBody.getActivationState();
+    }
+    
     public Spatial getSpatial() {
         return spatial;
     }

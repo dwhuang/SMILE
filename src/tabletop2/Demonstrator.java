@@ -9,7 +9,6 @@ import java.util.Arrays;
 
 import tabletop2.util.MyRigidBodyControl;
 
-import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.InputManager;
@@ -269,7 +268,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             
             // wake up connected (by joints) items and prevent them from going into sleep,
             // so that they are aware of any translation/rotation occurring at the grasped item.
-            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.DISABLE_DEACTIVATION);
+            inventory.updateItemInsomnia(graspedItem);
 
             Demonstrator.this.setVisualAid(graspNode);
             Demonstrator.this.showVisualAid(graspedItem);
@@ -377,7 +376,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             }
 
             // allow the connected (by joints) items of the grasped item to go back to sleep
-            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.ACTIVE_TAG);
+            inventory.updateItemInsomnia(graspedItem);
 
             graspedItem = null;
             
@@ -402,7 +401,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
             }
 
             // wake up connected (by joints) items
-            inventory.forceItemPhysicsActivationStatesViaJoints(graspedItem, CollisionObject.ACTIVE_TAG);
+            graspedItem.getControl(MyRigidBodyControl.class).setKinematic(false);
+            inventory.updateItemInsomnia(graspedItem);
 //            Set<PhysicsJoint> joints = inventory.getPhysicsJointsForItem(graspedItem);
 //            if (joints != null) {
 //                for (PhysicsJoint j : joints) {
@@ -511,7 +511,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
         visualAid.attachChild(g);
         
-        sceneProcessor = new DemoSceneProcessor(app.getAssetManager(), visualAid);
+        sceneProcessor = new DemoSceneProcessor(app, visualAid);
         app.getViewPort().addProcessor(sceneProcessor);
 
         for (HandId hId : HandId.values()) {

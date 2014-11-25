@@ -5,16 +5,21 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import tabletop2.FunctionalItemPhysics.FunctionalRel;
 import tabletop2.util.MyRigidBodyControl;
 
+import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
+import com.jme3.bullet.collision.shapes.SphereCollisionShape;
+import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.bullet.joints.SixDofJoint;
 import com.jme3.bullet.joints.SliderJoint;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 
 /**
@@ -28,10 +33,21 @@ public class Inventory {
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
+    private HashMap<Spatial, HashMap<Node, PhysicsJoint>> itemFuncSpots = new HashMap<>();
     
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
     	bulletAppState = app.getBulletAppState();
+    }
+    
+    public static boolean isFunctionalSpot(Spatial s) {
+    	if (s instanceof Node) {
+    		Node node = (Node) s;
+        	if (node.getUserData("functionalSpot") != null) {
+        		return true;
+        	}
+    	}
+    	return false;
     }
     
     public HashSet<Spatial> allItems() {
@@ -53,6 +69,30 @@ public class Inventory {
     	bulletAppState.getPhysicsSpace().add(rbc);
     	rootNode.attachChild(item);
     	items.add(item);
+    	
+    	// add ghost control for functional objects, and
+    	// collect all functional spots in the item    	 
+		class FuncSpotVisitor implements SceneGraphVisitor {
+			public HashMap<Node, PhysicsJoint> allFuncSpots = new HashMap<>();
+			
+			@Override
+			public void visit(Spatial s) {
+				if (isFunctionalSpot(s)) {
+					Node node = (Node) s;
+					GhostControl gc = new GhostControl(
+							new SphereCollisionShape(FunctionalItemPhysics.COLLISION_SPHERE_RADIUS));
+					gc.setCollisionGroup(FunctionalItemPhysics.COLLISION_GROUP);
+					gc.setCollideWithGroups(FunctionalItemPhysics.COLLISION_GROUP);
+					node.addControl(gc);
+					bulletAppState.getPhysicsSpace().add(gc);
+
+					allFuncSpots.put(node, null);
+				}
+			}			
+		}
+		FuncSpotVisitor visitor = new FuncSpotVisitor();
+    	item.depthFirstTraversal(visitor);
+    	itemFuncSpots.put(item, visitor.allFuncSpots);
     	
     	for (InventoryListener l : listeners) {
     		l.objectCreated(item);
@@ -93,6 +133,27 @@ public class Inventory {
     	joint.setCollisionBetweenLinkedBodys(false);
     	joint.setUpperLinLimit(upperLinLimit);
     	joint.setLowerLinLimit(lowerLinLimit);
+        joints.add(joint);
+        bulletAppState.getPhysicsSpace().add(joint);
+    	return joint;
+    }
+    
+    public SixDofJoint addFixedJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
+    	if (!items.contains(item1)) {
+    		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
+    	}
+    	if (!items.contains(item2)) {
+    		throw new IllegalArgumentException(item2 + " does not exist in the inventory");
+    	}
+    	MyRigidBodyControl c1 = item1.getControl(MyRigidBodyControl.class);
+    	MyRigidBodyControl c2 = item2.getControl(MyRigidBodyControl.class);
+    	
+    	SixDofJoint joint = new SixDofJoint(c1, c2, refPt1, refPt2, false);
+    	joint.setCollisionBetweenLinkedBodys(false);
+    	joint.setAngularLowerLimit(Vector3f.ZERO);
+    	joint.setAngularUpperLimit(Vector3f.ZERO);
+    	joint.setLinearLowerLimit(Vector3f.ZERO);
+    	joint.setLinearUpperLimit(Vector3f.ZERO);
         joints.add(joint);
         bulletAppState.getPhysicsSpace().add(joint);
     	return joint;
@@ -145,6 +206,16 @@ public class Inventory {
                 joint.destroy();
         	}
         }
+        // remove functional spot joint records and ghost controls
+        HashMap<Node, PhysicsJoint> fsMap = itemFuncSpots.get(item);
+        for (Node fn : fsMap.keySet()) {
+        	fsMap.put(fn, null);
+        	GhostControl gc = fn.getControl(GhostControl.class);
+        	if (gc != null) {
+        		bulletAppState.getPhysicsSpace().remove(gc);
+        		fn.removeControl(gc);
+        	}
+        }
         // remove physics control from the item
         MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
         if (rbc != null) {
@@ -164,25 +235,39 @@ public class Inventory {
     	return null;
     }
     
-    public void forceItemPhysicsActivationStatesViaJoints(Spatial item, int actState) {
-    	MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
-    	rbc.forceActivationState(actState);
-    	rbc.activate();
-
-    	List<PhysicsJoint> jointList = item.getControl(MyRigidBodyControl.class).getJoints();
-    	if (jointList != null) {
-    		for (PhysicsJoint joint : jointList) {
-    			MyRigidBodyControl c1 = (MyRigidBodyControl) joint.getBodyA();
-    			MyRigidBodyControl c2 = (MyRigidBodyControl) joint.getBodyB();
-    			if (item == c1.getSpatial()) {
-    				c2.forceActivationState(actState);
-    				c2.activate();
-    			} else {
-    				c1.forceActivationState(actState);
-    				c1.activate();
-    			}
+    // may be slow
+    public Spatial getItem(String id) {
+    	for (Spatial s : items) {
+    		if (s.getName().equals(id)) {
+    			return s;
     		}
     	}
+    	return null;
+    }
+    
+    public boolean updateItemInsomnia(Spatial item) {
+    	MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
+    	boolean isInsomniac = rbc.isKinematic();
+    	
+		for (PhysicsJoint joint : rbc.getJoints()) {
+			MyRigidBodyControl c1 = (MyRigidBodyControl) joint.getBodyA();
+			MyRigidBodyControl c2 = (MyRigidBodyControl) joint.getBodyB();
+			if (c1.isKinematic() || c2.isKinematic()) {
+				isInsomniac = true;
+			}
+		}
+    	
+		for (PhysicsJoint joint : rbc.getJoints()) {
+			MyRigidBodyControl c1 = (MyRigidBodyControl) joint.getBodyA();
+			MyRigidBodyControl c2 = (MyRigidBodyControl) joint.getBodyB();
+			c1.forceActivationState(isInsomniac ? CollisionObject.DISABLE_DEACTIVATION : CollisionObject.ACTIVE_TAG);
+			c1.activate();
+			c2.forceActivationState(isInsomniac ? CollisionObject.DISABLE_DEACTIVATION : CollisionObject.ACTIVE_TAG);
+			c2.activate();
+		}
+		rbc.forceActivationState(isInsomniac ? CollisionObject.DISABLE_DEACTIVATION : CollisionObject.ACTIVE_TAG);
+		rbc.activate();
+		return isInsomniac;
     }
     
     public void addListener(InventoryListener l) {
@@ -192,6 +277,56 @@ public class Inventory {
     public void removeListener(InventoryListener l) {
     	listeners.remove(l);
     }
+
+	public PhysicsJoint getFuncSpotJoint(Node node1, Node node2) {
+    	Spatial item1 = getItem(node1);
+    	Spatial item2 = getItem(node2);    	
+    	if (itemFuncSpots.get(item1).get(node1) == itemFuncSpots.get(item2).get(node2)) {
+    		return itemFuncSpots.get(item1).get(node1);
+    	}
+    	return null;
+	}
+    
+	public boolean canAddFuncSpotJoint(Node node1, Node node2) {
+    	Spatial item1 = getItem(node1);
+    	Spatial item2 = getItem(node2);    	
+    	if (item1 == item2) {
+    		// same item cannot add a joint to itself
+    		return false;
+    	}
+    	if (itemFuncSpots.get(item1).get(node1) != null || itemFuncSpots.get(item2).get(node2) != null) {
+    		return false;
+    	}
+    	return true;
+    }
+	
+	public void addFuncSpotJoint(FunctionalRel rel, Node node1, Node node2) {
+    	PhysicsJoint joint = addFixedJoint(getItem(node1), getItem(node2), 
+    			node1.getLocalTranslation(), node2.getLocalTranslation());
+    	Spatial item1 = getItem(node1);
+    	Spatial item2 = getItem(node2);
+    	itemFuncSpots.get(item1).put(node1, joint);
+    	itemFuncSpots.get(item2).put(node2, joint);
+
+    	updateItemInsomnia(item1); // this will update item2 too since they are connected
+    }
+	
+	public void removeFuncSpotJoint(Node node1, Node node2) {
+		PhysicsJoint joint = getFuncSpotJoint(node1, node2);
+		joint.getBodyA().removeJoint(joint);
+		joint.getBodyB().removeJoint(joint);
+        bulletAppState.getPhysicsSpace().remove(joint);
+        joints.remove(joint);
+        joint.destroy();
+        
+        Spatial item1 = getItem(node1);
+        Spatial item2 = getItem(node2);
+        itemFuncSpots.get(item1).put(node1, null);
+        itemFuncSpots.get(item2).put(node2, null);
+        
+        updateItemInsomnia(item1);
+        updateItemInsomnia(item2);
+	}
     
     private class ItemInfo {
     	public Spatial spatial;
@@ -214,6 +349,7 @@ public class Inventory {
     }
     
     public class Memento {
+    	// TODO: fix for functional spot joints
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
 //    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials 

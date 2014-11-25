@@ -317,6 +317,24 @@ public class Table implements ActionListener {
 		
 		return s;
 	}
+	
+	private Spatial processFunctionalSpotElement(Element elm) {
+		String id = elm.getAttribute("id");
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		String type = elm.getAttribute("type");
+		
+		Node node = new Node(id);
+		node.setLocalTranslation(location);
+		node.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
+				rotation.z * FastMath.DEG_TO_RAD));
+		node.setUserData("functionalSpot", true);
+		node.setUserData("functionalSpotType", type);
+		
+		return node;
+	}
 
 	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
@@ -346,15 +364,23 @@ public class Table implements ActionListener {
 					node.attachChild(processBoxElement(child, false));
 				} else if (child.getNodeName().equals("composite")) {
 					node.attachChild(processCompositeElement(child, false));
+				} else if (child.getNodeName().equals("functionalSpot")) {
+					node.attachChild(processFunctionalSpotElement(child));
 				}
 			}
 		}
 
+		// functional spots are discarded for non-top level
+		
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
 
 			node.setUserData("shape", "composite");
+						
+//			if (id.equals("screwdriver")) {
+//				inventory.addFixedJoint(node, inventory.getItem("bolt0"), Vector3f.ZERO, Vector3f.ZERO);
+//			}
 		}
 		
 		return node;

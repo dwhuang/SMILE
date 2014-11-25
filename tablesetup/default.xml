@@ -3,15 +3,16 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="30" yspan="12">
 
-    <composite id="screwDriver" mass="1" location="(8, 0, 2)">
-        <cylinder id="stick" yspan="2" radius="0.2" location="(0, 0, 0)" color="brown"/>
-        <block id="handle" yspan="1" xspan="1" zspan="1" location="(0, -1.5, 0)" color="brown"/>
-    </composite>
     <composite id="bolt0" mass="0.1" location="(8, 2, 2)">
         <cylinder id="pin" yspan="0.245" radius="0.1" location="(0, 0, 0)" color="cyan"/>
         <cylinder id="cap" yspan="0.25" radius="0.25" location="(0, -0.2475, 0)" color="cyan"/>
+        <functionalSpot type="screwHead" id="head" location="(0, -0.3725, 0)" rotation="(0, 0, 0)"/>
     </composite>
-
+    <composite id="screwdriver" mass="1" location="(8, 0, 2)">
+        <cylinder id="stick" yspan="2" radius="0.2" location="(0, 0, 0)" color="brown"/>
+        <block id="handle" yspan="1" xspan="1" zspan="1" location="(0, -1.5, 0)" color="brown"/>
+        <functionalSpot type="screwdriverTip" id="tip" location="(0, 1, 0)" rotation="(0, 0, 180)"/>
+    </composite>
     <lidbox id="CaseBody" xspan="8" yspan="12" zspan="5" location="(0, 0, 5)" thickness=".25" rotation="(0, 90, -90)" color="gray" mass="0" lidMass="1"
         handleColor="green" handleXspan="2" handleYspan="3" handleZspan="1" handleThickness="0.5"/>
     <composite id="LeftLedge" mass="0" location="(-5.25, -1.5, 5)">

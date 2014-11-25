@@ -4,6 +4,9 @@
 	<classpathentry kind="src" path="assets"/>
 	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/tabletop/lib/matlabcontrol/matlabcontrol-4.1.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
-	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/jMonkeyEngine3.jar"/>
+	<classpathentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/jMonkeyEngine3.zip"/>
 	<classpathentry kind="output" path="bin"/>
+	<referencedentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/lib/jME3-jbullet.jar" sourcepath="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/source"/>
+	<referencedentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/lib/jbullet.jar" sourcepath="/Users/dwhuang/Arsenal/Active/lib/jbullet-20101010/src"/>
+	<referencedentry kind="lib" path="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/lib/jME3-core.jar" sourcepath="/Users/dwhuang/Arsenal/Active/lib/jME3_2014-06-12/source"/>
 </classpath>

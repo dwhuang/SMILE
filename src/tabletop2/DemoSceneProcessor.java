@@ -4,13 +4,15 @@
  */
 package tabletop2;
 
-import com.jme3.asset.AssetManager;
+import java.util.ArrayList;
+
 import com.jme3.bounding.BoundingBox;
 import com.jme3.bounding.BoundingSphere;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Matrix4f;
+import com.jme3.math.Vector3f;
 import com.jme3.post.SceneProcessor;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -23,13 +25,13 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.debug.WireBox;
 import com.jme3.scene.debug.WireSphere;
 import com.jme3.texture.FrameBuffer;
-import java.util.ArrayList;
 
 /**
  *
  * @author dwhuang
  */
 public class DemoSceneProcessor implements SceneProcessor {
+	private Factory factory;
     private boolean isInit = false;
     private boolean showVisualAid = false;
     private ArrayList<Geometry> visualAidGeos = new ArrayList<Geometry>();
@@ -41,7 +43,8 @@ public class DemoSceneProcessor implements SceneProcessor {
     
     private Matrix4f mat = new Matrix4f();
     
-    public DemoSceneProcessor(AssetManager assetManager, Node visualAid) {
+    public DemoSceneProcessor(MainApp app, Node visualAid) {
+    	this.factory = app.getFactory();
         visualAid.depthFirstTraversal(new SceneGraphVisitor() {
             public void visit(Spatial s) {
                 if (s instanceof Geometry) {
@@ -50,7 +53,7 @@ public class DemoSceneProcessor implements SceneProcessor {
             }
         });
         
-        hlMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        hlMaterial = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         hlMaterial.setColor("Color", ColorRGBA.Black);
     }
     
@@ -120,6 +123,13 @@ public class DemoSceneProcessor implements SceneProcessor {
                         g.setLocalScale(1.01f);
                         g.setMaterial(hlMaterial);
                         hlGeos.add(g);
+                    } else if (s instanceof Node) {
+                    	Node node = (Node) s;
+                    	if (Inventory.isFunctionalSpot(node)) {
+	                    	Geometry g = factory.makeUnshadedArrow("viz", Vector3f.UNIT_Z, 1, ColorRGBA.Yellow);
+	                    	node.attachChild(g);
+	                    	hlGeos.add(g);
+                    	}
                     }
                 }
             });
