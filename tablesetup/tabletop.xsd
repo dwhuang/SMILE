@@ -193,6 +193,16 @@
                             <attribute name="handleThickness" type="tt:spanType" use="optional" default="0.5"/>
 	                    </complexType>
 	                </element>
+                    <element name="drawer">
+                        <complexType>
+                            <attribute name="caseMass" type="tt:massType" use="optional" default="100"/>
+                            <attribute name="containerMass" type="tt:massType" use="optional" default="5"/>
+                            <attributeGroup ref="tt:boxAttrs"/>
+                            <attribute name="containerColor" type="tt:colorType" use="optional" default="gray"/>
+                            <attribute name="handleRadius" type="tt:spanType" use="optional" default="0.5"/>
+                            <attribute name="handleColor" type="tt:colorType" use="optional" default="gray"/>
+                        </complexType>
+                    </element>
                 </choice>
             </sequence>
             <attribute name="xspan" type="tt:spanType"/>

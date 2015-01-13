@@ -27,6 +27,7 @@ import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
+import com.jme3.bullet.joints.SliderJoint;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -197,6 +198,8 @@ public class Table implements ActionListener {
 					processChainElement(elm);
 				} else if (elm.getNodeName().equals("lidbox")) {
 					processLidBoxElement(elm);
+				} else if (elm.getNodeName().equals("drawer")) {
+					processDrawerElement(elm);
 				}
 			}
 		}
@@ -524,6 +527,66 @@ public class Table implements ActionListener {
 //		joint.setPoweredLinMotor(true);
 //		joint.setMaxLinMotorForce(1);
 //		joint.setTargetLinMotorVelocity(-1);
+	}
+
+	private void processDrawerElement(Element elm) {
+		String groupId = getUniqueId(elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
+		float handleRadius = Float.parseFloat(elm.getAttribute("handleRadius"));
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		ColorRGBA containerColor = parseColor(elm.getAttribute("containerColor"));
+		float caseMass = Float.parseFloat(elm.getAttribute("caseMass"));
+		float containerMass = Float.parseFloat(elm.getAttribute("containerMass"));
+		
+		Transform tf = new Transform();
+		tf.setTranslation(location);
+		tf.setRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		
+		float halfThickness = thickness / 2f;
+		String id;
+		
+		// case
+		id = getUniqueId(groupId + "-case");
+		Spatial drawerCase = factory.makeBoxContainer(id + "-shape", yspan, xspan - thickness, zspan, 
+				halfThickness, color);
+		drawerCase.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Z));
+		Node caseNode = new Node(id);
+		caseNode.setLocalTransform(tf);
+		caseNode.attachChild(drawerCase);
+		inventory.addItem(caseNode, caseMass);		
+		
+		// sliding container
+		id = getUniqueId(groupId + "-container");
+		Spatial drawerContainer = factory.makeBoxContainer(id + "-shape", xspan - thickness, yspan - thickness, 
+				zspan - thickness, halfThickness, containerColor);
+		Spatial drawerFront = factory.makeBlock("", halfThickness, yspan - halfThickness / 2, zspan, containerColor); // front plate
+		drawerFront.setLocalTranslation((xspan - thickness) / 2f - halfThickness / 2f, halfThickness / 4, 0);
+		Spatial drawerHandle = factory.makeCylinder("", handleRadius, halfThickness, handleColor);
+		drawerHandle.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Y));
+		drawerHandle.setLocalTranslation((xspan - thickness) / 2f + halfThickness / 2f, 0, 0);
+		Node containerBodyNode = new Node();
+		containerBodyNode.attachChild(drawerContainer);
+		containerBodyNode.attachChild(drawerFront);
+		containerBodyNode.attachChild(drawerHandle);		
+		containerBodyNode.setLocalTranslation(halfThickness, 0, 0);
+		Node containerNode = new Node(id);
+		containerNode.setLocalTransform(tf);
+		containerNode.attachChild(containerBodyNode);		
+		inventory.addItem(containerNode, containerMass);
+		
+		// sliding joint
+		SliderJoint joint = inventory.addSliderJoint(containerNode, caseNode, 
+				Vector3f.ZERO, Vector3f.ZERO, 0, xspan - 2 * thickness);
+		joint.setDampingDirLin(1);
 	}
 
 	private Vector3f parseVector3(String str) {
