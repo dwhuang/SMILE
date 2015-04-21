@@ -34,6 +34,7 @@ public class Inventory {
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private HashMap<Spatial, HashMap<Node, FunctionalJoint>> functionalJoints = new HashMap<>();
+    private HashMap<Spatial, SpatialFunction> spatialFunctions = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
 
     
@@ -59,13 +60,14 @@ public class Inventory {
     	}
     	item.addControl(rbc);
     	bulletAppState.getPhysicsSpace().add(rbc);
+		rbc.setDamping(0.2f, 0.2f);
     	rootNode.attachChild(item);
     	items.add(item);
     	
     	// add ghost control for functional objects, and
     	// collect and store all functional spots per item    	 
 		class FuncNodeVisitor implements SceneGraphVisitor {
-			public HashMap<Node, FunctionalJoint> funcNodes = new HashMap<>();			
+			public HashMap<Node, FunctionalJoint> funcNodes = new HashMap<>();
 			@Override
 			public void visit(Spatial s) {
 				if (FunctionalItemPhysics.getFunctionType(s) != FunctionType.NONE) {
@@ -94,6 +96,31 @@ public class Inventory {
     	return rbc;
     }
     
+    public void registerSpatialFunction(Spatial s, SpatialFunction func) {
+    	Spatial item = getItem(s);
+    	if (item == null) {
+    		throw new IllegalArgumentException("Spatial " + s + " is not a part of any known item");
+    	}
+    	spatialFunctions.put(s, func);
+    }
+    
+    public SpatialFunction getFirstSpatialFunction(Spatial s) {
+    	while (s != null) {
+    		if (spatialFunctions.containsKey(s)) {
+    			return spatialFunctions.get(s);
+    		}
+    		s = s.getParent();
+    	}
+    	return null;
+    }
+    
+    public void notifySpatialFunctionTriggered(SpatialFunction func) {
+    	for (InventoryListener l : listeners) {
+    		Spatial s = func.getSpatial();
+    		l.objectTriggered(getItem(s), s.getName(), func.getState());
+    	}
+    }
+
     public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
     	if (!items.contains(item1)) {
     		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
@@ -205,6 +232,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
+    		removeItemSpatialFunctions(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
     		items.remove(item);
@@ -268,6 +296,17 @@ public class Inventory {
             bulletAppState.getPhysicsSpace().remove(rbc);
             item.removeControl(rbc);
         }
+    }
+    
+    private void removeItemSpatialFunctions(Spatial item) {
+    	item.depthFirstTraversal(new SceneGraphVisitor() {
+			@Override
+			public void visit(Spatial s) {
+				if (spatialFunctions.containsKey(s)) {
+					spatialFunctions.remove(s);
+				}
+			}
+    	});
     }
     
     public Spatial getItem(Spatial g) {
@@ -355,11 +394,18 @@ public class Inventory {
 		Vector3f pivot2;
 		HashMap<String, Object> param = new HashMap<String, Object>();
     }
-    
+	
+	private class SpatialFuncInfo {
+		Spatial s;
+		SpatialFunction func;
+		int state;
+	}
+	
     public class Memento {
     	// TODO: fix for functional spot joints
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
+    	private HashSet<SpatialFuncInfo> spatialFuncInfoSet = new HashSet<>();
 //    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials 
 //    			= new HashMap<PhysicsJoint, ArrayList<Spatial>>();
     	
@@ -396,6 +442,14 @@ public class Inventory {
 			info.pivot2 = new Vector3f(joint.getPivotB());
 			m.jointInfoSet.add(info);
     	}
+    	
+    	for (Spatial s : spatialFunctions.keySet()) {
+    		SpatialFuncInfo info = new SpatialFuncInfo();
+    		info.s = s;
+    		info.func = spatialFunctions.get(s);
+    		info.state = info.func.getState();
+    		m.spatialFuncInfoSet.add(info);
+    	}
 
     	return m;
     }
@@ -415,6 +469,10 @@ public class Inventory {
     		} else {
     			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);
     		}
+    	}
+    	for (SpatialFuncInfo info : m.spatialFuncInfoSet) {
+    		registerSpatialFunction(info.s, info.func);
+    		info.func.setState(info.state);
     	}
     }
 }

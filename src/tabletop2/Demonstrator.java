@@ -147,22 +147,29 @@ public class Demonstrator implements ActionListener, AnalogListener {
         	}
         }
         
-        private void processMouseButtonEvent(boolean isPressed) {
+        private void processMouseButtonEvent(boolean isPressed, boolean leftButton) {
             if (state == HandState.Idle) {
-                if (!isPressed) {
-                    Spatial cursorObj = getCursorItem(rootNode);
-                    if (cursorObj != null) { 
-                        grasp(cursorObj);
-                    }
+            	if (leftButton) {
+            		if (!isPressed) {
+	                    Spatial cursorObj = getCursorItem(rootNode);
+	                    if (cursorObj != null) { 
+	                        grasp(cursorObj);
+	                    }
+                	}
+                } else {
+                	// right click
+            		if (!isPressed) {
+                    	triggerFirstCursorSpatialFunction(rootNode);
+                	}
                 }
             } else if (state == HandState.Grasped) {
-                if (isPressed) {
+                if (leftButton && isPressed) {
                     if (!movingStart()) {
                         release();
                     }
                 }
             } else if (state == HandState.Moving) {
-                if (!isPressed) {
+                if (leftButton && !isPressed) {
                     movingEnd();
                 }
             }
@@ -572,7 +579,9 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (eName.equals("shiftKey")) {
             shiftKey = isPressed;
         } else if (eName.equals(name + "LeftClick")) {
-        	currHand.processMouseButtonEvent(isPressed);
+        	currHand.processMouseButtonEvent(isPressed, true);
+        } else if (eName.equals(name + "RightClick")) {
+        	currHand.processMouseButtonEvent(isPressed, false);
         } else if (eName.equals(name + "PlaneRotate90")) {
         	currHand.processRotatePlane90();
         }
@@ -686,6 +695,21 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
         Spatial item = inventory.getItem(r.getGeometry());
         return item;
+    }
+    
+    private void triggerFirstCursorSpatialFunction(Node rootNode) {
+    	CollisionResult r = getCursorClosestCollision(rootNode);
+    	if (r == null) {
+    		return;
+    	}
+    	SpatialFunction func = inventory.getFirstSpatialFunction(r.getGeometry());
+    	if (func != null) {
+        	// notify listeners
+            for (DemoPreActionListener l : demoPreActionListeners) {
+                l.demoPreTrigger(currHand.id, func.getSpatial());
+            }
+            func.trigger(r.getGeometry());
+    	}
     }
     
     private Vector3f getCursorRayDirection() {

@@ -112,6 +112,11 @@ public class DemoWindowController implements WindowController, DemoActionListene
         updateRecInfo();
 	}
 	
+	@Override
+	public void demoTrigger(HandId handId, Spatial s) {
+		updateRecInfo();
+	}
+	
 	private void updateRbHand() {
 		Demonstrator.Hand hand = demonstrator.getCurrHand();
 		rbHand[hand.getId().getValue()].select();

@@ -198,8 +198,10 @@ public class Table implements ActionListener {
 					processChainElement(elm);
 				} else if (elm.getNodeName().equals("lidbox")) {
 					processLidBoxElement(elm);
-				} else if (elm.getNodeName().equals("drawer")) {
-					processDrawerElement(elm);
+				} else if (elm.getNodeName().equals("dock")) {
+					processDockElement(elm);
+				} else if (elm.getNodeName().equals("cartridge")) {
+					processCartridgeElement(elm);
 				}
 			}
 		}
@@ -333,7 +335,7 @@ public class Table implements ActionListener {
 				rotation.x * FastMath.DEG_TO_RAD,
 				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		node.setUserData("functionType", type);
+		node.setUserData("obj_functionType", type);
 		
 		return node;
 	}
@@ -378,7 +380,7 @@ public class Table implements ActionListener {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
 
-			node.setUserData("shape", "composite");
+			node.setUserData("obj_shape", "composite");
 						
 //			if (id.equals("screwdriver")) {
 //				inventory.addFixedJoint(node, inventory.getItem("bolt0"), Vector3f.ZERO, Vector3f.ZERO);
@@ -506,14 +508,14 @@ public class Table implements ActionListener {
 		float lidMass = Float.parseFloat(elm.getAttribute("lidMass"));
 		inventory.addItem(lid, lidMass);
 		
-		lid.setUserData("shape", "lid");
-		lid.setUserData("width", lidPlate.getUserData("width"));
-		lid.setUserData("height", lidPlate.getUserData("height"));
-		lid.setUserData("depth", lidPlate.getUserData("depth"));
-		lid.setUserData("handleWidth", lidHandle.getUserData("width"));
-		lid.setUserData("handleHeight", lidHandle.getUserData("height"));
-		lid.setUserData("handleDepth", lidHandle.getUserData("depth"));
-		lid.setUserData("handleThickness", lidHandle.getUserData("thickness"));		
+		lid.setUserData("obj_shape", "lid");
+		lid.setUserData("obj_width", lidPlate.getUserData("obj_width"));
+		lid.setUserData("obj_height", lidPlate.getUserData("obj_height"));
+		lid.setUserData("obj_depth", lidPlate.getUserData("obj_depth"));
+		lid.setUserData("obj_handleWidth", lidHandle.getUserData("obj_width"));
+		lid.setUserData("obj_handleHeight", lidHandle.getUserData("obj_height"));
+		lid.setUserData("obj_handleDepth", lidHandle.getUserData("obj_depth"));
+		lid.setUserData("obj_handleThickness", lidHandle.getUserData("obj_thickness"));		
 		
 		inventory.addSliderJoint(box, lid, new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), 
 				0, xspan);
@@ -529,65 +531,378 @@ public class Table implements ActionListener {
 //		joint.setTargetLinMotorVelocity(-1);
 	}
 
-	private void processDrawerElement(Element elm) {
+	private void processDockElement(Element elm) {
+		final int NUM_MODULES = 4;
 		String groupId = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
 		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
 		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
-		float handleRadius = Float.parseFloat(elm.getAttribute("handleRadius"));
+		float xThickness = Float.parseFloat(elm.getAttribute("xthickness"));
+		float yThickness = Float.parseFloat(elm.getAttribute("zthickness"));
+		float zThickness = Float.parseFloat(elm.getAttribute("ythickness"));
+		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
+		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
+		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		ColorRGBA caseColor = parseColor(elm.getAttribute("caseColor"));
 		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-		ColorRGBA containerColor = parseColor(elm.getAttribute("containerColor"));
+		float mass = Float.parseFloat(elm.getAttribute("mass"));
 		float caseMass = Float.parseFloat(elm.getAttribute("caseMass"));
-		float containerMass = Float.parseFloat(elm.getAttribute("containerMass"));
+		int[] switchStates = new int[NUM_MODULES];
+		int[] lightStates = new int[NUM_MODULES];
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			switchStates[i] = Integer.parseInt(elm.getAttribute("switchState" + (i + 1)));
+			lightStates[i] = Integer.parseInt(elm.getAttribute("lightState" + (i + 1)));
+		}
 		
 		Transform tf = new Transform();
 		tf.setTranslation(location);
 		tf.setRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));
-		
-		float halfThickness = thickness / 2f;
-		String id;
-		
+				rotation.z * FastMath.DEG_TO_RAD));		
+		String id;		
 		// case
 		id = getUniqueId(groupId + "-case");
-		Spatial drawerCase = factory.makeBoxContainer(id + "-shape", yspan, xspan - thickness, zspan, 
-				halfThickness, color);
-		drawerCase.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Z));
+		Spatial caseShape = factory.makeBoxContainer(id + "-shape", yspan, xspan - xThickness, zspan, 
+				yThickness, xThickness, zThickness, caseColor);
+		caseShape.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Z));
 		Node caseNode = new Node(id);
 		caseNode.setLocalTransform(tf);
-		caseNode.attachChild(drawerCase);
-		inventory.addItem(caseNode, caseMass);		
+		caseNode.attachChild(caseShape);
+		inventory.addItem(caseNode, caseMass);
+
+		caseNode.setUserData("obj_shape", "dock-case");
+		caseNode.setUserData("obj_width", caseShape.getUserData("obj_width"));
+		caseNode.setUserData("obj_height", caseShape.getUserData("obj_height"));
+		caseNode.setUserData("obj_depth", caseShape.getUserData("obj_depth"));
+		caseNode.setUserData("obj_color", caseShape.getUserData("obj_color"));
+		caseNode.setUserData("obj_xthickness", caseShape.getUserData("obj_xthickness")); 
+		caseNode.setUserData("obj_ythickness", caseShape.getUserData("obj_ythickness")); 
+		caseNode.setUserData("obj_zthickness", caseShape.getUserData("obj_zthickness")); 
+
+
+		// (component sizes and locations)
+		float wBase = xspan - xThickness;
+		float hPanel = 0.15f;
+		float hBase = yspan - 2 * yThickness - 0.3f - hPanel;
+		float dBase = zspan - 2 * zThickness;
+		float thSlot = 0.087f;
+		float wHole = 1.375f;
+		float hHole = 0.85f;
+		float dHole = 0.625f;
+		float wHoleToPanel = 0.5f;
+		float wPanel = wBase * 0.4048f;
+		float wSwitch = 1.15f;
+		float hSwitch = 0.05f;
+		float dSwitch = 0.45f;
+		float wPanelToSwitch = wBase * 0.0071f;
+		float wSwitchToIndicator = wBase * 0.0119f;
+		float rIndicator = dSwitch / 3;
+		float hIndicator = hSwitch;
+		// dock
+		Node dockNode = new Node(groupId + "-body");
+		dockNode.setLocalTransform(tf);
+		Node dockOffsetNode = new Node(groupId + "-bodyOffset");
+		dockOffsetNode.setLocalTranslation(0, -(yspan - yThickness * 2 - hBase) / 2, 0);
+		dockNode.attachChild(dockOffsetNode);	
 		
-		// sliding container
-		id = getUniqueId(groupId + "-container");
-		Spatial drawerContainer = factory.makeBoxContainer(id + "-shape", xspan - thickness, yspan - thickness, 
-				zspan - thickness, halfThickness, containerColor);
-		Spatial drawerFront = factory.makeBlock("", halfThickness, yspan - halfThickness / 2, zspan, containerColor); // front plate
-		drawerFront.setLocalTranslation((xspan - thickness) / 2f - halfThickness / 2f, halfThickness / 4, 0);
-		Spatial drawerHandle = factory.makeCylinder("", handleRadius, halfThickness, handleColor);
-		drawerHandle.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Y));
-		drawerHandle.setLocalTranslation((xspan - thickness) / 2f + halfThickness / 2f, 0, 0);
-		Node containerBodyNode = new Node();
-		containerBodyNode.attachChild(drawerContainer);
-		containerBodyNode.attachChild(drawerFront);
-		containerBodyNode.attachChild(drawerHandle);		
-		containerBodyNode.setLocalTranslation(halfThickness, 0, 0);
-		Node containerNode = new Node(id);
-		containerNode.setLocalTransform(tf);
-		containerNode.attachChild(containerBodyNode);		
-		inventory.addItem(containerNode, containerMass);
+		// dock base
+		String baseId = getUniqueId(groupId + "-dock-base");
+		Node base = new Node(id);				
+		// dock base back
+		id = getUniqueId(baseId + "-baseB");
+		float wBaseB = wBase - (wPanel + wHoleToPanel + wHole);
+		Spatial baseB = factory.makeBlock(id, wBaseB, hBase, dBase, color);
+		baseB.setLocalTranslation(-wBase / 2 + wBaseB / 2, 0, 0);
+		base.attachChild(baseB);
+		// dock base front
+		id = getUniqueId(baseId + "-baseF");
+		float wBaseF = wPanel + wHoleToPanel;
+		Spatial baseF = factory.makeBlock(id, wBaseF, hBase, dBase, color);
+		baseF.setLocalTranslation(wBase / 2 - wBaseF / 2, 0, 0);
+		base.attachChild(baseF);
+		// dock base near wall
+		id = getUniqueId(baseId + "-baseNW");
+		float dBaseNW = (dBase - dHole * 4) * 0.25f;
+		Spatial baseNW = factory.makeBlock(id, wHole, hBase, dBaseNW, color);
+		baseNW.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, -dBase / 2 + dBaseNW / 2);
+		base.attachChild(baseNW);
+		// dock base far wall
+		id = getUniqueId(baseId + "-baseFW");
+		Spatial baseFW = factory.makeBlock(id, wHole, hBase, dBaseNW, color);
+		baseFW.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, dBase / 2 - dBaseNW / 2);
+		base.attachChild(baseFW);
+		// dock base divider wall 1
+		id = getUniqueId(baseId + "-baseDW1");
+		float dBaseDW = (dBase - dHole * 4) * 0.5f / 3;
+		Spatial baseDW1 = factory.makeBlock(id, wHole, hBase, dBaseDW, color);
+		baseDW1.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, -dBase / 2 + dBaseNW + dHole + dBaseDW / 2);
+		base.attachChild(baseDW1);
+		// dock base divider wall 2
+		id = getUniqueId(baseId + "-baseDW2");
+		Spatial baseDW2 = factory.makeBlock(id, wHole, hBase, dBaseDW, color);
+		baseDW2.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, 
+				-dBase / 2 + dBaseNW + dHole * 2 + dBaseDW + dBaseDW / 2);
+		base.attachChild(baseDW2);
+		// dock base divider wall 3
+		id = getUniqueId(baseId + "-baseDW3");
+		Spatial baseDW3 = factory.makeBlock(id, wHole, hBase, dBaseDW, color);
+		baseDW3.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, 
+				-dBase / 2 + dBaseNW + dHole * 3 + dBaseDW * 2 + dBaseDW / 2);
+		base.attachChild(baseDW3);		
+		// slots
+		float slotX = -wBase / 2 + wBaseB + wHole / 2;
+		float slotY = hBase / 2 - (hHole + 0.5f * thSlot) / 2;
+		float[] slotZ = new float[NUM_MODULES];
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			id = getUniqueId(baseId + "-slot" + (i + 1));
+			Spatial slot = factory.makeBoxContainer(id, wHole, hHole + thSlot, dHole, thSlot, ColorRGBA.DarkGray);
+			slotZ[i] = -dBase / 2 + dBaseNW + dHole / 2 + (dHole + dBaseDW) * i;
+			slot.setLocalTranslation(slotX, slotY, slotZ[i]);
+			base.attachChild(slot);
+			Node att = new Node();
+			att.setLocalTranslation(slotX, slotY - hHole / 2, slotZ[i]);
+			att.setLocalRotation(new Quaternion().fromAngles(-FastMath.HALF_PI, 0, 0));
+			att.setUserData("functionType", "magnet_s");
+			base.attachChild(att);
+		}
+		// annotate...
+		dockNode.setUserData("obj_shape", "dock-body");
+		dockNode.setUserData("obj_color", color);
+		dockNode.setUserData("obj_width", xspan);
+		dockNode.setUserData("obj_height", yspan);
+		dockNode.setUserData("obj_depth", zspan);
+		dockNode.setUserData("obj_baseWidth", wBase);
+		dockNode.setUserData("obj_baseHeight", hBase);
+		dockNode.setUserData("obj_baseDepth", dBase);
+		dockNode.setUserData("obj_slotWidth", wHole - thSlot * 2);
+		dockNode.setUserData("obj_slotHeight", hHole);
+		dockNode.setUserData("obj_slotDepth", dHole - thSlot * 2);
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			dockNode.setUserData("obj_slot" + (i + 1) + "OffsetX", slotX);
+			dockNode.setUserData("obj_slot" + (i + 1) + "OffsetY", slotZ[i]);
+			dockNode.setUserData("obj_slot" + (i + 1) + "OffsetZ", slotY);
+		}
+
+		// panel
+		String panelId = getUniqueId(groupId + "-dock-panel");
+		Node panel = new Node(id);
+		float panelX = wBase / 2 - wPanel / 2;
+		float panelY = hBase / 2 + hPanel / 2;
+		panel.setLocalTranslation(panelX, panelY, 0);
+		// panel cover
+		id = getUniqueId(panelId + "-panelCover");
+		Spatial panelCover = factory.makeBlock(id, wPanel, hPanel, dBase, color);
+		panel.attachChild(panelCover);
+		// switches
+		Node[] switchButton = new Node[NUM_MODULES];
+		float switchX = -wPanel / 2 + wPanelToSwitch + wSwitch / 2;
+		float switchY = hPanel / 2 + hSwitch / 2; 
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			id = getUniqueId(panelId + "-switch" + (i + 1));
+			Node switchNode = new Node(id);
+			switchNode.setLocalTranslation(switchX, switchY, slotZ[i]);
+			panel.attachChild(switchNode);
+			// (base)
+			id = getUniqueId(panelId + "-switch" + (i + 1) + "-base");
+			Spatial switchBase = factory.makeBlock(id, wSwitch, hSwitch, dSwitch, ColorRGBA.White);
+			switchNode.attachChild(switchBase);
+			// (button)
+			switchButton[i] = new Node(groupId + "-switch" + (i + 1));
+			switchButton[i].setLocalTranslation(0, -0.1f, 0);
+			Spatial b1 = factory.makeBlock("b1", 0.6f, 0.3f, 0.3f, ColorRGBA.DarkGray);
+			b1.setLocalTranslation(-0.25f, 0, 0);
+			b1.setLocalRotation(new Quaternion().fromAngles(0, 0, -3 * FastMath.DEG_TO_RAD));
+			Spatial b2 = factory.makeBlock("b2", 0.6f, 0.3f, 0.3f, ColorRGBA.DarkGray);
+			b2.setLocalTranslation(0.25f, 0, 0);
+			b2.setLocalRotation(new Quaternion().fromAngles(0, 0, 3 * FastMath.DEG_TO_RAD));
+			switchButton[i].attachChild(b1);
+			switchButton[i].attachChild(b2);
+			switchNode.attachChild(switchButton[i]);
+		}
+		// annotate...
+		dockNode.setUserData("obj_switchWidth", 1.2f);
+		dockNode.setUserData("obj_switchDepth", 0.3f);
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			dockNode.setUserData("obj_switch" + (i + 1) + "OffsetX", panelX + switchX);
+			dockNode.setUserData("obj_switch" + (i + 1) + "OffsetY", slotZ[i]);
+			dockNode.setUserData("obj_switch" + (i + 1) + "OffsetZ", panelY + switchY);
+		}
+		
+		// indicator lights
+		Node[] indicatorLights = new Node[NUM_MODULES];
+		float lightX = -wPanel / 2 + wPanelToSwitch + wSwitch + wSwitchToIndicator + rIndicator;
+		float lightY = hPanel / 2 + hIndicator / 2;
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			id = getUniqueId(panelId + "-indicator" + (i + 1));
+			Node indicator = new Node(id);
+			indicator.setLocalTranslation(lightX, lightY, slotZ[i]);
+			panel.attachChild(indicator);
+			// (base)
+			id = getUniqueId(panelId + "-indicator" + (i + 1) + "-base");
+			Spatial indicatorBase = factory.makeCylinder(id, rIndicator, hIndicator, ColorRGBA.White);
+			Quaternion rotX90 = new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0);
+			indicatorBase.setLocalRotation(rotX90);
+			indicator.attachChild(indicatorBase);
+			// (LEDs)
+			id = getUniqueId(groupId + "-light" + (i + 1));
+			indicatorLights[i] = new Node(id);
+			indicator.attachChild(indicatorLights[i]);
+			// (green LED)			
+			Spatial greenLight = factory.makeCylinder("green", rIndicator / 5, 0.005f, ColorRGBA.Green);
+			greenLight.setLocalTranslation(rIndicator / 2, hIndicator / 2 + 0.005f / 2, 0);
+			greenLight.setLocalRotation(rotX90);
+			indicatorLights[i].attachChild(greenLight);
+			// (red LED)
+			Spatial redLight = factory.makeCylinder("red", rIndicator / 5, 0.01f, ColorRGBA.Red);
+			redLight.setLocalTranslation(-rIndicator / 2, hIndicator / 2 + 0.005f / 2, 0);
+			redLight.setLocalRotation(rotX90);
+			indicatorLights[i].attachChild(redLight);
+		}
+		// annotate...
+		dockNode.setUserData("obj_lightRadius", rIndicator);
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			dockNode.setUserData("obj_light" + (i + 1) + "OffsetX", panelX + lightX);
+			dockNode.setUserData("obj_light" + (i + 1) + "OffsetY", slotZ[i]);
+			dockNode.setUserData("obj_light" + (i + 1) + "OffsetZ", panelY + lightY);
+		}
+		
+		dockOffsetNode.attachChild(base);
+		dockOffsetNode.attachChild(panel);
+
+		// dock front
+		id = getUniqueId(groupId + "-dock-front");
+		Spatial front = factory.makeBlock(id, xThickness, yspan, zspan, color);
+		front.setLocalTranslation(wBase / 2 + xThickness / 2, 0, 0);
+		dockNode.attachChild(front);
+		// dock handle
+		id = getUniqueId(groupId + "-dock-handle");
+		Spatial handle = factory.makeBlock(id, handleXspan, handleYspan, handleZspan, handleColor);
+		float handleY = yspan * 0.3583f;
+		float handleX = wBase / 2 + xThickness + handleXspan / 2;
+		handle.setLocalTranslation(handleX, handleY, 0);
+		dockNode.attachChild(handle);
+		dockNode.setUserData("obj_handleWidth", handleXspan);
+		dockNode.setUserData("obj_handleHeight", handleYspan);
+		dockNode.setUserData("obj_handleDepth", handleZspan);
+		dockNode.setUserData("obj_handleOffsetX", handleX);
+		dockNode.setUserData("obj_handleOffsetY", 0);
+		dockNode.setUserData("obj_handleOffsetZ", handleY);
+		dockNode.setUserData("obj_handleColor", handleColor);
+
+		inventory.addItem(dockNode, mass);
+		for (int i = 0; i < NUM_MODULES; ++i) {
+			// LED function
+			IndicatorLightFunction ilFunc = new IndicatorLightFunction(inventory, indicatorLights[i]);
+			inventory.registerSpatialFunction(indicatorLights[i], ilFunc);
+			// switch function
+			SwitchFunction sFunc = new SwitchFunction(inventory, switchButton[i], ilFunc);
+			inventory.registerSpatialFunction(switchButton[i], sFunc);
+			// init states
+			ilFunc.setState(lightStates[i]);
+			sFunc.setState(switchStates[i]);
+		}
 		
 		// sliding joint
-		SliderJoint joint = inventory.addSliderJoint(containerNode, caseNode, 
-				Vector3f.ZERO, Vector3f.ZERO, 0, xspan - 2 * thickness);
+		SliderJoint joint = inventory.addSliderJoint(dockNode, caseNode, 
+				Vector3f.ZERO, Vector3f.ZERO, 0, wBase);
 		joint.setDampingDirLin(1);
+		joint.setDampingDirAng(1);
+		joint.setSoftnessOrthoLin(1);
+		joint.setSoftnessOrthoAng(1);
 	}
+	
+	private void processCartridgeElement(Element elm) {
+		String groupId = getUniqueId(elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		ColorRGBA bodyColor = parseColor(elm.getAttribute("color"));
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		ColorRGBA topColor = parseColor(elm.getAttribute("topColor"));
+		float mass = Float.parseFloat(elm.getAttribute("mass"));
+		
+		Node node = new Node(groupId);
+		node.setLocalTranslation(location);
+		node.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		
+		String id;
+		// body - central piece
+		id = getUniqueId(groupId + "-bodyC");
+		float wBodyC = xspan * 0.4034f;
+		float hBodyC = yspan * 0.5624f;
+		float dBodyC = zspan * 0.6122f;
+		Spatial bodyC = factory.makeBlock(id, wBodyC, hBodyC, dBodyC, bodyColor);
+		node.attachChild(bodyC);
+		// body - left piece
+		id = getUniqueId(groupId + "-bodyL");
+		float wBodyL = xspan * 0.2689f;
+		float hBodyL = yspan * 0.5624f;
+		float dBodyL = zspan * 0.7f; // 0.8163f
+		Spatial bodyL = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
+		bodyL.setLocalTranslation(-(wBodyC / 2 + wBodyL / 2), 0, 0);
+		node.attachChild(bodyL);
+		// body - right piece
+		id = getUniqueId(groupId + "-bodyR");
+		Spatial bodyR = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
+		bodyR.setLocalTranslation(wBodyC / 2 + wBodyL / 2, 0, 0);
+		node.attachChild(bodyR);
+		// body - left foot
+		id = getUniqueId(groupId + "-bodyLF");
+		float wBodyLF = xspan * 0.2933f;
+		float hBodyLF = yspan * 0.1002f;
+		float dBodyLF = zspan * 0.7f;
+		Spatial bodyLF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
+		bodyLF.setLocalTranslation(-(wBodyC / 2 + wBodyLF / 2), -(hBodyL / 2 + hBodyLF / 2), 0);
+		node.attachChild(bodyLF);
+		// body - right foot
+		id = getUniqueId(groupId + "-bodyRF");
+		Spatial bodyRF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
+		bodyRF.setLocalTranslation(wBodyC / 2 + wBodyLF / 2, -(hBodyL / 2 + hBodyLF / 2), 0);
+		node.attachChild(bodyRF);
+		// top
+		id = getUniqueId(groupId + "-top");
+		float wTop = xspan;
+		float hTop = yspan * 0.0818f;
+//		float hTop = yspan * 0.15f;
+		float dTop = zspan;
+		Spatial top = factory.makeBlock(id, wTop, hTop, dTop, topColor);
+		top.setLocalTranslation(0, hBodyC / 2 + hTop / 2, 0);
+		node.attachChild(top);
+		// handle
+		id = getUniqueId(groupId + "-top");
+		float wHandle = xspan * 0.6941f;
+		float hHandle = yspan * 0.2556f;
+		float dHandle = zspan * 0.5673f;
+		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
+		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
+		node.attachChild(handle);
+		// bottom attach point
+		Node att = new Node();
+		att.setLocalTranslation(0, -hBodyL / 2 - hBodyLF, 0);
+		att.setLocalRotation(new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0));
+		att.setUserData("functionType", "magnet_n");
+		node.attachChild(att);
+		
+		// annotate...
+		node.setUserData("obj_shape", "cartridge");
+		node.setUserData("obj_width", xspan);
+		node.setUserData("obj_height", yspan);
+		node.setUserData("obj_depth", zspan);
+		node.setUserData("obj_color", bodyColor);
+		node.setUserData("obj_handleColor", handleColor);
+		node.setUserData("obj_topColor", topColor);
+
+		inventory.addItem(node, mass);		
+	}	
 
 	private Vector3f parseVector3(String str) {
 		Pattern pattern = Pattern.compile("^\\s*\\((\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\)\\s*$");

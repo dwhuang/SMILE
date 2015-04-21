@@ -53,7 +53,7 @@ public class Robot implements AnalogListener, ActionListener {
     public static final int HEAD_CAM_RES_WIDTH = 200;
     public static final int HEAD_CAM_RES_HEIGHT = 150;
     public static final float HEAD_CAM_INTV = 0.25f; // sec
-    public static final float HEAD_CAM_FOV = 60;
+    public static final float HEAD_CAM_FOV = 60; // was 60
 
     private String name;
     private boolean enabled = true;

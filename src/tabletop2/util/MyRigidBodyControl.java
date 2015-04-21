@@ -23,7 +23,7 @@ public class MyRigidBodyControl extends RigidBodyControl {
     }
     
     public MyRigidBodyControl(CollisionShape shape, float mass) {
-        super (shape, mass);
+        super(shape, mass);
     }
 
     @Override

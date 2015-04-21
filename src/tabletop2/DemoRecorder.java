@@ -211,6 +211,14 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	}
 
 	@Override
+	public void demoPreTrigger(HandId handId, Spatial s) {
+		if (isRecording) {
+			saveToHistory();
+			currSegSymbWritter.print(frameId + ",trigger," + handId.toString() + "," + s.getName() + "\n");
+		}
+	}
+	
+	@Override
 	public void demoGrasp(HandId handId, Spatial s, Vector3f pos, Quaternion rot) {
 		if (isRecording) {
 			currSegSymbWritter.print(frameId + ",grasp," + handId.toString() + "," + s.getName() + "\n");
@@ -232,6 +240,10 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	}
 
 	@Override
+	public void demoTrigger(HandId handId, Spatial s) {
+	}
+	
+	@Override
 	public void objectCreated(Spatial obj) {
 		if (isRecording) {
 			printObjectCreateSymbols(obj);
@@ -242,6 +254,14 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	public void objectDeleted(Spatial obj) {
 		if (isRecording) {
 			currSegSymbWritter.print(frameId + ",delete," + obj.getName() + "\n");
+		}
+	}
+
+	@Override
+	public void objectTriggered(Spatial obj, String name, int state) {
+		if (isRecording) {
+			currSegSymbWritter.print(frameId + ",event," + name + "," + state + "\n");
+			saveRobotVision();
 		}
 	}
 
@@ -296,16 +316,20 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		timeElapsed += tpf;
 		if (timeElapsed >= DEMORECORDER_TPF) {
 			if (printObjectMoveSymbols()) {
-				BufferedImage img = robot.getVisualImage();
-				File imgFile = new File(currSegVisionDir, frameId + ".png");
-				try {
-					ImageIO.write(img, "png", imgFile);
-				} catch (IOException e) {
-					logger.log(Level.WARNING, "cannot save visual image: " + imgFile, e);
-				}
+				saveRobotVision();
 			}
 			timeElapsed = 0;
 			++frameId;
+		}
+	}
+	
+	private void saveRobotVision() {
+		BufferedImage img = robot.getVisualImage();
+		File imgFile = new File(currSegVisionDir, frameId + ".png");
+		try {
+			ImageIO.write(img, "png", imgFile);
+		} catch (IOException e) {
+			logger.log(Level.WARNING, "cannot save visual image: " + imgFile, e);
 		}
 	}
 
@@ -339,54 +363,34 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	private void printObjectCreateSymbols(Spatial item) {
 		buf.setLength(0);
 		buf.append(frameId + ",create," + item.getName());
-		String shape = item.getUserData("shape");
+		String shape = item.getUserData("obj_shape");
 		buf.append(",shape," + shape);
-		
-		if (item.getUserData("width") != null) {
-			buf.append(",xspan," + item.getUserData("width"));
-		}
-		if (item.getUserData("height") != null) {
-			buf.append(",zspan," + item.getUserData("height"));
-		}
-		if (item.getUserData("depth") != null) {
-			buf.append(",yspan," + item.getUserData("depth"));
-		}
-		if (item.getUserData("radius") != null) {
-			buf.append(",radius," + item.getUserData("radius"));
-		}
-		if (item.getUserData("color") != null) {
-			buf.append(",color,#");
-			ColorRGBA color = item.getUserData("color");
-			int rgba = color.asIntRGBA();
-			rgba &= 0xffffff00;
-			rgba >>= 8;
-			String hex = Integer.toHexString(rgba);
-			if (hex.length() < 6) {
-				for (int i = 0; i < 6 - hex.length(); ++i) {
-					buf.append("0");
+		buf.append(",mass," + item.getControl(MyRigidBodyControl.class).getMass());
+				
+		for (String k : item.getUserDataKeys()) {
+			if (k.startsWith("obj_") && !k.equals("obj_shape")) {
+				String kName = k.substring(4);
+				buf.append("," + kName);
+				if (kName.endsWith("Color") || kName.endsWith("color")) {
+					buf.append(",#");
+					ColorRGBA color = item.getUserData(k);
+					int rgba = color.asIntRGBA();
+					rgba &= 0xffffff00;
+					rgba >>= 8;
+					String hex = Integer.toHexString(rgba);
+					if (hex.length() < 6) {
+						for (int i = 0; i < 6 - hex.length(); ++i) {
+							buf.append("0");
+						}
+					}
+					buf.append(hex);
+				} else {
+					buf.append("," + item.getUserData(k));
 				}
 			}
-			buf.append(hex);
 		}
-		if (item.getUserData("thickness") != null) {
-			buf.append(",thickness," + item.getUserData("thickness"));
-		}
-		if (item.getUserData("handleWidth") != null) {
-			buf.append(",handleXspan," + item.getUserData("handleWidth"));
-		}
-		if (item.getUserData("handleHeight") != null) {
-			buf.append(",handleZspan," + item.getUserData("handleHeight"));
-		}
-		if (item.getUserData("handleDepth") != null) {
-			buf.append(",handleYspan," + item.getUserData("handleDepth"));
-		}
-		if (item.getUserData("handleThickness") != null) {
-			buf.append(",handleThickness," + item.getUserData("handleThickness"));
-		}
-		buf.append(",mass," + item.getControl(MyRigidBodyControl.class).getMass());
 		
 		buf.append("\n");
 		currSegSymbWritter.print(buf);
 	}
-	
 }

@@ -43,11 +43,11 @@ public class Factory {
         Geometry block = new Geometry(name, new Box(w / 2, h / 2, d / 2));
         block.setMaterial(mat);
 
-        block.setUserData("shape", "block");
-        block.setUserData("width", w);
-        block.setUserData("height", h);
-        block.setUserData("depth", d);
-        block.setUserData("color", color);
+        block.setUserData("obj_shape", "block");
+        block.setUserData("obj_width", w);
+        block.setUserData("obj_height", h);
+        block.setUserData("obj_depth", d);
+        block.setUserData("obj_color", color);
         
         return block;
     }
@@ -91,12 +91,12 @@ public class Factory {
             c.x += unitBlockSize;
         }
         
-        bigBlock.setUserData("shape", "bigblock");
-        bigBlock.setUserData("width", w);
-        bigBlock.setUserData("height", h);
-        bigBlock.setUserData("depth", d);
-        bigBlock.setUserData("color", color);
-        bigBlock.setUserData("unitBlockSize", unitBlockSize); 
+        bigBlock.setUserData("obj_shape", "bigblock");
+        bigBlock.setUserData("obj_width", w);
+        bigBlock.setUserData("obj_height", h);
+        bigBlock.setUserData("obj_depth", d);
+        bigBlock.setUserData("obj_color", color);
+        bigBlock.setUserData("obj_unitBlockSize", unitBlockSize); 
         
 //        return GeometryBatchFactory.optimize(bigBlock);
         return bigBlock;
@@ -104,38 +104,47 @@ public class Factory {
     
     public Node makeBoxContainer(String name, float w, float h, float d, 
             float thickness, ColorRGBA color) {        
+        return makeBoxContainer(name, w, h, d, thickness, thickness, thickness, color);
+    }
+    
+    public Node makeBoxContainer(String name, float w, float h, float d, 
+            float xThickness, float yThickness, float zThickness, ColorRGBA color) {        
         Node boxContainer = new Node(name);
         float halfW = w / 2;
         float halfH = h / 2;
         float halfD = d / 2;
-        float halfT = thickness / 2;
+        float halfXT = xThickness / 2;
+        float halfYT = yThickness / 2;
+        float halfZT = zThickness / 2;
         
-        Spatial s = makeBlock(name + "(floor)", w, thickness, d, color);
-        s.setLocalTranslation(0f, halfT - halfH, 0f);
+        Spatial s = makeBlock(name + "(floor)", w, yThickness, d, color);
+        s.setLocalTranslation(0f, halfYT - halfH, 0f);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(left)", thickness, h - thickness, d - thickness * 2, color);
-        s.setLocalTranslation(halfT - halfW, halfT, 0);
+        s = makeBlock(name + "(left)", xThickness, h - yThickness, d - zThickness * 2, color);
+        s.setLocalTranslation(halfXT - halfW, halfYT, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(right)", thickness, h - thickness, d - thickness * 2, color);
-        s.setLocalTranslation(-halfT + halfW, halfT, 0);
+        s = makeBlock(name + "(right)", xThickness, h - yThickness, d - zThickness * 2, color);
+        s.setLocalTranslation(-halfXT + halfW, halfYT, 0);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(near)", w, h - thickness, thickness, color);
-        s.setLocalTranslation(0, halfT, halfT - halfD);
+        s = makeBlock(name + "(near)", w, h - yThickness, zThickness, color);
+        s.setLocalTranslation(0, halfYT, halfZT - halfD);
         boxContainer.attachChild(s);
         
-        s = makeBlock(name + "(far)", w, h - thickness, thickness, color);
-        s.setLocalTranslation(0, halfT, -halfT + halfD);
+        s = makeBlock(name + "(far)", w, h - yThickness, zThickness, color);
+        s.setLocalTranslation(0, halfYT, -halfZT + halfD);
         boxContainer.attachChild(s);
         
-        boxContainer.setUserData("shape", "box");
-        boxContainer.setUserData("width", w);
-        boxContainer.setUserData("height", h);
-        boxContainer.setUserData("depth", d);
-        boxContainer.setUserData("color", color);
-        boxContainer.setUserData("thickness", thickness); 
+        boxContainer.setUserData("obj_shape", "box");
+        boxContainer.setUserData("obj_width", w);
+        boxContainer.setUserData("obj_height", h);
+        boxContainer.setUserData("obj_depth", d);
+        boxContainer.setUserData("obj_color", color);
+        boxContainer.setUserData("obj_xthickness", xThickness); 
+        boxContainer.setUserData("obj_ythickness", zThickness); 
+        boxContainer.setUserData("obj_zthickness", yThickness); 
 
         return boxContainer;
     }
@@ -152,10 +161,10 @@ public class Factory {
         Geometry cylinder = new Geometry(name, new Cylinder(32, 32, radius, height, true));
         cylinder.setMaterial(mat);
 
-        cylinder.setUserData("shape", "cylinder");
-        cylinder.setUserData("radius", radius);
-        cylinder.setUserData("height", height);
-        cylinder.setUserData("color", color);
+        cylinder.setUserData("obj_shape", "cylinder");
+        cylinder.setUserData("obj_radius", radius);
+        cylinder.setUserData("obj_height", height);
+        cylinder.setUserData("obj_color", color);
 
         return cylinder;        
     }
@@ -173,9 +182,9 @@ public class Factory {
         Geometry sphere = new Geometry(name, new Sphere(16, 16, radius));
         sphere.setMaterial(mat);
 
-        sphere.setUserData("shape", "cylinder");
-        sphere.setUserData("radius", radius);
-        sphere.setUserData("color", color);
+        sphere.setUserData("obj_shape", "cylinder");
+        sphere.setUserData("obj_radius", radius);
+        sphere.setUserData("obj_color", color);
 
         return sphere;
     }
@@ -190,10 +199,10 @@ public class Factory {
         Geometry plane = new Geometry(name, new Quad(width, height));
         plane.setMaterial(mat);
 
-        plane.setUserData("shape", "plane");
-        plane.setUserData("width", width);
-        plane.setUserData("height", height);
-        plane.setUserData("color", color);
+        plane.setUserData("obj_shape", "plane");
+        plane.setUserData("obj_width", width);
+        plane.setUserData("obj_height", height);
+        plane.setUserData("obj_color", color);
 
         return plane;
     }
@@ -206,10 +215,10 @@ public class Factory {
         Geometry line = new Geometry(name, new Line(start, end));
         line.setMaterial(mat);
 
-        line.setUserData("shape", "line");
-        line.setUserData("start", start);
-        line.setUserData("end", end);
-        line.setUserData("color", color);
+        line.setUserData("obj_shape", "line");
+        line.setUserData("obj_start", start);
+        line.setUserData("obj_end", end);
+        line.setUserData("obj_color", color);
 
         return line;
     }
@@ -224,10 +233,10 @@ public class Factory {
         Geometry line = new Geometry(name, arrow);
         line.setMaterial(mat);
 
-        line.setUserData("shape", "arrow");
-        line.setUserData("extend", extend);
-        line.setUserData("lineWidth", lineWidth);
-        line.setUserData("color", color);
+        line.setUserData("obj_shape", "arrow");
+        line.setUserData("obj_extend", extend);
+        line.setUserData("obj_lineWidth", lineWidth);
+        line.setUserData("obj_color", color);
 
         return line;
     }
@@ -248,6 +257,12 @@ public class Factory {
     		g = makeUnshadedArrow(name + "-z", Vector3f.UNIT_Y.mult(length), lineWidth, ColorRGBA.Blue);
     	}
     	base.attachChild(g);
+    	
+    	base.setUserData("obj_shape", "axisArrows");
+    	base.setUserData("obj_length", length);
+    	base.setUserData("obj_lineWidth", lineWidth);
+    	base.setUserData("obj_isInternalCoordsSystem", isInternalCoordsSystem);
+    	
     	return base;
     }
 }

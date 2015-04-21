@@ -18,4 +18,5 @@ public interface DemoActionListener {
     public void demoGrasp(HandId handId, Spatial s, Vector3f pos, Quaternion rot);
     public void demoRelease(HandId handId);
     public void demoDestroy(HandId handId);
+	public void demoTrigger(HandId handId, Spatial s);
 }

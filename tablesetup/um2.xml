@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="30" yspan="12">
+    <block id="U_blk1" xspan="3" yspan="1" zspan="1" location="(-2.5, 1.25, .75)" rotation="(0, 0, 90)" color="blue" mass="1"/>
+    <block id="U_blk2" xspan="1" yspan="1" zspan="1" location="(-4.5, 2.5, .75)" rotation="(0, 0, 0)" color="red" />
+    <block id="U_blk3" xspan="1" yspan="1" zspan="1" location="(-4.5, 0, .75)" rotation="(0, 0, 0)" color="red" />
+    <block id="U_blk4" xspan="1" yspan="1" zspan="1" location="(-6.5, 0, .75)" rotation="(0, 0, 0)" color="red" />
+    <block id="U_blk5" xspan="1" yspan="1" zspan="1" location="(-6.5, 2.5, .75)" rotation="(0, 0, 0)" color="red" />
+
+    <block id="M_blk1" xspan="2" yspan="1" zspan="1" location="(0, 2.25, .75)" rotation="(0, 0, 90)" color="red" mass="1"/>
+    <block id="M_blk2" xspan="2" yspan="1" zspan="1" location="(2.5, 2.25, .75)" rotation="(0, 0, 90)" color="red" mass="1"/>
+    <block id="M_blk3" xspan="1" yspan="1" zspan="1" location="(4.5, -2.5, .75)" rotation="(0, 0, 0)" color="blue" />
+    <block id="M_blk4" xspan="1" yspan="1" zspan="1" location="(4.5, 0, .75)" rotation="(0, 0, 0)" color="blue" />
+    <block id="M_blk5" xspan="1" yspan="1" zspan="1" location="(4.5, 2.5, .75)" rotation="(0, 0, 0)" color="blue" />
+    <block id="M_blk6" xspan="1" yspan="1" zspan="1" location="(6.5, -2.5, .75)" rotation="(0, 0, 0)" color="blue" />
+    <block id="M_blk7" xspan="1" yspan="1" zspan="1" location="(6.5, 0, .75)" rotation="(0, 0, 0)" color="blue" />
+    <block id="M_blk8" xspan="1" yspan="1" zspan="1" location="(6.5, 2.5, .75)" rotation="(0, 0, 0)" color="blue" />
+    
+</tabletop>
+

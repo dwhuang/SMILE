@@ -298,7 +298,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
                 	inventory.removeItem(item);
                 }
             }
-        }
+        }        
     }
     
     @Override

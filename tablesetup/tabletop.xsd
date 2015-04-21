@@ -193,14 +193,37 @@
                             <attribute name="handleThickness" type="tt:spanType" use="optional" default="0.5"/>
 	                    </complexType>
 	                </element>
-                    <element name="drawer">
+                    <element name="dock">
                         <complexType>
-                            <attribute name="caseMass" type="tt:massType" use="optional" default="100"/>
-                            <attribute name="containerMass" type="tt:massType" use="optional" default="5"/>
-                            <attributeGroup ref="tt:boxAttrs"/>
-                            <attribute name="containerColor" type="tt:colorType" use="optional" default="gray"/>
-                            <attribute name="handleRadius" type="tt:spanType" use="optional" default="0.5"/>
-                            <attribute name="handleColor" type="tt:colorType" use="optional" default="gray"/>
+                            <attributeGroup ref="tt:blockAttrs"/>
+                            <attribute name="xthickness" type="tt:spanType" use="optional" default="0.3"/>
+                            <attribute name="ythickness" type="tt:spanType" use="optional" default="0.15"/>
+                            <attribute name="zthickness" type="tt:spanType" use="optional" default="0.1"/>
+                            <attribute name="caseMass" type="tt:massType" use="optional" default="500"/>
+                            <attribute name="mass" type="tt:massType" use="optional" default="100"/>
+                            <attribute name="caseColor" type="tt:colorType" use="optional" default="darkgray"/>
+                            <attribute name="handleColor" type="tt:colorType" use="optional" default="blue"/>
+                            <attribute name="handleXspan" type="tt:spanType" use="optional" default="0.25"/>
+                            <attribute name="handleYspan" type="tt:spanType" use="optional" default="0.6"/>
+                            <attribute name="handleZspan" type="tt:spanType" use="optional" default="0.3"/>
+                            <!-- initial states of the switches: 0=off, 1=on -->
+                            <attribute name="switchState1" type="integer" use="optional" default="1"/>
+                            <attribute name="switchState2" type="integer" use="optional" default="1"/>
+                            <attribute name="switchState3" type="integer" use="optional" default="1"/>
+                            <attribute name="switchState4" type="integer" use="optional" default="1"/>
+                            <!-- initial state of the LED lights: 0=green, 1=red, other=off -->
+                            <attribute name="lightState1" type="integer" use="optional" default="0"/>
+                            <attribute name="lightState2" type="integer" use="optional" default="0"/>
+                            <attribute name="lightState3" type="integer" use="optional" default="0"/>
+                            <attribute name="lightState4" type="integer" use="optional" default="0"/>
+                        </complexType>
+                    </element>
+                    <element name="cartridge">
+                        <complexType>
+                            <attributeGroup ref="tt:blockAttrs"/>
+                            <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+                            <attribute name="topColor" type="tt:colorType" use="optional" default="darkgray"/>
+                            <attribute name="handleColor" type="tt:colorType" use="optional" default="blue"/>
                         </complexType>
                     </element>
                 </choice>
