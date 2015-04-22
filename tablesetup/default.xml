@@ -2,8 +2,14 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-    <cartridge id="c1" location="(5,-3,3)" xspan="1.19" yspan="0.49" zspan="0.978" mass="2" color="darkgray" topColor="green" handleColor="blue"/>
-    <dock id="dock" location="(-5,-3,3)" xspan="4.8" yspan="3.75" zspan="3" switchState2="0" lightState2="1"/>
+    <dock id="dock" location="(-5,-2,3)" xspan="4.8" yspan="3.75" zspan="3" lightState2="1" mass="500"/>
+    <cartridge id="c1" location="(-5.76,-3.2,3.728)" xspan="1.120" yspan="0.4" zspan="0.55" color="darkgray" topColor="green" handleColor="blue" mass="2"/>
+    <cartridge id="c1" location="(-5.76,-2.4,3.728)" xspan="1.120" yspan="0.4" zspan="0.55" color="darkgray" topColor="red" handleColor="blue" mass="2"/>
+    <cartridge id="c1" location="(-5.76,-1.6,3.728)" xspan="1.120" yspan="0.4" zspan="0.55" color="darkgray" topColor="cyan" handleColor="blue" mass="2"/>
+    <cartridge id="c1" location="(-5.76,-0.8,3.728)" xspan="1.120" yspan="0.4" zspan="0.55" color="darkgray" topColor="magenta" handleColor="blue" mass="2"/>
+
+    <cartridge id="c1" location="(5.76,-0.8,3.728)" xspan="1.12" yspan="0.4" zspan="0.55" color="darkgray" topColor="yellow" handleColor="blue" mass="2"/>
+
     <!--<composite id="Cartridge" location="(6.050,-1.124,0.847)" rotation="(-180.000,180.000,-180.000)" >-->
     <!--    <block id="Cartridge_part_1" xspan="0.480" yspan="0.300" zspan="0.550" location="(0.000,0.000,0.000)" -->
     <!--        rotation="(-180.000,180.000,-180.000)" color="white" />-->

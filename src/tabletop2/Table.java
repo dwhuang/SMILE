@@ -569,6 +569,7 @@ public class Table implements ActionListener {
 		Spatial caseShape = factory.makeBoxContainer(id + "-shape", yspan, xspan - xThickness, zspan, 
 				yThickness, xThickness, zThickness, caseColor);
 		caseShape.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Z));
+		caseShape.setLocalTranslation(-xThickness / 2, 0, 0);
 		Node caseNode = new Node(id);
 		caseNode.setLocalTransform(tf);
 		caseNode.attachChild(caseShape);
@@ -585,13 +586,13 @@ public class Table implements ActionListener {
 
 
 		// (component sizes and locations)
-		float wBase = xspan - xThickness;
+		float wBase = xspan - 2 * xThickness;
 		float hPanel = 0.15f;
-		float hBase = yspan - 2 * yThickness - 0.3f - hPanel;
+		float hBase = yspan - 2 * yThickness - 0.5f - hPanel;
 		float dBase = zspan - 2 * zThickness;
 		float thSlot = 0.087f;
 		float wHole = 1.375f;
-		float hHole = 0.85f;
+		float hHole = 0.648f;
 		float dHole = 0.625f;
 		float wHoleToPanel = 0.5f;
 		float wPanel = wBase * 0.4048f;
@@ -663,10 +664,12 @@ public class Table implements ActionListener {
 			slotZ[i] = -dBase / 2 + dBaseNW + dHole / 2 + (dHole + dBaseDW) * i;
 			slot.setLocalTranslation(slotX, slotY, slotZ[i]);
 			base.attachChild(slot);
-			Node att = new Node();
+			id = getUniqueId(groupId + "-assemblyPoint" + (i + 1));
+			Node att = new Node(id);
 			att.setLocalTranslation(slotX, slotY - hHole / 2, slotZ[i]);
 			att.setLocalRotation(new Quaternion().fromAngles(-FastMath.HALF_PI, 0, 0));
-			att.setUserData("functionType", "magnet_s");
+			att.setUserData("assembly", "cartridgeSlot");
+			att.setUserData("assemblyEnd", 0);
 			base.attachChild(att);
 		}
 		// annotate...
@@ -837,16 +840,16 @@ public class Table implements ActionListener {
 		String id;
 		// body - central piece
 		id = getUniqueId(groupId + "-bodyC");
-		float wBodyC = xspan * 0.4034f;
-		float hBodyC = yspan * 0.5624f;
-		float dBodyC = zspan * 0.6122f;
+		float wBodyC = xspan * 3 / 7;
+		float hBodyC = yspan;
+		float dBodyC = zspan * 3 / 4;
 		Spatial bodyC = factory.makeBlock(id, wBodyC, hBodyC, dBodyC, bodyColor);
 		node.attachChild(bodyC);
 		// body - left piece
 		id = getUniqueId(groupId + "-bodyL");
-		float wBodyL = xspan * 0.2689f;
-		float hBodyL = yspan * 0.5624f;
-		float dBodyL = zspan * 0.7f; // 0.8163f
+		float wBodyL = xspan * 2 / 7;
+		float hBodyL = yspan;
+		float dBodyL = zspan; // 0.8163f
 		Spatial bodyL = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
 		bodyL.setLocalTranslation(-(wBodyC / 2 + wBodyL / 2), 0, 0);
 		node.attachChild(bodyL);
@@ -857,9 +860,9 @@ public class Table implements ActionListener {
 		node.attachChild(bodyR);
 		// body - left foot
 		id = getUniqueId(groupId + "-bodyLF");
-		float wBodyLF = xspan * 0.2933f;
-		float hBodyLF = yspan * 0.1002f;
-		float dBodyLF = zspan * 0.7f;
+		float wBodyLF = xspan * 0.3116f;
+		float hBodyLF = yspan * 0.1781f;
+		float dBodyLF = zspan;
 		Spatial bodyLF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
 		bodyLF.setLocalTranslation(-(wBodyC / 2 + wBodyLF / 2), -(hBodyL / 2 + hBodyLF / 2), 0);
 		node.attachChild(bodyLF);
@@ -870,26 +873,27 @@ public class Table implements ActionListener {
 		node.attachChild(bodyRF);
 		// top
 		id = getUniqueId(groupId + "-top");
-		float wTop = xspan;
-		float hTop = yspan * 0.0818f;
-//		float hTop = yspan * 0.15f;
-		float dTop = zspan;
+		float wTop = xspan * 1.1225f;
+		float hTop = yspan * 0.1818f;
+		float dTop = zspan * 1.225f;
 		Spatial top = factory.makeBlock(id, wTop, hTop, dTop, topColor);
 		top.setLocalTranslation(0, hBodyC / 2 + hTop / 2, 0);
 		node.attachChild(top);
 		// handle
 		id = getUniqueId(groupId + "-top");
-		float wHandle = xspan * 0.6941f;
-		float hHandle = yspan * 0.2556f;
-		float dHandle = zspan * 0.5673f;
+		float wHandle = xspan * 0.7375f;
+		float hHandle = yspan * 0.4545f;
+		float dHandle = zspan * 0.695f;
 		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
 		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
 		node.attachChild(handle);
 		// bottom attach point
-		Node att = new Node();
+		id = getUniqueId(groupId + "-assemblyPoint");
+		Node att = new Node(id);
 		att.setLocalTranslation(0, -hBodyL / 2 - hBodyLF, 0);
 		att.setLocalRotation(new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0));
-		att.setUserData("functionType", "magnet_n");
+		att.setUserData("assembly", "cartridgeSlot");
+		att.setUserData("assemblyEnd", 1);
 		node.attachChild(att);
 		
 		// annotate...
