@@ -50,8 +50,8 @@ public class Robot implements AnalogListener, ActionListener {
     private static final String[] FACE_PIC_NAMES = new String[] {
         null, "neutral.jpg", "bluecartooneyes.jpg", "domoface.jpg"
     };
-    public static final int HEAD_CAM_RES_WIDTH = 200;
-    public static final int HEAD_CAM_RES_HEIGHT = 150;
+    public static final int HEAD_CAM_RES_WIDTH = 800;
+    public static final int HEAD_CAM_RES_HEIGHT = 600;
     public static final float HEAD_CAM_INTV = 0.25f; // sec
     public static final float HEAD_CAM_FOV = 60; // was 60
 
