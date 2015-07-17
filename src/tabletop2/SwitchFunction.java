@@ -8,8 +8,8 @@ import com.jme3.scene.Spatial;
 
 public class SwitchFunction extends SpatialFunction {
 	SpatialFunction targetFunction = null;
-	static final Quaternion rot1 = new Quaternion().fromAngles(0, 0, 3 * FastMath.DEG_TO_RAD);
-	static final Quaternion rot2 = new Quaternion().fromAngles(0, 0, -3 * FastMath.DEG_TO_RAD);
+	static final Quaternion rot1 = new Quaternion().fromAngles(0, 0, -3 * FastMath.DEG_TO_RAD);
+	static final Quaternion rot2 = new Quaternion().fromAngles(0, 0, 3 * FastMath.DEG_TO_RAD);
 	
 	public SwitchFunction(Inventory inv, Spatial spatial, SpatialFunction targFunc) {
 		super(inv, spatial, -1);
@@ -42,7 +42,7 @@ public class SwitchFunction extends SpatialFunction {
 	public void trigger(Object o) {
 		if (o instanceof Geometry) {
 			Geometry g = (Geometry) o;
-			if (((Node) spatial).getChildIndex(g) == 0) {
+			if (((Node) spatial).getChildIndex(g) == 1) {
 				setState(0);
 			} else {
 				setState(1);
