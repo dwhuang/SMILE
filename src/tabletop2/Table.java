@@ -202,6 +202,9 @@ public class Table implements ActionListener {
 					processDockElement(elm);
 				} else if (elm.getNodeName().equals("cartridge")) {
 					processCartridgeElement(elm);
+				} else if (elm.getNodeName().equals("customShape")) {
+					JOptionPane.showMessageDialog(null, "Custom Shape!");
+					processBlockElement(elm, true);
 				}
 			}
 		}

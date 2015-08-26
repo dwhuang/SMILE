@@ -78,6 +78,15 @@
         <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
 	</attributeGroup>
 
+	<attributeGroup name="customShapeAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="file" type="tt:idType" use="required" />
+		<attributeGroup ref="tt:simpleObjectCommonAttrs" />
+	</attributeGroup>
+	
 	<attributeGroup name="sphereAttrs">
         <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
 		<attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
@@ -157,6 +166,12 @@
                             <attribute name="mass" type="tt:massType" use="optional" default="1"/>
 	                        <attributeGroup ref="tt:boxAttrs"/>
 	                    </complexType>
+	                </element>
+	                <element name="customShape">
+	                	<complexType>
+	                		<attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                		<attributeGroup ref="tt:customShapeAttrs"/>
+	                	</complexType>
 	                </element>
 	                <element name="composite">
 	                    <complexType>
