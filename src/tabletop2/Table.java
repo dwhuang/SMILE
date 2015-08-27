@@ -204,7 +204,8 @@ public class Table implements ActionListener {
 					processCartridgeElement(elm);
 				} else if (elm.getNodeName().equals("customShape")) {
 					JOptionPane.showMessageDialog(null, "Custom Shape!");
-					processBlockElement(elm, true);
+					processCustomShapeElement(elm);
+					//processCylinderElement(elm, true);
 				}
 			}
 		}
@@ -819,6 +820,11 @@ public class Table implements ActionListener {
 		joint.setDampingDirAng(1);
 		joint.setSoftnessOrthoLin(1);
 		joint.setSoftnessOrthoAng(1);
+	}
+
+	private void processCustomShapeElement(Element elm) {
+	
+			//TODO add XML parsing and STL parsing stubs
 	}
 	
 	private void processCartridgeElement(Element elm) {
