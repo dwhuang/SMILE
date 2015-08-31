@@ -52,6 +52,31 @@ public class Factory {
         return block;
     }
     
+    public Geometry makeCustom(String name, String file, float w, float h, float d, ColorRGBA color) {
+    
+    	//TODO add functionality here
+    	
+    	//temporarily using makeBlock code to validate my design
+    	
+        Material mat = new Material(assetManager, 
+                "Common/MatDefs/Light/Lighting.j3md");
+        mat.setBoolean("UseMaterialColors", true);
+        mat.setColor("Ambient", color.mult(0.8f));      
+        mat.setColor("Diffuse", color);
+        mat.setColor("Specular", ColorRGBA.White);
+//        mat.setBoolean("HighQuality", false);
+        Geometry block = new Geometry(name, new Box(w / 2, h / 2, d / 2));
+        block.setMaterial(mat);
+
+        block.setUserData("obj_shape", "block");
+        block.setUserData("obj_width", w);
+        block.setUserData("obj_height", h);
+        block.setUserData("obj_depth", d);
+        block.setUserData("obj_color", color);
+        
+    	return block;
+    }
+    
     public Node makeBigBlock(String name, float w, float h, float d, 
             ColorRGBA color, float unitBlockSize) {
         int wCount = (int) FastMath.ceil(w / unitBlockSize);

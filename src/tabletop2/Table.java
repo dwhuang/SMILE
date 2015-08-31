@@ -203,9 +203,7 @@ public class Table implements ActionListener {
 				} else if (elm.getNodeName().equals("cartridge")) {
 					processCartridgeElement(elm);
 				} else if (elm.getNodeName().equals("customShape")) {
-					JOptionPane.showMessageDialog(null, "Custom Shape!");
-					processCustomShapeElement(elm);
-					//processCylinderElement(elm, true);
+					processCustomShapeElement(elm, true);
 				}
 			}
 		}
@@ -822,9 +820,29 @@ public class Table implements ActionListener {
 		joint.setSoftnessOrthoAng(1);
 	}
 
-	private void processCustomShapeElement(Element elm) {
-	
-			//TODO add XML parsing and STL parsing stubs
+	private void processCustomShapeElement(Element elm, boolean isWhole) {
+		
+		String id = getUniqueId(elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		String file = elm.getAttribute("file");
+		float mass = Float.parseFloat(elm.getAttribute("mass"));
+
+		//PROCESS BLOCK TO ENSURE CORRECT INPUTS
+		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color);
+		s.setLocalTranslation(location);
+		/*s.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));*/
+		
+		if (isWhole) {
+			inventory.addItem(s, mass);
+		}
+				
 	}
 	
 	private void processCartridgeElement(Element elm) {
