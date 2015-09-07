@@ -4,6 +4,10 @@
  */
 package tabletop2;
 
+import java.io.File;
+
+import org.j3d.loaders.stl.STLFileReader;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
@@ -11,14 +15,17 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.util.BufferUtils;
 
 /**
  *
@@ -52,12 +59,57 @@ public class Factory {
         return block;
     }
     
-    public Geometry makeCustom(String name, String file, float w, float h, float d, ColorRGBA color) {
+    public Geometry makeCustom(String name, String file_name, float w, float h, float d, ColorRGBA color) {
     
-    	//TODO add functionality here
     	
-    	//temporarily using makeBlock code to validate my design
-    	
+    	double normal[], vertex[][];
+        Vector3f[] vertices;
+        int indices[], i, num_facets[];
+		File file = new File(file_name);
+		
+		normal = new double[3];
+		vertex = new double[3][3];
+		
+        //Begin parsing STL file	
+		try {
+			
+			STLFileReader reader = new STLFileReader(file);
+			num_facets = reader.getNumOfFacets();
+			
+			//Gets number of "objects" in STL file. Can be adapted so several "objects" in the STL file are rendered
+			vertices = new Vector3f[num_facets[0] * 3];
+			indices = new int[num_facets[0] * 3];
+			i = 0;
+			
+			//Process the number of objects
+			for (int j = 0 ; j < num_facets.length ; j++) {
+			
+				//Process vertices for that object
+				while (reader.getNextFacet(normal, vertex)) {
+					
+					//add that vector to what we print
+					for (int k = 0 ; k < vertex.length ; k++) {
+						vertices[i] = new Vector3f((float) vertex[k][0], (float) vertex[k][1], (float) vertex[k][2]);
+						indices[i] = i;
+						i++;
+					}
+
+				}
+			}
+			
+		} catch (Exception ex) {
+			//TODO Need better exception handling
+			ex.printStackTrace();
+			return null;
+		}
+		
+        Mesh mesh = new Mesh();
+
+        mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+        mesh.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indices));
+        mesh.updateBound();
+        
+		//Create the material
         Material mat = new Material(assetManager, 
                 "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
@@ -65,16 +117,18 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
-        Geometry block = new Geometry(name, new Box(w / 2, h / 2, d / 2));
-        block.setMaterial(mat);
-
-        block.setUserData("obj_shape", "block");
-        block.setUserData("obj_width", w);
-        block.setUserData("obj_height", h);
-        block.setUserData("obj_depth", d);
-        block.setUserData("obj_color", color);
         
-    	return block;
+        
+        Geometry custom = new Geometry(name, mesh);
+        custom.setMaterial(mat);
+
+       // custom.setUserData("obj_shape", "block");
+        //custom.setUserData("obj_width", w);
+       // custom.setUserData("obj_height", h);
+       // custom.setUserData("obj_depth", d);
+       // custom.setUserData("obj_color", color);
+        
+    	return custom;
     }
     
     public Node makeBigBlock(String name, float w, float h, float d, 
