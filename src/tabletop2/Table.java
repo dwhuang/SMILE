@@ -831,7 +831,6 @@ public class Table implements ActionListener {
 		String file = elm.getAttribute("file");
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 
-		//PROCESS BLOCK TO ENSURE CORRECT INPUTS
 		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color);
 		s.setLocalTranslation(location);
 		/*s.setLocalRotation(new Quaternion().fromAngles(
