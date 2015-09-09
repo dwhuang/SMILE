@@ -87,6 +87,7 @@
 		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="scale" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="file" type="tt:fileType" use="required" />
 		<attributeGroup ref="tt:simpleObjectCommonAttrs" />
 	</attributeGroup>

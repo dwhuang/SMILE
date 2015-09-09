@@ -824,19 +824,22 @@ public class Table implements ActionListener {
 		
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
 		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
 		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		float scale = Float.parseFloat(elm.getAttribute("scale"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
 		String file = elm.getAttribute("file");
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 
 		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color);
 		s.setLocalTranslation(location);
-		/*s.setLocalRotation(new Quaternion().fromAngles(
+		s.setLocalScale(scale);
+		s.setLocalRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));*/
+				rotation.z * FastMath.DEG_TO_RAD));
 		
 		if (isWhole) {
 			inventory.addItem(s, mass);

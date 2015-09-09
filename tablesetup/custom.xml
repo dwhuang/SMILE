@@ -3,5 +3,5 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
     <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(8, 0, 1)" rotation="(0, 0, -15)" color="red" mass="1"/>
-    <customShape id="rocket" xspan = "2" yspan="2" zspan="2" location="(2, 0, 1)" color="green" mass="1" file="/Users/John/Desktop/CMSC498A/cube.stl" ></customShape>
+    <customShape id="rocket" xspan = "2" yspan="2" zspan="2" location="(2, 0, 1)" rotation="(0, 0, -30)" color="green" scale=".05" mass=".1" file="/Users/John/Desktop/CMSC498A/images/Teapot_ascii.stl" ></customShape>
 </tabletop>
