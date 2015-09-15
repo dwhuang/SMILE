@@ -87,6 +87,7 @@
 		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+		<attribute name="mass" type="tt:massType"  use="optional" default="1"/>
 		<attribute name="scale" type="tt:spanType" use="optional" default="1"/>
 		<attribute name="file" type="tt:fileType" use="required" />
 		<attributeGroup ref="tt:simpleObjectCommonAttrs" />
@@ -139,6 +140,11 @@
                 </element>
                 <element name="composite" type="tt:compositeType"/>
                 <element name="function" type="tt:function"/>
+                <element name="customShape">
+                	<complexType>
+                		<attributeGroup ref="tt:customShapeAttrs"/>
+                	</complexType>
+                </element>
             </choice>
         </sequence>
         <attributeGroup ref="tt:simpleObjectCommonAttrs" />
@@ -174,7 +180,6 @@
 	                </element>
 	                <element name="customShape">
 	                	<complexType>
-	                		<attribute name="mass" type="tt:massType" use="optional" default="1"/>
 	                		<attributeGroup ref="tt:customShapeAttrs"/>
 	                	</complexType>
 	                </element>

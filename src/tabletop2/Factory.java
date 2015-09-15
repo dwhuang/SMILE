@@ -5,9 +5,11 @@
 package tabletop2;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+
+import javax.swing.JOptionPane;
 
 import org.j3d.loaders.stl.STLFileReader;
-
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
@@ -59,14 +61,15 @@ public class Factory {
         return block;
     }
     
-    public Geometry makeCustom(String name, String file_name, float w, float h, float d, ColorRGBA color) {
+    public Geometry makeCustom(String name, String file_name, float w, float h, float d, ColorRGBA color, float scale) {
     
     	
     	double normal[], vertex[][];
+    	float normals[];
         Vector3f[] vertices;
-        int indices[], i, num_facets[];
+        int indices[], i, num_facets[], norm_counter;
 		File file = new File(file_name);
-		
+        
 		normal = new double[3];
 		vertex = new double[3][3];
 		
@@ -79,6 +82,8 @@ public class Factory {
 			//Gets number of "objects" in STL file. Can be adapted so several "objects" in the STL file are rendered
 			vertices = new Vector3f[num_facets[0] * 3];
 			indices = new int[num_facets[0] * 3];
+			normals = new float[num_facets[0] * 3];
+			norm_counter = 0;
 			i = 0;
 			
 			//Process the number of objects
@@ -93,10 +98,17 @@ public class Factory {
 						indices[i] = i;
 						i++;
 					}
-
+					
+					normals[norm_counter] = (float) normal[0];
+					normals[norm_counter + 1] = (float) normal[1];
+					normals[norm_counter + 2] = (float) normal[2];
+					norm_counter += 3;
 				}
 			}
 			
+		} catch (FileNotFoundException ex) {
+			JOptionPane.showMessageDialog(null, file_name + " is not a valid path");
+			return null;
 		} catch (Exception ex) {
 			//TODO Need better exception handling
 			ex.printStackTrace();
@@ -104,9 +116,12 @@ public class Factory {
 		}
 		
         Mesh mesh = new Mesh();
-
+        
+        
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
         mesh.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indices));
+        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals)); 
+        
         mesh.updateBound();
         
 		//Create the material
@@ -116,18 +131,13 @@ public class Factory {
         mat.setColor("Ambient", color.mult(0.8f));      
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
-//        mat.setBoolean("HighQuality", false);
+        //mat.setBoolean("HighQuality", false);
         
         
         Geometry custom = new Geometry(name, mesh);
-        custom.setMaterial(mat);
+        custom.setMaterial(mat);  
+        custom.setUserData("scale", scale);
 
-       // custom.setUserData("obj_shape", "block");
-        //custom.setUserData("obj_width", w);
-       // custom.setUserData("obj_height", h);
-       // custom.setUserData("obj_depth", d);
-       // custom.setUserData("obj_color", color);
-        
     	return custom;
     }
     

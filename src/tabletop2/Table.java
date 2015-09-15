@@ -357,6 +357,7 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
 		NodeList children = elm.getChildNodes();
+
 		for (int i = 0; i < children.getLength(); ++i) {
 			if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
 				Element child = (Element) children.item(i);
@@ -372,6 +373,8 @@ public class Table implements ActionListener {
 					node.attachChild(processCompositeElement(child, false));
 				} else if (child.getNodeName().equals("function")) {
 					node.attachChild(processFunctionElement(child));
+				} else if (child.getNodeName().equals("customShape")) {
+					node.attachChild(processCustomShapeElement(child, false));
 				}
 			}
 		}
@@ -820,7 +823,7 @@ public class Table implements ActionListener {
 		joint.setSoftnessOrthoAng(1);
 	}
 
-	private void processCustomShapeElement(Element elm, boolean isWhole) {
+	private Spatial processCustomShapeElement(Element elm, boolean isWhole) {
 		
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -833,9 +836,12 @@ public class Table implements ActionListener {
 		String file = elm.getAttribute("file");
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 
-		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color);
+		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color, scale);
 		s.setLocalTranslation(location);
 		s.setLocalScale(scale);
+        s.updateModelBound();
+        
+		
 		s.setLocalRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
@@ -844,7 +850,8 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			inventory.addItem(s, mass);
 		}
-				
+		
+		return s;
 	}
 	
 	private void processCartridgeElement(Element elm) {

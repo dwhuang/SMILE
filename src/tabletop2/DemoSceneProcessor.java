@@ -12,6 +12,7 @@ import com.jme3.bounding.BoundingVolume;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Matrix4f;
+import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.post.SceneProcessor;
 import com.jme3.renderer.RenderManager;
@@ -109,6 +110,16 @@ public class DemoSceneProcessor implements SceneProcessor {
                     if (s instanceof Geometry) {
                         Geometry g = (Geometry)s;
                         BoundingVolume vol = g.getModelBound();
+                        
+                        if (g.getUserData("scale") != null) {
+                            Transform t = new Transform();
+                            t = t.setScale((float) g.getUserData("scale")); 
+                            vol = vol.transform(t);
+                            vol.setCenter(g.getModelBound().getCenter());
+              
+                        }
+
+                        
                         Mesh wireframe;
                         if (vol.getType() == BoundingVolume.Type.AABB) {
                             wireframe = new WireBox();
