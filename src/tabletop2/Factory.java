@@ -65,9 +65,9 @@ public class Factory {
     
     	
     	double normal[], vertex[][];
-    	float normals[];
+    	Vector3f[] normals;
         Vector3f[] vertices;
-        int indices[], i, num_facets[], norm_counter;
+        int indices[], i, num_facets[];
 		File file = new File(file_name);
         
 		normal = new double[3];
@@ -75,34 +75,25 @@ public class Factory {
 		
         //Begin parsing STL file	
 		try {
-			
 			STLFileReader reader = new STLFileReader(file);
 			num_facets = reader.getNumOfFacets();
-			
+
 			//Gets number of "objects" in STL file. Can be adapted so several "objects" in the STL file are rendered
 			vertices = new Vector3f[num_facets[0] * 3];
 			indices = new int[num_facets[0] * 3];
-			normals = new float[num_facets[0] * 3];
-			norm_counter = 0;
+			normals = new Vector3f[num_facets[0] * 3];
 			i = 0;
 			
-			//Process the number of objects
-			for (int j = 0 ; j < num_facets.length ; j++) {
+			// assume only 1 object in STL (will read the first one if STL contains multiple objects)
 			
-				//Process vertices for that object
-				while (reader.getNextFacet(normal, vertex)) {
-					
-					//add that vector to what we print
-					for (int k = 0 ; k < vertex.length ; k++) {
-						vertices[i] = new Vector3f((float) vertex[k][0], (float) vertex[k][1], (float) vertex[k][2]);
-						indices[i] = i;
-						i++;
-					}
-					
-					normals[norm_counter] = (float) normal[0];
-					normals[norm_counter + 1] = (float) normal[1];
-					normals[norm_counter + 2] = (float) normal[2];
-					norm_counter += 3;
+			//Process vertices for that object
+			while (reader.getNextFacet(normal, vertex)) {				
+				//add that vector to what we print
+				for (int k = 0 ; k < vertex.length ; k++) {
+					vertices[i] = new Vector3f((float) vertex[k][0], (float) vertex[k][1], (float) vertex[k][2]);
+					indices[i] = i;
+					normals[i] = new Vector3f((float) normal[0], (float) normal[1], (float) normal[2]);
+					i++;
 				}
 			}
 			
