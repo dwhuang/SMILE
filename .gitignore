@@ -9,3 +9,4 @@ tabletop-*
 demo-*
 .settings
 tags
+*.dylib
