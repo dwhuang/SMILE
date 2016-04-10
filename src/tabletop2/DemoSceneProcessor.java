@@ -6,6 +6,9 @@ package tabletop2;
 
 import java.util.ArrayList;
 
+import tabletop2.util.MyWireBox;
+import tabletop2.util.MyWireSphere;
+
 import com.jme3.bounding.BoundingBox;
 import com.jme3.bounding.BoundingSphere;
 import com.jme3.bounding.BoundingVolume;
@@ -23,8 +26,6 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.debug.WireBox;
-import com.jme3.scene.debug.WireSphere;
 import com.jme3.texture.FrameBuffer;
 
 /**
@@ -112,23 +113,19 @@ public class DemoSceneProcessor implements SceneProcessor {
                         BoundingVolume vol = g.getModelBound();
                         
                         if (g.getUserData("scale") != null) {
-                            Transform t = new Transform();
-                            t = t.setScale((float) g.getUserData("scale")); 
-                            vol = vol.transform(t);
-                            vol.setCenter(g.getModelBound().getCenter());
-              
+                            Transform scale = new Transform();
+                            scale = scale.setScale((float) g.getUserData("scale")); 
+                            vol = vol.transform(scale);
                         }
-
                         
                         Mesh wireframe;
                         if (vol.getType() == BoundingVolume.Type.AABB) {
-                            wireframe = new WireBox();
-                            ((WireBox)wireframe).fromBoundingBox((BoundingBox)vol);
+                            wireframe = new MyWireBox();
+                            ((MyWireBox)wireframe).fromBoundingBox((BoundingBox)vol);
                         } else {
-                            wireframe = new WireSphere();
-                            ((WireSphere)wireframe).fromBoundingSphere((BoundingSphere)vol);
+                            wireframe = new MyWireSphere();
+                            ((MyWireSphere)wireframe).fromBoundingSphere((BoundingSphere)vol);
                         }
-                        wireframe.setLineWidth(3);                        
                         g.setMesh(wireframe);
                         g.getMesh().setLineWidth(2);
                         g.setLocalScale(1.01f);
