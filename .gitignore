@@ -1,12 +1,9 @@
-/nbproject/private/
-/build/
-/dist/
-/matlab/demoImages/
 bin
 export
 demo
-tabletop-*
 demo-*
+tabletop-*
 .settings
 tags
 *.dylib
+javadoc

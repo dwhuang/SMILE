@@ -1,0 +1,22 @@
+			      
+                      j3d.org Core Licensing information
+
+This codebase contains a lot of code, licensed under a number of different
+licenses, dependent on the intended use. The text for each license may be
+found in the same directory as this file is located.
+
+Each directory is given relative to the root of the tree as checked out
+from CVS.
+
+GNU LGPL (LGPL.txt):
+  All code under the /src directory
+  All code under the /make directory
+
+BSD (BSD.txt):
+  All code under /examples
+
+Documents under /docs are not currently assigned a license, thus
+redistributable under standard copyright terms.
+
+Files in /contrib each have their own license. Please consult the source
+to find out in each specific case.

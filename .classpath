@@ -1,10 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="tabletop2/util/GraspNode.java" kind="src" path="src"/>
+	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="assets"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
-	<classpathentry kind="var" path="JME_LIB"/>
-	<classpathentry kind="var" path="MATLABCONTROL_LIB"/>
-	<classpathentry kind="var" path="J3D_LIB"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/eventbus.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/gluegen-rt.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/j-ogg-oggd.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/j-ogg-vorbisd.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jbullet.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jglfont-core.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jinput.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-blender.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-core.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-desktop.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-effects.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-jbullet.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-jogg.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-lwjgl-natives.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-lwjgl.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-networking.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-niftygui.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-openal-soft-natives-android.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-plugins.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-terrain.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jME3-testdata.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/joal.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/jogl-all.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/lwjgl.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/nifty-default-controls.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/nifty-examples.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/nifty-style-black.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/nifty.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/stack-alloc.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/vecmath.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/jme3.0/lib/xmlpull-xpp3.jar" sourcepath="lib/jme3.0/src.zip"/>
+	<classpathentry kind="lib" path="lib/matlabcontrol/matlabcontrol-4.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/j3d-org-code-1/jars/j3d-org-all_1.1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
