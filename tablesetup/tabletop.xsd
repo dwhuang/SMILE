@@ -76,14 +76,10 @@
         <attributeGroup ref="tt:simpleObjectCommonAttrs"/>
 	</attributeGroup>
 
-	<attributeGroup name="customShapeAttrs">
-        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-		<attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
-		<attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
-		<attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
-		<attribute name="mass" type="tt:massType"  use="optional" default="1"/>
-		<attribute name="scale" type="tt:spanType" use="optional" default="1"/>
+	<attributeGroup name="customAttrs">
 		<attribute name="file" type="tt:fileType" use="required" />
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+		<attribute name="scale" type="tt:spanType" use="optional" default="1"/>
 		<attributeGroup ref="tt:simpleObjectCommonAttrs" />
 	</attributeGroup>
 	
@@ -122,9 +118,9 @@
                     </complexType>
                 </element>
                 <element name="composite" type="tt:compositeType"/>
-                <element name="customShape">
+                <element name="custom">
                 	<complexType>
-                		<attributeGroup ref="tt:customShapeAttrs"/>
+                		<attributeGroup ref="tt:customAttrs"/>
                 	</complexType>
                 </element>
             </choice>
@@ -160,9 +156,10 @@
 	                        <attributeGroup ref="tt:boxAttrs"/>
 	                    </complexType>
 	                </element>
-	                <element name="customShape">
+	                <element name="custom">
 	                	<complexType>
-	                		<attributeGroup ref="tt:customShapeAttrs"/>
+                            <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+	                		<attributeGroup ref="tt:customAttrs"/>
 	                	</complexType>
 	                </element>
 	                <element name="composite">

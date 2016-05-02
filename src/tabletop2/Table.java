@@ -202,8 +202,8 @@ public class Table implements ActionListener {
 					processDockElement(elm);
 				} else if (elm.getNodeName().equals("cartridge")) {
 					processCartridgeElement(elm);
-				} else if (elm.getNodeName().equals("customShape")) {
-					processCustomShapeElement(elm, true);
+				} else if (elm.getNodeName().equals("custom")) {
+					processCustomElement(elm, true);
 				}
 			}
 		}
@@ -241,6 +241,12 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
+			
+	        s.setUserData("obj_shape", "block");
+	        s.setUserData("obj_xspan", xspan);
+	        s.setUserData("obj_zspan", yspan);
+	        s.setUserData("obj_yspan", zspan);
+	        s.setUserData("obj_color", color);	        
 		}
 				
 		return s;
@@ -267,6 +273,11 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
+
+			s.setUserData("obj_shape", "cylinder");
+	        s.setUserData("obj_radius", radius);
+	        s.setUserData("obj_yspan", zspan);
+	        s.setUserData("obj_color", color);
 		}
 		
 		return s;
@@ -292,6 +303,10 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
+
+	        s.setUserData("obj_shape", "cylinder");
+	        s.setUserData("obj_radius", radius);
+	        s.setUserData("obj_color", color);
 		}
 		
 		return s;
@@ -320,6 +335,13 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
+
+			s.setUserData("obj_shape", "box");
+	        s.setUserData("obj_xspan", xspan);
+	        s.setUserData("obj_zspan", yspan);
+	        s.setUserData("obj_yspan", zspan);
+	        s.setUserData("obj_color", color);
+	        s.setUserData("obj_thickness", thickness); 
 		}
 		
 		return s;
@@ -354,8 +376,8 @@ public class Table implements ActionListener {
 					node.attachChild(processBoxElement(child, false));
 				} else if (child.getNodeName().equals("composite")) {
 					node.attachChild(processCompositeElement(child, false));
-				} else if (child.getNodeName().equals("customShape")) {
-					node.attachChild(processCustomShapeElement(child, false));
+				} else if (child.getNodeName().equals("custom")) {
+					node.attachChild(processCustomElement(child, false));
 				}
 			}
 		}
@@ -366,11 +388,7 @@ public class Table implements ActionListener {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
 
-			node.setUserData("obj_shape", "composite");
-						
-//			if (id.equals("screwdriver")) {
-//				inventory.addFixedJoint(node, inventory.getItem("bolt0"), Vector3f.ZERO, Vector3f.ZERO);
-//			}
+			node.setUserData("obj_shape", "composite");						
 		}
 		
 		return node;
@@ -418,6 +436,10 @@ public class Table implements ActionListener {
 		startNode.setLocalTranslation(start);
 		startNode.setLocalRotation(rotStartEndDir);
 		inventory.addItem(startNode, 0);
+		startNode.setUserData("obj_shape", "chain-endpoint");
+		startNode.setUserData("obj_xspan", endNodesSize.x);
+		startNode.setUserData("obj_yspan", endNodesSize.z);
+		startNode.setUserData("obj_zspan", endNodesSize.y);
 		
 		// make end node (static)
 		id = getUniqueId(groupId + "-end");
@@ -426,6 +448,10 @@ public class Table implements ActionListener {
 		endNode.setLocalTranslation(end);
 		endNode.setLocalRotation(rotStartEndDir);
 		inventory.addItem(endNode, 0);
+		startNode.setUserData("obj_shape", "chain-endpoint");
+		startNode.setUserData("obj_xspan", endNodesSize.x);
+		startNode.setUserData("obj_yspan", endNodesSize.z);
+		startNode.setUserData("obj_zspan", endNodesSize.y);
 		
 		Spatial prevSpatial = startNode;
 		Vector3f prevJointPt = new Vector3f(0, 0, -endNodesSize.z);
@@ -438,6 +464,11 @@ public class Table implements ActionListener {
 			link.setLocalTranslation(vec);
 			inventory.addItem(link, linkMass, new BoxCollisionShape(linkPhysicsSize));
 			link.getControl(MyRigidBodyControl.class).setAngularDamping(1);
+			link.setUserData("obj_shape", "chain-link");
+			link.setUserData("obj_xspan", linkXspan);
+			link.setUserData("obj_yspan", linkZspan);
+			link.setUserData("obj_zspan", linkYspan);
+			link.setUserData("obj_color", color);
 			
 			// connect the link using a joint (or constraint)
 			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link, 
@@ -480,6 +511,12 @@ public class Table implements ActionListener {
 		box.setLocalTransform(tf);
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 		inventory.addItem(box, mass);
+		box.setUserData("obj_shape", "box");
+		box.setUserData("obj_xspan", xspan);
+		box.setUserData("obj_zspan", yspan);
+		box.setUserData("obj_yspan", zspan);
+		box.setUserData("obj_thickness", thickness);
+		box.setUserData("color", color);
 		
 		id = getUniqueId(groupId + "-lid");
 		Node lid = new Node(id); 
@@ -492,19 +529,29 @@ public class Table implements ActionListener {
 		lid.setLocalTranslation(0, yspan / 2 + thickness / 2, 0);
 		lid.setLocalTransform(lid.getLocalTransform().combineWithParent(tf));
 		float lidMass = Float.parseFloat(elm.getAttribute("lidMass"));
-		inventory.addItem(lid, lidMass);
-		
+		inventory.addItem(lid, lidMass);		
 		lid.setUserData("obj_shape", "lid");
-		lid.setUserData("obj_width", lidPlate.getUserData("obj_width"));
-		lid.setUserData("obj_height", lidPlate.getUserData("obj_height"));
-		lid.setUserData("obj_depth", lidPlate.getUserData("obj_depth"));
-		lid.setUserData("obj_handleWidth", lidHandle.getUserData("obj_width"));
-		lid.setUserData("obj_handleHeight", lidHandle.getUserData("obj_height"));
-		lid.setUserData("obj_handleDepth", lidHandle.getUserData("obj_depth"));
-		lid.setUserData("obj_handleThickness", lidHandle.getUserData("obj_thickness"));		
+		lid.setUserData("obj_xspan", xspan);
+		lid.setUserData("obj_zspan", thickness);
+		lid.setUserData("obj_yspan", zspan);
+		lid.setUserData("obj_handleXspan", handleXspan);
+		lid.setUserData("obj_handleZspan", handleYspan);
+		lid.setUserData("obj_handleYspan", handleZspan);
+		lid.setUserData("obj_handleThickness", handleThickness);		
+		lid.setUserData("obj_color", handleColor);		
 		
-		inventory.addSliderJoint(box, lid, new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), 
+		inventory.addSliderJoint(box, lid, 
+				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), 
 				0, xspan);
+//		joint.setDampingDirLin(0.1f);
+//		joint.setDampingDirAng(0.1f);
+//		joint.setSoftnessOrthoLin(1);
+//		joint.setSoftnessOrthoAng(1);
+//		System.out.println(joint.getDampingDirLin());
+//		System.out.println(joint.getDampingDirAng());
+//		System.out.println(joint.getSoftnessOrthoLin());
+//		System.out.println(joint.getSoftnessOrthoAng());
+
 //		joint.setCollisionBetweenLinkedBodys(false);
 //		joint.setLowerLinLimit(0);
 //		joint.setUpperLinLimit(xspan);
@@ -804,32 +851,28 @@ public class Table implements ActionListener {
 		joint.setSoftnessOrthoAng(1);
 	}
 
-	private Spatial processCustomShapeElement(Element elm, boolean isWhole) {
-		
+	private Spatial processCustomElement(Element elm, boolean isWhole) {		
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
-		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
-		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		float scale = Float.parseFloat(elm.getAttribute("scale"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		float scale = Float.parseFloat(elm.getAttribute("scale"));
 		String file = elm.getAttribute("file");
-		float mass = Float.parseFloat(elm.getAttribute("mass"));
 
-		Spatial s = factory.makeCustom(id, file, xspan, yspan, zspan, color, scale);
+		Spatial s = factory.makeCustom(id, file, color, scale);
 		s.setLocalTranslation(location);
-		s.setLocalScale(scale);
-        s.updateModelBound();
-        
-		
 		s.setLocalRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+				
 		if (isWhole) {
+			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
+			
+			s.setUserData("obj_shape", "custom");
+			s.setUserData("obj_color", color);
+			s.setUserData("obj_scale", scale); 
 		}
 		
 		return s;
@@ -913,6 +956,8 @@ public class Table implements ActionListener {
 		att.setUserData("assemblyEnd", 1);
 		node.attachChild(att);
 		
+		inventory.addItem(node, mass);		
+
 		// annotate...
 		node.setUserData("obj_shape", "cartridge");
 		node.setUserData("obj_width", xspan);
@@ -921,8 +966,6 @@ public class Table implements ActionListener {
 		node.setUserData("obj_color", bodyColor);
 		node.setUserData("obj_handleColor", handleColor);
 		node.setUserData("obj_topColor", topColor);
-
-		inventory.addItem(node, mass);		
 	}	
 
 	private Vector3f parseVector3(String str) {

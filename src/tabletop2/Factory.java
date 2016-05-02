@@ -52,18 +52,10 @@ public class Factory {
         Geometry block = new Geometry(name, new Box(w / 2, h / 2, d / 2));
         block.setMaterial(mat);
 
-        block.setUserData("obj_shape", "block");
-        block.setUserData("obj_width", w);
-        block.setUserData("obj_height", h);
-        block.setUserData("obj_depth", d);
-        block.setUserData("obj_color", color);
-        
         return block;
     }
     
-    public Geometry makeCustom(String name, String file_name, float w, float h, float d, ColorRGBA color, float scale) {
-    
-    	
+    public Node makeCustom(String name, String file_name, ColorRGBA color, float scale) {
     	double normal[], vertex[][];
     	Vector3f[] normals;
         Vector3f[] vertices;
@@ -95,8 +87,7 @@ public class Factory {
 					normals[i] = new Vector3f((float) normal[0], (float) normal[1], (float) normal[2]);
 					i++;
 				}
-			}
-			
+			}			
 		} catch (FileNotFoundException ex) {
 			JOptionPane.showMessageDialog(null, file_name + " is not a valid path");
 			return null;
@@ -106,13 +97,10 @@ public class Factory {
 			return null;
 		}
 		
-        Mesh mesh = new Mesh();
-        
-        
+        Mesh mesh = new Mesh();                
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
-        mesh.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indices));
-        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals)); 
-        
+        mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indices));
+        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));         
         mesh.updateBound();
         
 		//Create the material
@@ -123,13 +111,16 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
         //mat.setBoolean("HighQuality", false);
-        
-        
-        Geometry custom = new Geometry(name, mesh);
+                
+        Geometry custom = new Geometry(name + "-geometry", mesh);
         custom.setMaterial(mat);  
-        custom.setUserData("scale", scale);
+        custom.setLocalScale(scale);
 
-    	return custom;
+        // for "hiding" local scale
+        Node customNode = new Node(name);
+        customNode.attachChild(custom);
+        
+    	return customNode;
     }
     
     public Node makeBigBlock(String name, float w, float h, float d, 
@@ -217,15 +208,6 @@ public class Factory {
         s.setLocalTranslation(0, halfYT, -halfZT + halfD);
         boxContainer.attachChild(s);
         
-        boxContainer.setUserData("obj_shape", "box");
-        boxContainer.setUserData("obj_width", w);
-        boxContainer.setUserData("obj_height", h);
-        boxContainer.setUserData("obj_depth", d);
-        boxContainer.setUserData("obj_color", color);
-        boxContainer.setUserData("obj_xthickness", xThickness); 
-        boxContainer.setUserData("obj_ythickness", zThickness); 
-        boxContainer.setUserData("obj_zthickness", yThickness); 
-
         return boxContainer;
     }
     
@@ -240,11 +222,6 @@ public class Factory {
 //        mat.setBoolean("HighQuality", false);
         Geometry cylinder = new Geometry(name, new Cylinder(32, 32, radius, height, true));
         cylinder.setMaterial(mat);
-
-        cylinder.setUserData("obj_shape", "cylinder");
-        cylinder.setUserData("obj_radius", radius);
-        cylinder.setUserData("obj_height", height);
-        cylinder.setUserData("obj_color", color);
 
         return cylinder;        
     }
@@ -261,10 +238,6 @@ public class Factory {
 //        mat.setBoolean("HighQuality", false);
         Geometry sphere = new Geometry(name, new Sphere(16, 16, radius));
         sphere.setMaterial(mat);
-
-        sphere.setUserData("obj_shape", "cylinder");
-        sphere.setUserData("obj_radius", radius);
-        sphere.setUserData("obj_color", color);
 
         return sphere;
     }
