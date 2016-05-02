@@ -50,7 +50,7 @@
   <block xspan="5" yspan="1" zspan="1" color="red" location="(6.5, 3, 3.5)" rotation="(0, 0, 0)"/>
 
   <block xspan="1" yspan="3" zspan="1" color="blue" location="(0, -1, 0.5)" rotation="(0, 0, 0)"/>
-  <lidbox xspan="5" yspan="3" zspan="1" thickness="0.3" location="(-1, -1, 1.5)" color="darkgray" handleColor="gray" handleZspan="0.3"/>
+  <lidbox xspan="5" yspan="3" zspan="1" thickness="0.3" location="(-1, -1, 1.5)" color="darkgray" handleColor="gray" handleZspan="0.3" handleThickness="0.15"/>
   <block xspan="4" yspan="0.5" zspan="0.5" color="red" location="(-1, -1.5, 1.5)" rotation="(0, 0, 0)"/>
   <block xspan="4" yspan="0.5" zspan="0.5" color="green" location="(-1, -0.5, 1.5)" rotation="(0, 0, 0)"/>
 
