@@ -49,12 +49,6 @@
 				value="\s*[(]\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*,\s*([\-]?\d*(\.\d+)?)\s*[)]\s*" />
 		</restriction>
 	</simpleType>
-    <simpleType name="functionTypeType">
-        <restriction base="string">
-            <pattern value="magnet_s"/>
-            <pattern value="magnet_n"/>
-        </restriction>
-    </simpleType>
 
 	<attributeGroup name="simpleObjectCommonAttrs">
 		<attribute name="id" type="tt:idType" use="optional"/>
@@ -104,17 +98,6 @@
         <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
 	</attributeGroup>
 
-    <complexType name="function">
-        <attributeGroup ref="tt:simpleObjectCommonAttrs">
-            <annotation>
-                <documentation>without any rotation, the direction of the
-                    functional spot points to the -Y direction
-                </documentation>
-            </annotation>
-        </attributeGroup>
-		<attribute name="type" type="tt:functionTypeType" use="required"/>
-    </complexType>
-
     <complexType name="compositeType">
         <sequence minOccurs="0" maxOccurs="unbounded">
             <choice>
@@ -139,7 +122,6 @@
                     </complexType>
                 </element>
                 <element name="composite" type="tt:compositeType"/>
-                <element name="function" type="tt:function"/>
                 <element name="customShape">
                 	<complexType>
                 		<attributeGroup ref="tt:customShapeAttrs"/>

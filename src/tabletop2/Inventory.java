@@ -10,7 +10,6 @@ import tabletop2.util.MyRigidBodyControl;
 import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
-import com.jme3.bullet.collision.shapes.SphereCollisionShape;
 import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.bullet.joints.SixDofJoint;
@@ -63,23 +62,6 @@ public class Inventory {
     	rootNode.attachChild(item);
     	items.add(item);
     	
-    	// add ghost control for assemblable objects    	 
-    	item.depthFirstTraversal(new SceneGraphVisitor() {
-			@Override
-			public void visit(Spatial s) {
-				String assemblyName = s.getUserData("assembly"); 
-				if (assemblyName != null && s instanceof Node) {
-					GhostControl gc = new GhostControl(
-							new SphereCollisionShape(AssemblyDetector.COLLISION_SPHERE_RADIUS));
-					gc.setCollisionGroup(AssemblyDetector.COLLISION_GROUP);
-					gc.setCollideWithGroups(AssemblyDetector.COLLISION_GROUP);
-					s.addControl(gc);
-					bulletAppState.getPhysicsSpace().add(gc);
-//					assemblyNames.put((Node) s, assemblyName);
-				}
-			}			    		
-    	});
-
     	for (InventoryListener l : listeners) {
     		l.objectCreated(item);
     	}
