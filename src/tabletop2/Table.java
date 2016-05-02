@@ -325,23 +325,6 @@ public class Table implements ActionListener {
 		return s;
 	}
 	
-	private Spatial processFunctionElement(Element elm) {
-		String id = elm.getAttribute("id");
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		String type = elm.getAttribute("type");
-		
-		Node node = new Node(id);
-		node.setLocalTranslation(location);
-		node.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD,
-				rotation.y * FastMath.DEG_TO_RAD,
-				rotation.z * FastMath.DEG_TO_RAD));
-		node.setUserData("obj_functionType", type);
-		
-		return node;
-	}
-
 	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
@@ -371,8 +354,6 @@ public class Table implements ActionListener {
 					node.attachChild(processBoxElement(child, false));
 				} else if (child.getNodeName().equals("composite")) {
 					node.attachChild(processCompositeElement(child, false));
-				} else if (child.getNodeName().equals("function")) {
-					node.attachChild(processFunctionElement(child));
 				} else if (child.getNodeName().equals("customShape")) {
 					node.attachChild(processCustomShapeElement(child, false));
 				}
