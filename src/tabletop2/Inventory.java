@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import tabletop2.util.MyRigidBodyControl;
+import tabletop2.util.MySliderJoint;
 
 import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.bullet.BulletAppState;
@@ -13,7 +14,7 @@ import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.bullet.joints.SixDofJoint;
-import com.jme3.bullet.joints.SliderJoint;
+import com.jme3.math.Matrix3f;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
@@ -115,19 +116,31 @@ public class Inventory {
     	return joint;
     }
     
-    public SliderJoint addSliderJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2,
-    		float lowerLinLimit, float upperLinLimit) {
+    public MySliderJoint addSliderJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2,
+    		Matrix3f rot1, Matrix3f rot2, float lowerLinLimit, float upperLinLimit, boolean collision) {
     	if (!items.contains(item1)) {
     		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
     	}
     	if (!items.contains(item2)) {
     		throw new IllegalArgumentException(item2 + " does not exist in the inventory");
-    	}
+    	}    	
     	MyRigidBodyControl c1 = item1.getControl(MyRigidBodyControl.class);
     	MyRigidBodyControl c2 = item2.getControl(MyRigidBodyControl.class);
+    	if (refPt1 == null) {
+    		refPt1 = new Vector3f();    		
+    	}
+    	if (refPt2 == null) {
+    		refPt2 = new Vector3f();    		
+    	}
+    	if (rot1 == null) {
+    		rot1 = new Matrix3f();    		
+    	}
+    	if (rot2 == null) {
+    		rot2 = new Matrix3f();    		
+    	}
     	
-    	SliderJoint joint = new SliderJoint(c1, c2, refPt1, refPt2, false);
-    	joint.setCollisionBetweenLinkedBodys(false);
+    	MySliderJoint joint = new MySliderJoint(c1, c2, refPt1, refPt2, rot1, rot2, false);
+    	joint.setCollisionBetweenLinkedBodys(collision);
     	joint.setUpperLinLimit(upperLinLimit);
     	joint.setLowerLinLimit(lowerLinLimit);
         joints.add(joint);
@@ -396,7 +409,6 @@ public class Inventory {
 	}
 	
     public class Memento {
-    	// TODO: fix for functional spot joints
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
     	private HashSet<SpatialFuncInfo> spatialFuncInfoSet = new HashSet<>();
@@ -423,10 +435,9 @@ public class Inventory {
 			Spatial item1 = ((MyRigidBodyControl)joint.getBodyA()).getSpatial();
 			Spatial item2 = ((MyRigidBodyControl)joint.getBodyB()).getSpatial();
 			JointInfo info = new JointInfo();
-			if (joint instanceof SliderJoint) {
+			if (joint instanceof MySliderJoint) {
 				info.type = JointType.Slider;
-				info.param.put("lowerLinLimit", new Float(((SliderJoint) joint).getLowerLinLimit()));
-				info.param.put("upperLinLimit", new Float(((SliderJoint) joint).getUpperLinLimit()));
+				((MySliderJoint) joint).saveParam(info.param);
 			} else if (joint instanceof SixDofJoint) {
 				info.type = JointType.SixDof;
 			}
@@ -458,8 +469,9 @@ public class Inventory {
     	}
     	for (JointInfo info : m.jointInfoSet) {
     		if (info.type == JointType.Slider) {
-        		addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2,
-        				(Float) info.param.get("lowerLinLimit"), (Float) info.param.get("upperLinLimit"));
+        		MySliderJoint joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2, 
+        				null, null, 0, 0, false);
+        		joint.loadParam(info.param);
     		} else {
     			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);
     		}

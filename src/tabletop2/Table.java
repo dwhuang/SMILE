@@ -22,12 +22,12 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import tabletop2.util.MyRigidBodyControl;
+import tabletop2.util.MySliderJoint;
 
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
 import com.jme3.bullet.joints.SixDofJoint;
-import com.jme3.bullet.joints.SliderJoint;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -192,6 +192,12 @@ public class Table implements ActionListener {
 					processSphereElement(elm, true);
 				} else if (elm.getNodeName().equals("box")) {
 					processBoxElement(elm, true);
+				} else if (elm.getNodeName().equals("custom")) {
+					processCustomElement(elm, true);
+				} else if (elm.getNodeName().equals("lid")) {
+					processLidElement(elm, true);
+				} else if (elm.getNodeName().equals("cartridge")) {
+					processCartridgeElement(elm, true);
 				} else if (elm.getNodeName().equals("composite")) {
 					processCompositeElement(elm, true);
 				} else if (elm.getNodeName().equals("chain")) {
@@ -200,10 +206,8 @@ public class Table implements ActionListener {
 					processLidBoxElement(elm);
 				} else if (elm.getNodeName().equals("dock")) {
 					processDockElement(elm);
-				} else if (elm.getNodeName().equals("cartridge")) {
-					processCartridgeElement(elm);
-				} else if (elm.getNodeName().equals("custom")) {
-					processCustomElement(elm, true);
+				} else if (elm.getNodeName().equals("sliderJoint")) {
+					processSliderJointElement(elm);
 				}
 			}
 		}
@@ -219,6 +223,86 @@ public class Table implements ActionListener {
 		rootNode.attachChild(tableSpatial);
 	}
 	
+	private void processSliderJointElement(Element e) {
+		// ignore id
+		Vector3f location = parseVector3(e.getAttribute("location"));
+		Vector3f rotation = parseVector3(e.getAttribute("rotation"));
+		float min = Float.parseFloat(e.getAttribute("min"));
+		float max = Float.parseFloat(e.getAttribute("max"));
+		if (min > max) {
+			logger.log(Level.SEVERE, "slider joint has min > max");
+			return;
+		}
+		float init = Float.parseFloat(e.getAttribute("init"));
+		init = FastMath.clamp(init, min, max);
+		boolean collision = Boolean.parseBoolean(e.getAttribute("collision"));
+		
+		Spatial[] objs = new Spatial[2];
+		int k = 0;
+		NodeList children = e.getChildNodes();
+		for (int i = 0; i < children.getLength(); ++i) {
+			if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+				Element child = (Element) children.item(i);
+				Spatial obj = null;
+				if (child.getNodeName().equals("block")) {
+					obj = processBlockElement(child, true);
+				} else if (child.getNodeName().equals("cylinder")) {
+					obj = processCylinderElement(child, true);
+				} else if (child.getNodeName().equals("sphere")) {
+					obj = processSphereElement(child, true);
+				} else if (child.getNodeName().equals("box")) {
+					obj = processBoxElement(child, true);
+				} else if (child.getNodeName().equals("custom")) {
+					obj = processCustomElement(child, true);
+				} else if (child.getNodeName().equals("lid")) {
+					obj = processLidElement(child, true);
+				} else if (child.getNodeName().equals("cartridge")) {
+					obj = processCartridgeElement(child, true);
+				} else if (child.getNodeName().equals("composite")) {
+					obj = processCompositeElement(child, true);
+				}
+				if (obj != null) {
+					objs[k] = obj;
+					++k;
+				}
+			}
+		}
+		if (objs[0] != null && objs[1] != null) {
+			Transform jointTrans = new Transform(location, new Quaternion().fromAngles(
+					rotation.x * FastMath.DEG_TO_RAD,
+					rotation.y * FastMath.DEG_TO_RAD,
+					rotation.z * FastMath.DEG_TO_RAD));
+			MyRigidBodyControl c;
+			Transform trans;
+			
+			// transform obj1 using ((the joint's transform) * (obj1's local transform))
+			Transform obj1Trans = objs[0].getLocalTransform();
+			trans = obj1Trans.clone();
+			trans.combineWithParent(jointTrans);
+			c = objs[0].getControl(MyRigidBodyControl.class);
+			c.setPhysicsLocation(trans.getTranslation());
+			c.setPhysicsRotation(trans.getRotation());
+			
+			// transform obj2 using ((the joint's transform) * (slide to init pos) * (obj1's local transform))
+			Transform obj2Trans = objs[1].getLocalTransform();
+			trans = obj2Trans.clone();
+			trans.combineWithParent(new Transform(Vector3f.UNIT_X.mult(-init))); // slide to initial position
+			trans.combineWithParent(jointTrans);
+			c = objs[1].getControl(MyRigidBodyControl.class);
+			c.setPhysicsLocation(trans.getTranslation());
+			c.setPhysicsRotation(trans.getRotation());			
+			
+			// note the negate/transpose: because the objects' local transforms are relative to the pivots,
+			// but these parameters take the pivots' transforms relative to the objects.
+			inventory.addSliderJoint(objs[0], objs[1], 
+					obj1Trans.getTranslation().negate(),
+					obj2Trans.getTranslation().negate(), 
+					obj1Trans.getRotation().toRotationMatrix().transpose(),
+					obj2Trans.getRotation().toRotationMatrix().transpose(), 
+					min, max, collision);
+		}
+	}
+
 	private Spatial processBlockElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
@@ -347,6 +431,174 @@ public class Table implements ActionListener {
 		return s;
 	}
 	
+	private Spatial processCustomElement(Element elm, boolean isWhole) {		
+		String id = getUniqueId(elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		float scale = Float.parseFloat(elm.getAttribute("scale"));
+		String file = elm.getAttribute("file");
+
+		Spatial s = factory.makeCustom(id, file, color, scale);
+		s.setLocalTranslation(location);
+		s.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+				
+		if (isWhole) {
+			float mass = Float.parseFloat(elm.getAttribute("mass"));
+			inventory.addItem(s, mass);
+			
+			s.setUserData("obj_shape", "custom");
+			s.setUserData("obj_color", color);
+			s.setUserData("obj_scale", scale); 
+		}
+		
+		return s;
+	}
+	
+	private Spatial processLidElement(Element elm, boolean isWhole) {
+		String id = elm.getAttribute("id");
+		if (isWhole) {
+			id = getUniqueId(id);
+		}
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
+		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
+		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
+		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
+		float handleThickness = Float.parseFloat(elm.getAttribute("handleThickness"));
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		
+		Node s = new Node(id); 
+		s.setLocalTranslation(location);
+		s.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		Spatial lidBody = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
+		s.attachChild(lidBody);
+		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan, 
+				handleThickness, handleColor);
+		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
+		s.attachChild(lidHandle);
+
+		if (isWhole) {
+			float lidMass = Float.parseFloat(elm.getAttribute("mass"));
+			inventory.addItem(s, lidMass);		
+		
+			s.setUserData("obj_shape", "lid");
+			s.setUserData("obj_color", color);
+			s.setUserData("obj_xspan", xspan);
+			s.setUserData("obj_yspan", zspan);
+			s.setUserData("obj_thickness", thickness);
+			s.setUserData("obj_handleXspan", handleXspan);
+			s.setUserData("obj_handleZspan", handleYspan);
+			s.setUserData("obj_handleYspan", handleZspan);
+			s.setUserData("obj_handleThickness", handleThickness);		
+			s.setUserData("obj_handleColor", handleColor);
+		}
+		
+		return s;
+	}
+	
+	private Spatial processCartridgeElement(Element elm, boolean isWhole) {
+		String groupId = getUniqueId(elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		ColorRGBA bodyColor = parseColor(elm.getAttribute("color"));
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		ColorRGBA topColor = parseColor(elm.getAttribute("topColor"));
+		float mass = Float.parseFloat(elm.getAttribute("mass"));
+		
+		Node node = new Node(groupId);
+		node.setLocalTranslation(location);
+		node.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		
+		String id;
+		// body - central piece
+		id = getUniqueId(groupId + "-bodyC");
+		float wBodyC = xspan * 3 / 7;
+		float hBodyC = yspan;
+		float dBodyC = zspan * 3 / 4;
+		Spatial bodyC = factory.makeBlock(id, wBodyC, hBodyC, dBodyC, bodyColor);
+		node.attachChild(bodyC);
+		// body - left piece
+		id = getUniqueId(groupId + "-bodyL");
+		float wBodyL = xspan * 2 / 7;
+		float hBodyL = yspan;
+		float dBodyL = zspan; // 0.8163f
+		Spatial bodyL = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
+		bodyL.setLocalTranslation(-(wBodyC / 2 + wBodyL / 2), 0, 0);
+		node.attachChild(bodyL);
+		// body - right piece
+		id = getUniqueId(groupId + "-bodyR");
+		Spatial bodyR = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
+		bodyR.setLocalTranslation(wBodyC / 2 + wBodyL / 2, 0, 0);
+		node.attachChild(bodyR);
+		// body - left foot
+		id = getUniqueId(groupId + "-bodyLF");
+		float wBodyLF = xspan * 0.3116f;
+		float hBodyLF = yspan * 0.1781f;
+		float dBodyLF = zspan;
+		Spatial bodyLF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
+		bodyLF.setLocalTranslation(-(wBodyC / 2 + wBodyLF / 2), -(hBodyL / 2 + hBodyLF / 2), 0);
+		node.attachChild(bodyLF);
+		// body - right foot
+		id = getUniqueId(groupId + "-bodyRF");
+		Spatial bodyRF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
+		bodyRF.setLocalTranslation(wBodyC / 2 + wBodyLF / 2, -(hBodyL / 2 + hBodyLF / 2), 0);
+		node.attachChild(bodyRF);
+		// top
+		id = getUniqueId(groupId + "-top");
+		float wTop = xspan * 1.1225f;
+		float hTop = yspan * 0.1818f;
+		float dTop = zspan * 1.225f;
+		Spatial top = factory.makeBlock(id, wTop, hTop, dTop, topColor);
+		top.setLocalTranslation(0, hBodyC / 2 + hTop / 2, 0);
+		node.attachChild(top);
+		// handle
+		id = getUniqueId(groupId + "-top");
+		float wHandle = xspan * 0.7375f;
+		float hHandle = yspan * 0.4545f;
+		float dHandle = zspan * 0.695f;
+		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
+		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
+		node.attachChild(handle);
+		// bottom attach point
+		id = getUniqueId(groupId + "-assemblyPoint");
+		Node att = new Node(id);
+		att.setLocalTranslation(0, -hBodyL / 2 - hBodyLF, 0);
+		att.setLocalRotation(new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0));
+		att.setUserData("assembly", "cartridgeSlot");
+		att.setUserData("assemblyEnd", 1);
+		node.attachChild(att);
+		
+		inventory.addItem(node, mass);		
+	
+		// annotate...
+		node.setUserData("obj_shape", "cartridge");
+		node.setUserData("obj_width", xspan);
+		node.setUserData("obj_height", yspan);
+		node.setUserData("obj_depth", zspan);
+		node.setUserData("obj_color", bodyColor);
+		node.setUserData("obj_handleColor", handleColor);
+		node.setUserData("obj_topColor", topColor);
+		
+		return node;
+	}
+
 	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
@@ -361,8 +613,8 @@ public class Table implements ActionListener {
 				rotation.x * FastMath.DEG_TO_RAD, 
 				rotation.y * FastMath.DEG_TO_RAD, 
 				rotation.z * FastMath.DEG_TO_RAD));
+		
 		NodeList children = elm.getChildNodes();
-
 		for (int i = 0; i < children.getLength(); ++i) {
 			if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
 				Element child = (Element) children.item(i);
@@ -374,16 +626,13 @@ public class Table implements ActionListener {
 					node.attachChild(processSphereElement(child, false));
 				} else if (child.getNodeName().equals("box")) {
 					node.attachChild(processBoxElement(child, false));
-				} else if (child.getNodeName().equals("composite")) {
-					node.attachChild(processCompositeElement(child, false));
 				} else if (child.getNodeName().equals("custom")) {
 					node.attachChild(processCustomElement(child, false));
+				} else if (child.getNodeName().equals("composite")) {
+					node.attachChild(processCompositeElement(child, false));
 				}
 			}
 		}
-
-		// functional spots are discarded for non-top level
-		
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
@@ -393,7 +642,7 @@ public class Table implements ActionListener {
 		
 		return node;
 	}
-
+	
 	private void processChainElement(Element elm) {
 		String groupId = getUniqueId(elm.getAttribute("id"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -541,8 +790,8 @@ public class Table implements ActionListener {
 		lid.setUserData("obj_color", handleColor);		
 		
 		inventory.addSliderJoint(box, lid, 
-				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), 
-				0, xspan);
+				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), null, null, 
+				0, xspan, false);
 //		joint.setDampingDirLin(0.1f);
 //		joint.setDampingDirAng(0.1f);
 //		joint.setSoftnessOrthoLin(1);
@@ -843,130 +1092,13 @@ public class Table implements ActionListener {
 		}
 		
 		// sliding joint
-		SliderJoint joint = inventory.addSliderJoint(dockNode, caseNode, 
-				Vector3f.ZERO, Vector3f.ZERO, 0, wBase);
+		MySliderJoint joint = inventory.addSliderJoint(dockNode, caseNode, 
+				Vector3f.ZERO, Vector3f.ZERO, null, null, 0, wBase, false);
 		joint.setDampingDirLin(1);
 		joint.setDampingDirAng(1);
 		joint.setSoftnessOrthoLin(1);
 		joint.setSoftnessOrthoAng(1);
 	}
-
-	private Spatial processCustomElement(Element elm, boolean isWhole) {		
-		String id = getUniqueId(elm.getAttribute("id"));
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		ColorRGBA color = parseColor(elm.getAttribute("color"));
-		float scale = Float.parseFloat(elm.getAttribute("scale"));
-		String file = elm.getAttribute("file");
-
-		Spatial s = factory.makeCustom(id, file, color, scale);
-		s.setLocalTranslation(location);
-		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));
-				
-		if (isWhole) {
-			float mass = Float.parseFloat(elm.getAttribute("mass"));
-			inventory.addItem(s, mass);
-			
-			s.setUserData("obj_shape", "custom");
-			s.setUserData("obj_color", color);
-			s.setUserData("obj_scale", scale); 
-		}
-		
-		return s;
-	}
-	
-	private void processCartridgeElement(Element elm) {
-		String groupId = getUniqueId(elm.getAttribute("id"));
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
-		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
-		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		ColorRGBA bodyColor = parseColor(elm.getAttribute("color"));
-		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-		ColorRGBA topColor = parseColor(elm.getAttribute("topColor"));
-		float mass = Float.parseFloat(elm.getAttribute("mass"));
-		
-		Node node = new Node(groupId);
-		node.setLocalTranslation(location);
-		node.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));
-		
-		String id;
-		// body - central piece
-		id = getUniqueId(groupId + "-bodyC");
-		float wBodyC = xspan * 3 / 7;
-		float hBodyC = yspan;
-		float dBodyC = zspan * 3 / 4;
-		Spatial bodyC = factory.makeBlock(id, wBodyC, hBodyC, dBodyC, bodyColor);
-		node.attachChild(bodyC);
-		// body - left piece
-		id = getUniqueId(groupId + "-bodyL");
-		float wBodyL = xspan * 2 / 7;
-		float hBodyL = yspan;
-		float dBodyL = zspan; // 0.8163f
-		Spatial bodyL = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
-		bodyL.setLocalTranslation(-(wBodyC / 2 + wBodyL / 2), 0, 0);
-		node.attachChild(bodyL);
-		// body - right piece
-		id = getUniqueId(groupId + "-bodyR");
-		Spatial bodyR = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
-		bodyR.setLocalTranslation(wBodyC / 2 + wBodyL / 2, 0, 0);
-		node.attachChild(bodyR);
-		// body - left foot
-		id = getUniqueId(groupId + "-bodyLF");
-		float wBodyLF = xspan * 0.3116f;
-		float hBodyLF = yspan * 0.1781f;
-		float dBodyLF = zspan;
-		Spatial bodyLF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
-		bodyLF.setLocalTranslation(-(wBodyC / 2 + wBodyLF / 2), -(hBodyL / 2 + hBodyLF / 2), 0);
-		node.attachChild(bodyLF);
-		// body - right foot
-		id = getUniqueId(groupId + "-bodyRF");
-		Spatial bodyRF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
-		bodyRF.setLocalTranslation(wBodyC / 2 + wBodyLF / 2, -(hBodyL / 2 + hBodyLF / 2), 0);
-		node.attachChild(bodyRF);
-		// top
-		id = getUniqueId(groupId + "-top");
-		float wTop = xspan * 1.1225f;
-		float hTop = yspan * 0.1818f;
-		float dTop = zspan * 1.225f;
-		Spatial top = factory.makeBlock(id, wTop, hTop, dTop, topColor);
-		top.setLocalTranslation(0, hBodyC / 2 + hTop / 2, 0);
-		node.attachChild(top);
-		// handle
-		id = getUniqueId(groupId + "-top");
-		float wHandle = xspan * 0.7375f;
-		float hHandle = yspan * 0.4545f;
-		float dHandle = zspan * 0.695f;
-		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
-		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
-		node.attachChild(handle);
-		// bottom attach point
-		id = getUniqueId(groupId + "-assemblyPoint");
-		Node att = new Node(id);
-		att.setLocalTranslation(0, -hBodyL / 2 - hBodyLF, 0);
-		att.setLocalRotation(new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0));
-		att.setUserData("assembly", "cartridgeSlot");
-		att.setUserData("assemblyEnd", 1);
-		node.attachChild(att);
-		
-		inventory.addItem(node, mass);		
-
-		// annotate...
-		node.setUserData("obj_shape", "cartridge");
-		node.setUserData("obj_width", xspan);
-		node.setUserData("obj_height", yspan);
-		node.setUserData("obj_depth", zspan);
-		node.setUserData("obj_color", bodyColor);
-		node.setUserData("obj_handleColor", handleColor);
-		node.setUserData("obj_topColor", topColor);
-	}	
 
 	private Vector3f parseVector3(String str) {
 		Pattern pattern = Pattern.compile("^\\s*\\((\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\)\\s*$");
