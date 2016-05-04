@@ -3,7 +3,10 @@ package tabletop2;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -111,7 +114,7 @@ public class Table implements ActionListener {
 		}
 		idSN = 0;
 		
-		loadXml(xmlFname);
+		processXml(loadXml(xmlFname, null));
 		
 		// relocate the robot according to table size
     	robotLocationNode.setLocalTransform(Transform.IDENTITY);
@@ -119,7 +122,21 @@ public class Table implements ActionListener {
     	robotLocationNode.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));		
 	}
 	
-	private void loadXml(String xmlFname) {
+	private List<Element> loadXml(String xmlFname, Set<String> xmlFnameLoaded) {
+		// check if the current file has been loaded before
+		if (xmlFnameLoaded == null) {
+			// this is a root document (first, non-recursive call to this method)
+			xmlFnameLoaded = new HashSet<>();
+		}
+		if (xmlFnameLoaded.contains(xmlFname)) {
+			String msg = "xml file includes itself: " + xmlFname;
+			logger.log(Level.WARNING, msg);
+			showMessageDialog(msg, 400);
+			return new LinkedList<>();
+		} else {
+			xmlFnameLoaded.add(xmlFname);
+		}
+		// make document parser
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		dbf.setValidating(true);
@@ -131,9 +148,8 @@ public class Table implements ActionListener {
 		} catch (ParserConfigurationException e1) {
 			String msg = "parse error: " + xmlFname;
 			logger.log(Level.WARNING, msg, e1);
-			JOptionPane.showMessageDialog(null, msg + ": " + e1.getMessage());
-			makeTable();
-			return;
+			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+			return new LinkedList<>();
 		}
 		db.setErrorHandler(new ErrorHandler() {
 			@Override
@@ -150,67 +166,86 @@ public class Table implements ActionListener {
 				throw exception;
 			}
 		});
-		
+		// parse document
 		Document doc = null;
 		try {
 			doc = db.parse(new File(xmlFname));
 		} catch (SAXException e) {
 			String msg = "cannot parse " + xmlFname;
 			logger.log(Level.WARNING, msg, e);
-			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
-			makeTable();
-			return;
+			showMessageDialog(msg + ": " + e.getMessage(), 400);
+			return new LinkedList<>();
 		} catch (IOException e) {
 			String msg = "cannot read from " + xmlFname;
 			logger.log(Level.WARNING, msg, e);
-			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
-			makeTable();
-			return;
+			showMessageDialog(msg + ": " + e.getMessage(), 400);
+			return new LinkedList<>();
 		} catch (RuntimeException e) {
 			String msg = "an error occurs in " + xmlFname;
 			logger.log(Level.WARNING, msg, e);
-			JOptionPane.showMessageDialog(null, msg + ": " + e.getMessage());
-			makeTable();
-			return;
+			showMessageDialog(msg + ": " + e.getMessage(), 400);
+			return new LinkedList<>();
 		}
+
 		Element docRoot = doc.getDocumentElement();
-		// get table size
-		tableWidth = Float.parseFloat(docRoot.getAttribute("xspan"));
-		tableDepth = Float.parseFloat(docRoot.getAttribute("yspan"));
-		makeTable();
-		
-		NodeList firstLevelNodeList = docRoot.getChildNodes(); 
+		// load table width and height if at the root document 
+		if (xmlFnameLoaded.size() == 1) {
+			tableWidth = Float.parseFloat(docRoot.getAttribute("xspan"));
+			tableDepth = Float.parseFloat(docRoot.getAttribute("yspan"));
+		}
+		// collect all first-level element while recursively processing <include>
+		List<Element> elmList = new LinkedList<>();
+		NodeList firstLevelNodeList = docRoot.getChildNodes();
 		for (int i = 0; i < firstLevelNodeList.getLength(); ++i) {
 			org.w3c.dom.Node node = docRoot.getChildNodes().item(i);
 			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
 				Element elm = (Element) node;
-				if (elm.getNodeName().equals("block")) {
-					processBlockElement(elm, true);
-				} else if (elm.getNodeName().equals("cylinder")) {
-					processCylinderElement(elm, true);
-				} else if (elm.getNodeName().equals("sphere")) {
-					processSphereElement(elm, true);
-				} else if (elm.getNodeName().equals("box")) {
-					processBoxElement(elm, true);
-				} else if (elm.getNodeName().equals("custom")) {
-					processCustomElement(elm, true);
-				} else if (elm.getNodeName().equals("lid")) {
-					processLidElement(elm, true);
-				} else if (elm.getNodeName().equals("cartridge")) {
-					processCartridgeElement(elm, true);
-				} else if (elm.getNodeName().equals("composite")) {
-					processCompositeElement(elm, true);
-				} else if (elm.getNodeName().equals("chain")) {
-					processChainElement(elm);
-				} else if (elm.getNodeName().equals("lidbox")) {
-					processLidBoxElement(elm);
-				} else if (elm.getNodeName().equals("dock")) {
-					processDockElement(elm);
-				} else if (elm.getNodeName().equals("sliderJoint")) {
-					processSliderJointElement(elm);
+				if (elm.getNodeName().equals("include")) {
+					List<Element> subList = loadXml(elm.getAttribute("file"), xmlFnameLoaded);
+					elmList.addAll(subList);
+				} else {
+					elmList.add(elm);
 				}
 			}
 		}
+		
+		return elmList;
+	}
+	
+	private void processXml(List<Element> elmList) {
+		makeTable();		
+		
+		for (Element elm : elmList) {
+			if (elm.getNodeName().equals("block")) {
+				processBlockElement(elm, true);
+			} else if (elm.getNodeName().equals("cylinder")) {
+				processCylinderElement(elm, true);
+			} else if (elm.getNodeName().equals("sphere")) {
+				processSphereElement(elm, true);
+			} else if (elm.getNodeName().equals("box")) {
+				processBoxElement(elm, true);
+			} else if (elm.getNodeName().equals("custom")) {
+				processCustomElement(elm, true);
+			} else if (elm.getNodeName().equals("lid")) {
+				processLidElement(elm, true);
+			} else if (elm.getNodeName().equals("cartridge")) {
+				processCartridgeElement(elm, true);
+			} else if (elm.getNodeName().equals("composite")) {
+				processCompositeElement(elm, true);
+			} else if (elm.getNodeName().equals("chain")) {
+				processChainElement(elm);
+			} else if (elm.getNodeName().equals("lidbox")) {
+				processLidBoxElement(elm);
+			} else if (elm.getNodeName().equals("dock")) {
+				processDockElement(elm);
+			} else if (elm.getNodeName().equals("sliderJoint")) {
+				processSliderJointElement(elm);
+			}
+		}
+	}
+	
+	private void showMessageDialog(String msg, int dialogWidth) {
+		JOptionPane.showMessageDialog(null, "<html><body width='" + dialogWidth + "'>" + msg + "</body></html>");
 	}
 	
 	private void makeTable() {
