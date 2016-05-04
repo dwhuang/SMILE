@@ -110,6 +110,10 @@ public class Gripper implements AnalogListener {
         return phy.opening;
     }
     
+    public Physics getPhysics() {
+    	return phy;
+    }
+    
     public void addLocTrackers(String prefix, RobotLocTracker trackers) {
         // add "location sensors" that report their spatial locations
         float offset;

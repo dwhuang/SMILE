@@ -8,16 +8,19 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
+import tabletop2.util.MyRigidBodyControl;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.bullet.PhysicsSpace;
 import com.jme3.bullet.collision.shapes.CylinderCollisionShape;
-import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.bullet.control.PhysicsControl;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -122,6 +125,7 @@ public class Robot implements AnalogListener, ActionListener {
     
     private boolean demoCue = false;
     private float timeSinceLastHeadVision = 0;
+    private ArrayList<PhysicsControl> phyList = new ArrayList<>(); 
     
     private transient Vector3f vec = new Vector3f();
     private transient Quaternion quat = new Quaternion();    
@@ -175,9 +179,15 @@ public class Robot implements AnalogListener, ActionListener {
     public void toggleHide() {
     	if (!isHidden) {
     		rootNode.detachChild(robotLocationNode);
+    		for (PhysicsControl phy : phyList) {
+    			physicsSpace.remove(phy);
+    		}
     		isHidden = true;
     	} else {
     		rootNode.attachChild(robotLocationNode);
+    		for (PhysicsControl phy : phyList) {
+    			physicsSpace.add(phy);
+    		}
     		isHidden = false;
     	}
     }
@@ -217,6 +227,7 @@ public class Robot implements AnalogListener, ActionListener {
         rightGripper = new Gripper(name + "right-gripper", node, physicsSpace, factory);
         rightGripper.addLocTrackers("rg", locTrackers);
         rightEndEffector = node;
+        phyList.add(rightGripper.getPhysics());
         
         // left arm
         node = attachSpatialCenter(name + " left limb", base, 
@@ -227,6 +238,7 @@ public class Robot implements AnalogListener, ActionListener {
         leftGripper = new Gripper(name + "left-gripper", node, physicsSpace, factory);
         leftGripper.addLocTrackers("lg", locTrackers);
         leftEndEffector = node;
+        phyList.add(leftGripper.getPhysics());
 
         // enhance ambient color
         base.depthFirstTraversal(new SceneGraphVisitor() {
@@ -347,12 +359,13 @@ public class Robot implements AnalogListener, ActionListener {
         // make an upright cylinder
         vec.set(radius * SCALE, height / 2 * SCALE, radius * SCALE);
         CylinderCollisionShape cs = new CylinderCollisionShape(vec, 1);        
-        RigidBodyControl rbc = new RigidBodyControl(cs, mass * SCALE);
+        MyRigidBodyControl rbc = new MyRigidBodyControl(cs, mass * SCALE);
         node.addControl(rbc);
         physicsSpace.add(rbc);
-        rbc.setKinematic(true);        
+        rbc.setKinematic(true);
+        phyList.add(rbc);
     }
-    
+        
     private void addLocTrackers(String nodeNamePrefix, String prefix) {
     	Node node = (Node) base.getChild(nodeNamePrefix + " S1 center");
     	locTrackers.put(prefix + "-S1", node);
