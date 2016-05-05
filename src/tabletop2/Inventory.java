@@ -31,9 +31,7 @@ public class Inventory {
 	
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
-//    private HashMap<Spatial, HashMap<Node, FunctionalJoint>> functionalJoints = new HashMap<>();
-    private HashMap<Spatial, SpatialFunction> spatialFunctions = new HashMap<>();
-//    private HashMap<Node, String> assemblyNames = new HashMap<>();
+    private HashMap<Spatial, StateControl> stateControls = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
 
     
@@ -70,28 +68,28 @@ public class Inventory {
     	return rbc;
     }
     
-    public void registerSpatialFunction(Spatial s, SpatialFunction func) {
+    public void registerStateControl(Spatial s, StateControl c) {
     	Spatial item = getItem(s);
     	if (item == null) {
     		throw new IllegalArgumentException("Spatial " + s + " is not a part of any known item");
     	}
-    	spatialFunctions.put(s, func);
+    	stateControls.put(s, c);
     }
     
-    public SpatialFunction getFirstSpatialFunction(Spatial s) {
+    public StateControl getDeepestStateControlFromSpatial(Spatial s) {
     	while (s != null) {
-    		if (spatialFunctions.containsKey(s)) {
-    			return spatialFunctions.get(s);
+    		if (stateControls.containsKey(s)) {
+    			return stateControls.get(s);
     		}
     		s = s.getParent();
     	}
     	return null;
     }
     
-    public void notifySpatialFunctionTriggered(SpatialFunction func) {
+    public void notifyStateChanged(StateControl c) {
     	for (InventoryListener l : listeners) {
-    		Spatial s = func.getSpatial();
-    		l.objectTriggered(getItem(s), s.getName(), func.getState());
+    		Spatial s = c.getSpatial();
+    		l.objectTriggered(getItem(s), s.getName(), c.getVisibleState());
     	}
     }
     
@@ -99,7 +97,17 @@ public class Inventory {
 //    	return assemblyNames.get(node);
 //    }
 
-    public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
+    public void resolveStateControlDownstreamIds() {
+    	HashMap<String, Spatial> idMap = new HashMap<>();
+    	for (Spatial s : stateControls.keySet()) {
+    		idMap.put(s.getName(), s);
+    	}
+    	for (StateControl c : stateControls.values()) {
+    		c.resolveDownstreamIds(idMap);
+    	}
+	}
+
+	public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
     	if (!items.contains(item1)) {
     		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
     	}
@@ -222,7 +230,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
-    		removeItemSpatialFunctions(item);
+    		removeItemStateControls(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
     		items.remove(item);
@@ -305,12 +313,12 @@ public class Inventory {
         }
     }
     
-    private void removeItemSpatialFunctions(Spatial item) {
+    private void removeItemStateControls(Spatial item) {
     	item.depthFirstTraversal(new SceneGraphVisitor() {
 			@Override
 			public void visit(Spatial s) {
-				if (spatialFunctions.containsKey(s)) {
-					spatialFunctions.remove(s);
+				if (stateControls.containsKey(s)) {
+					stateControls.remove(s);
 				}
 			}
     	});
@@ -337,17 +345,17 @@ public class Inventory {
     	return null;
     }
     
-    public Transform getLocalToItemTransform(Spatial item, Node node) {
-    	Transform tr = new Transform();
-    	tr.set(node.getLocalTransform());
-    	
-    	Node tmp = node;
-    	while (tmp.getParent() != item) {
-    		tmp = tmp.getParent();
-    		tr.combineWithParent(tmp.getLocalTransform());
-    	}
-    	return tr;
-    }
+//    public Transform getLocalToItemTransform(Spatial item, Node node) {
+//    	Transform tr = new Transform();
+//    	tr.set(node.getLocalTransform());
+//    	
+//    	Node tmp = node;
+//    	while (tmp.getParent() != item) {
+//    		tmp = tmp.getParent();
+//    		tr.combineWithParent(tmp.getLocalTransform());
+//    	}
+//    	return tr;
+//    }
     
     public boolean updateItemInsomnia(Spatial item) {
     	MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
@@ -402,16 +410,17 @@ public class Inventory {
 		HashMap<String, Object> param = new HashMap<String, Object>();
     }
 	
-	private class SpatialFuncInfo {
+	private class StateControlInfo {
 		Spatial s;
-		SpatialFunction func;
+		StateControl control;
 		int state;
+		int visibleState;
 	}
 	
     public class Memento {
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
-    	private HashSet<SpatialFuncInfo> spatialFuncInfoSet = new HashSet<>();
+    	private HashSet<StateControlInfo> stateControlInfoSet = new HashSet<>();
 //    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials 
 //    			= new HashMap<PhysicsJoint, ArrayList<Spatial>>();
     	
@@ -448,12 +457,13 @@ public class Inventory {
 			m.jointInfoSet.add(info);
     	}
     	
-    	for (Spatial s : spatialFunctions.keySet()) {
-    		SpatialFuncInfo info = new SpatialFuncInfo();
+    	for (Spatial s : stateControls.keySet()) {
+    		StateControlInfo info = new StateControlInfo();
     		info.s = s;
-    		info.func = spatialFunctions.get(s);
-    		info.state = info.func.getState();
-    		m.spatialFuncInfoSet.add(info);
+    		info.control = stateControls.get(s);
+    		info.state = info.control.getState();
+    		info.visibleState = info.control.getVisibleState();
+    		m.stateControlInfoSet.add(info);
     	}
 
     	return m;
@@ -476,9 +486,9 @@ public class Inventory {
     			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);
     		}
     	}
-    	for (SpatialFuncInfo info : m.spatialFuncInfoSet) {
-    		registerSpatialFunction(info.s, info.func);
-    		info.func.setState(info.state);
+    	for (StateControlInfo info : m.stateControlInfoSet) {
+    		registerStateControl(info.s, info.control);
+    		info.control.restoreStates(info.state, info.visibleState);
     	}
     }
 }

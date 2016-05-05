@@ -21,7 +21,7 @@
 	</simpleType>
 	<simpleType name="spanType">
 		<restriction base="float">
-			<minInclusive value="0.01" />
+			<minInclusive value="0.001" />
 		</restriction>
 	</simpleType>
 	<simpleType name="massType">
@@ -203,6 +203,8 @@
 		                <element name="lid" type="tt:lidType"/>
 		                <element name="cartridge" type="tt:cartridgeType"/>
 		                <element name="composite" type="tt:compositeType"/>
+                        <element name="toggleSwitch" type="tt:toggleSwitchType"/>
+                        <element name="indicatorSet" type="tt:indicatorSetType"/>
 		            </choice>
 		        </sequence>
             </extension>
@@ -216,6 +218,86 @@
             </extension>
         </complexContent>
     </complexType>
+    
+    <complexType name="abstractStatefulObjectType">
+        <complexContent>
+            <extension base="tt:abstractObjectType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <element name="downstream">
+                        <complexType>
+                            <attribute name="id" type="tt:idType" use="required"/>
+                        </complexType>
+                    </element>
+                </sequence>
+                <attribute name="initState" type="tt:countType" use="optional" default="0"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    
+    <complexType name="toggleSwitchType">
+        <complexContent>
+            <extension base="tt:abstractStatefulObjectType">
+                <annotation>
+                    <documentation>
+                        An integer internal state [0, numState) increases every time the switch is toggled.
+                        The state is reset to 0 when it exceeds the maximum value.
+                        The internal state is not directly related to which side of the switch is down.
+                        They can be initialized independently using initState and leftPressed, respectively.  
+                    </documentation>
+                </annotation>
+                <attribute name="xspan" type="tt:spanType" use="optional" default="0.6"/>
+                <attribute name="yspan" type="tt:spanType" use="optional" default="0.3"/>
+                <attribute name="zspan" type="tt:spanType" use="optional" default="0.1"/>
+                <attribute name="angle" type="float" use="optional" default="6"/>
+                <attribute name="color" type="tt:colorType" use="optional" default="darkgray"/>
+                <attribute name="leftPressed" type="boolean" use="optional" default="true"/>
+                <attribute name="numStates" type="tt:countType" use="optional" default="2"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="indicatorSetType">
+        <complexContent>
+            <extension base="tt:abstractStatefulObjectType">
+                <annotation>
+                    <documentation>Max number of lights = 32</documentation>
+                </annotation>
+                <sequence minOccurs="1" maxOccurs="unbounded">
+                    <annotation>
+                        <documentation>
+	                        The first state element represents internal state 0, the second represents state 1, etc.
+	                        The internal state is coupled with the visible state of the indicator lights, defined
+	                        in the child elements.
+                        </documentation>
+                    </annotation>
+                    <element name="state">
+                        <complexType>
+                            <sequence minOccurs="0" maxOccurs="unbounded">
+                                <annotation>
+                                    <documentation>
+                                        Each light element indicates that a specified light is turned on 
+                                        using a certain color.
+                                        The id attribute indicate which light is turned on. Possible values are 
+                                        [0, numLights). Lights that do not appear here is turned off.
+                                    </documentation>
+                                </annotation>
+                                <element name="light">
+                                    <complexType>
+                                        <attribute name="id" type="tt:countType" use="required"/>
+                                        <attribute name="color" type="tt:colorType" use="optional" default="red"/>
+                                    </complexType>
+                                </element>
+                            </sequence>
+                        </complexType>
+                    </element>
+                </sequence>
+                <attribute name="lightRadius" type="tt:spanType" use="optional" default="0.03"/>
+                <attribute name="lightZspan" type="tt:spanType" use="optional" default="0.005"/>
+                <attribute name="numLights" type="tt:countType" use="optional" default="2"/>
+                <attribute name="xspan" type="tt:spanType" use="optional" default="0.15"/>                
+            </extension>
+        </complexContent>
+    </complexType>
 
     <group name="singleObject">
         <choice>
@@ -226,7 +308,7 @@
             <element name="custom" type="tt:customObjectType"/>
             <element name="lid" type="tt:lidObjectType"/>
             <element name="cartridge" type="tt:cartridgeObjectType"/>
-            <element name="composite" type="tt:compositeObjectType"/>
+            <element name="composite" type="tt:compositeObjectType"/>            
         </choice>
     </group>
     

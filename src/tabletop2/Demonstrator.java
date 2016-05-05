@@ -702,7 +702,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (r == null) {
     		return;
     	}
-    	SpatialFunction func = inventory.getFirstSpatialFunction(r.getGeometry());
+    	StateControl func = inventory.getDeepestStateControlFromSpatial(r.getGeometry());
     	if (func != null) {
         	// notify listeners
             for (DemoPreActionListener l : demoPreActionListeners) {

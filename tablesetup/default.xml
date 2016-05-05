@@ -2,7 +2,28 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-    <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(2, 0, 1)" rotation="(0, 0, -15)" color="red" mass="1"/>
-    <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(-2, 0, 1)" rotation="(0, 0, 45)" color="green" />
-    
+    <sliderJoint location="(1, 0, 1)" min="3" max="7" init="3">
+        <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" rotation="(0, 0, -15)" color="red"/>
+        <composite id="GreenBlock" location="(0, 0, 0)" rotation="(0, 0, 45)" mass="1">
+            <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" color="green" />
+            <toggleSwitch id="Toggle1" location="(0, 0.3, 0.91)" leftPressed="false" numStates="4">
+                <downstream id="GreenBlockLED"/>
+                <downstream id="GreenBlockToggle2"/>
+            </toggleSwitch>
+            <toggleSwitch id="Toggle2" location="(0, -0.3, 0.91)" leftPressed="false" numStates="4">
+                <downstream id="GreenBlockLED"/>
+                <downstream id="GreenBlockToggle1"/>
+            </toggleSwitch>
+            <indicatorSet location="(0, 0, 1)" id="LED">
+                <state></state>
+                <state>
+                    <light id="0" color="red"/>
+                </state>
+                <state></state>
+                <state>
+                    <light id="1" color="blue"/>
+                </state>
+            </indicatorSet>
+        </composite>
+    </sliderJoint>
 </tabletop>

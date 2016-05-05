@@ -2,9 +2,11 @@ package tabletop2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -213,8 +215,7 @@ public class Table implements ActionListener {
 	}
 	
 	private void processXml(List<Element> elmList) {
-		makeTable();		
-		
+		makeTable();
 		for (Element elm : elmList) {
 			if (elm.getNodeName().equals("block")) {
 				processBlockElement(elm, true);
@@ -231,7 +232,7 @@ public class Table implements ActionListener {
 			} else if (elm.getNodeName().equals("cartridge")) {
 				processCartridgeElement(elm, true);
 			} else if (elm.getNodeName().equals("composite")) {
-				processCompositeElement(elm, true);
+				processCompositeElement(elm, true, null, null);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
 			} else if (elm.getNodeName().equals("lidbox")) {
@@ -240,8 +241,11 @@ public class Table implements ActionListener {
 				processDockElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
 				processSliderJointElement(elm);
+			} else {
+				logger.log(Level.WARNING, "skipping unknown element " + elm.getNodeName());
 			}
 		}
+		inventory.resolveStateControlDownstreamIds();
 	}
 	
 	private void showMessageDialog(String msg, int dialogWidth) {
@@ -294,7 +298,7 @@ public class Table implements ActionListener {
 				} else if (child.getNodeName().equals("cartridge")) {
 					obj = processCartridgeElement(child, true);
 				} else if (child.getNodeName().equals("composite")) {
-					obj = processCompositeElement(child, true);
+					obj = processCompositeElement(child, true, null, null);
 				}
 				if (obj != null) {
 					objs[k] = obj;
@@ -634,10 +638,14 @@ public class Table implements ActionListener {
 		return node;
 	}
 
-	private Spatial processCompositeElement(Element elm, boolean isWhole) {
+	private Spatial processCompositeElement(Element elm, boolean isWhole, Spatial whole, 
+			Map<Spatial, StateControl> stateControlMap) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
 			id = getUniqueId(id);
+			stateControlMap = new HashMap<>();
+		} else {
+			id = whole.getName() + id;
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -664,20 +672,187 @@ public class Table implements ActionListener {
 				} else if (child.getNodeName().equals("custom")) {
 					node.attachChild(processCustomElement(child, false));
 				} else if (child.getNodeName().equals("composite")) {
-					node.attachChild(processCompositeElement(child, false));
+					node.attachChild(processCompositeElement(child, false, node, stateControlMap));
+				} else if (child.getNodeName().equals("toggleSwitch")) {
+					node.attachChild(processToggleSwitchElement(child, node, stateControlMap));
+				} else if (child.getNodeName().equals("indicatorSet")) {
+					node.attachChild(processIndicatorSetElement(child, node, stateControlMap));
+				} else {
+					logger.log(Level.WARNING, "skipping unknown composite element " + child.getNodeName());
 				}
 			}
 		}
+		
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
+			// register state controls
+			for (Map.Entry<Spatial, StateControl> e : stateControlMap.entrySet()) {
+				inventory.registerStateControl(e.getKey(), e.getValue());
+			}
 
 			node.setUserData("obj_shape", "composite");						
 		}
 		
 		return node;
 	}
-	
+
+	private Spatial processToggleSwitchElement(Element elm, Spatial whole, 
+			Map<Spatial, StateControl> stateControlMap) {
+		String id = getUniqueId(whole.getName() + elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+		float angle = Float.parseFloat(elm.getAttribute("angle")) * FastMath.DEG_TO_RAD;
+		ColorRGBA color = parseColor(elm.getAttribute("color"));
+		boolean leftPressed = Boolean.parseBoolean(elm.getAttribute("leftPressed"));
+		int numStates = Integer.parseInt(elm.getAttribute("numStates"));
+		int initState = Integer.parseInt(elm.getAttribute("initState"));
+		
+		float btxspan = xspan / (1.0f + FastMath.cos(angle)); 
+				
+		Node s = new Node(id); 
+		s.setLocalTranslation(location);
+		s.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+		// button 1 
+		Spatial b1 = factory.makeBlock(id + "-b1", btxspan, yspan, zspan, color);
+		b1.setLocalTranslation(-btxspan / 2, yspan / 2, 0);
+		s.attachChild(b1);
+		// button 2
+		Spatial b2 = factory.makeBlock(id + "-b2", btxspan, yspan, zspan, color);
+		b2.setLocalRotation(new Quaternion().fromAngles(0, 0, angle));
+		float hypoLen = FastMath.sqr(btxspan * btxspan + yspan * yspan); // hypotenues
+		float cosine = (btxspan / hypoLen) * FastMath.cos(angle) - (yspan / hypoLen) * FastMath.sin(angle);
+		float sine = (yspan / hypoLen) * FastMath.cos(angle) + (btxspan / hypoLen) * FastMath.sin(angle);
+		b2.setLocalTranslation(hypoLen / 2f * cosine, hypoLen / 2f * sine, 0);
+		s.attachChild(b2);
+		
+		// get <downstream> and <state> elements
+		LinkedList<String> dsIds = new LinkedList<>();
+		NodeList children = elm.getChildNodes();
+		for (int i = 0; i < children.getLength(); ++i) {
+			org.w3c.dom.Node child = children.item(i);
+			if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+				Element e = (Element) child;
+				if (e.getNodeName().equals("downstream")) {
+					dsIds.add(e.getAttribute("id"));
+				}
+			}
+		}		
+
+		ToggleSwitchControl c = new ToggleSwitchControl(inventory, s, angle, leftPressed, numStates, initState);
+		
+		for (String dsId : dsIds) {
+			c.addDownstreamId(dsId);
+		}
+		
+		stateControlMap.put(s, c);
+				
+		return s;
+	}
+
+	private Spatial processIndicatorSetElement(Element elm, Spatial whole, 
+			Map<Spatial, StateControl> stateControlMap) {
+		String id = getUniqueId(whole.getName() + elm.getAttribute("id"));
+		Vector3f location = parseVector3(elm.getAttribute("location"));
+		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
+		float lightZspan = Float.parseFloat(elm.getAttribute("lightZspan"));
+		float lightRadius = Float.parseFloat(elm.getAttribute("lightRadius"));
+		int numLights = Integer.parseInt(elm.getAttribute("numLights"));
+		int initState = Integer.parseInt(elm.getAttribute("initState"));
+		
+		Node s = new Node(id); 
+		s.setLocalTranslation(location);
+		s.setLocalRotation(new Quaternion().fromAngles(
+				rotation.x * FastMath.DEG_TO_RAD, 
+				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.z * FastMath.DEG_TO_RAD));
+
+		float lightIntv = 0;
+		Vector3f lightPos = new Vector3f();
+		if (numLights > 1) {
+			lightIntv = (xspan - lightRadius * 2) / (numLights - 1);
+			lightPos.x = -xspan / 2 + lightRadius;
+			lightPos.y = lightZspan / 2;
+		}
+		for (int i = 0; i < numLights; ++i) {
+			Spatial light = factory.makeCylinder(id + "-light" + i, lightRadius, lightZspan, ColorRGBA.Black);
+			light.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_X));
+			light.setLocalTranslation(lightPos);
+			lightPos.x += lightIntv;
+			s.attachChild(light);
+		}		
+
+		// get <downstream> and <state> elements
+		LinkedList<String> dsIds = new LinkedList<>();
+		LinkedList<ColorRGBA[]> lightStates = new LinkedList<>();
+		NodeList children = elm.getChildNodes();
+		for (int i = 0; i < children.getLength(); ++i) {
+			org.w3c.dom.Node child = children.item(i);
+			if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+				Element e = (Element) child;
+				if (e.getNodeName().equals("downstream")) {
+					dsIds.add(e.getAttribute("id"));
+				} else if (e.getNodeName().equals("state")) {
+					ColorRGBA[] ls = new ColorRGBA[numLights];
+					for (int j = 0; j < ls.length; ++j) {
+						ls[j] = null;
+					}					
+					NodeList grandChildren = e.getChildNodes();
+					for (int j = 0; j < grandChildren.getLength(); ++j) {
+						org.w3c.dom.Node grandChild = grandChildren.item(j);
+						if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+							Element e2 = (Element) grandChild;
+							if (e2.getNodeName().equals("light")) {
+								int ind = Integer.parseInt(e2.getAttribute("id"));
+								if (ind < 0 || ind >= numLights) {
+									throw new IllegalArgumentException("invalid light id " + ind);
+								}
+								ColorRGBA color = parseColor(e2.getAttribute("color"));
+								ls[ind] = color;
+							}
+						}
+					}
+					lightStates.add(ls);
+				}
+			}
+		}		
+
+		IndicatorSetControl c = new IndicatorSetControl(inventory, s, initState, lightStates);
+		
+		for (String dsId : dsIds) {
+			c.addDownstreamId(dsId);
+		}
+		
+		stateControlMap.put(s, c);
+		
+		return s;
+		
+//		// button 1 
+//		Spatial b1 = factory.makeBlock(id + "-b1", btxspan, yspan, zspan, color);
+//		b1.setLocalTranslation(-btxspan / 2, yspan / 2, 0);
+//		s.attachChild(b1);
+//		// button 2
+//		Spatial b2 = factory.makeBlock(id + "-b2", btxspan, yspan, zspan, color);
+//		b2.setLocalRotation(new Quaternion().fromAngles(0, 0, angle));
+//		float hypoLen = FastMath.sqr(btxspan * btxspan + yspan * yspan); // hypotenues
+//		float cosine = (btxspan / hypoLen) * FastMath.cos(angle) - (yspan / hypoLen) * FastMath.sin(angle);
+//		float sine = (yspan / hypoLen) * FastMath.cos(angle) + (btxspan / hypoLen) * FastMath.sin(angle);
+//		b2.setLocalTranslation(hypoLen / 2f * cosine, hypoLen / 2f * sine, 0);
+//		s.attachChild(b2);
+//		
+//		ToggleSwitchControl c = new ToggleSwitchControl(inventory, s, angle, leftPressed, numStates, initState);
+//		stateControls.put(s, c);
+//				
+//		return s;
+	}
+
 	private void processChainElement(Element elm) {
 		String groupId = getUniqueId(elm.getAttribute("id"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -1114,17 +1289,17 @@ public class Table implements ActionListener {
 		dockNode.setUserData("obj_handleColor", handleColor);
 
 		inventory.addItem(dockNode, mass);
-		for (int i = 0; i < NUM_MODULES; ++i) {
-			// LED function
-			IndicatorLightFunction ilFunc = new IndicatorLightFunction(inventory, indicatorLights[i]);
-			inventory.registerSpatialFunction(indicatorLights[i], ilFunc);
-			// switch function
-			SwitchFunction sFunc = new SwitchFunction(inventory, switchButton[i], ilFunc);
-			inventory.registerSpatialFunction(switchButton[i], sFunc);
-			// init states
-			ilFunc.setState(lightStates[i]);
-			sFunc.setState(switchStates[i]);
-		}
+//		for (int i = 0; i < NUM_MODULES; ++i) {
+//			// LED function
+//			IndicatorSetControl ilFunc = new IndicatorSetControl(inventory, indicatorLights[i]);
+//			inventory.registerStateControl(indicatorLights[i], ilFunc);
+//			// switch function
+//			ToggleSwitchControl sFunc = new ToggleSwitchControl(inventory, switchButton[i], ilFunc);
+//			inventory.registerStateControl(switchButton[i], sFunc);
+//			// init states
+//			ilFunc.setState(lightStates[i]);
+//			sFunc.setState(switchStates[i]);
+//		}
 		
 		// sliding joint
 		MySliderJoint joint = inventory.addSliderJoint(dockNode, caseNode, 
