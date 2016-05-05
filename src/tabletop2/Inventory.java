@@ -446,6 +446,8 @@ public class Inventory {
 			JointInfo info = new JointInfo();
 			if (joint instanceof MySliderJoint) {
 				info.type = JointType.Slider;
+				info.param.put("rotA", ((MySliderJoint) joint).getRotA());
+				info.param.put("rotB", ((MySliderJoint) joint).getRotB());
 				((MySliderJoint) joint).saveParam(info.param);
 			} else if (joint instanceof SixDofJoint) {
 				info.type = JointType.SixDof;
@@ -479,8 +481,10 @@ public class Inventory {
     	}
     	for (JointInfo info : m.jointInfoSet) {
     		if (info.type == JointType.Slider) {
+    			Matrix3f rotA = (Matrix3f) info.param.get("rotA");
+    			Matrix3f rotB = (Matrix3f) info.param.get("rotB");
         		MySliderJoint joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2, 
-        				null, null, 0, 0, false);
+        				rotA, rotB, 0, 0, false);
         		joint.loadParam(info.param);
     		} else {
     			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);

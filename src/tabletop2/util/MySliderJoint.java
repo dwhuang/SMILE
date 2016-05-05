@@ -11,21 +11,18 @@ public class MySliderJoint extends SliderJoint {
 	public MySliderJoint(PhysicsRigidBody nodeA, PhysicsRigidBody nodeB, Vector3f pivotA, Vector3f pivotB, Matrix3f rotA, Matrix3f rotB, boolean useLinearReferenceFrameA) {
 		super(nodeA, nodeB, pivotA, pivotB, rotA, rotB, useLinearReferenceFrameA);
 	}
-//	public Matrix3f getRotA() {
-//		return rotA;
-//	}
-//	public Matrix3f getRotB() {
-//		return rotB;
-//	}
+	public Matrix3f getRotA() {
+		return rotA;
+	}
+	public Matrix3f getRotB() {
+		return rotB;
+	}
 	
 	/**
 	 * Used by the memento for the undo function
 	 * @param p
 	 */
 	public void saveParam(HashMap<String, Object> p) {
-		p.clear();
-		p.put("rotA", rotA);
-		p.put("rotB", rotB);
 		p.put("collisionBetweenLinkedBodys", collisionBetweenLinkedBodys);
 		p.put("lowerAngLimit", getLowerAngLimit());
 		p.put("lowerLinLimit", getLowerLinLimit());
@@ -60,8 +57,6 @@ public class MySliderJoint extends SliderJoint {
 	}
 	
 	public void loadParam(HashMap<String, Object> p) {
-		rotA = (Matrix3f) p.get("rotA");
-		rotB = (Matrix3f) p.get("rotB");
 		collisionBetweenLinkedBodys = (Boolean) p.get("collisionBetweenLinkedBodys");
 		setLowerAngLimit((Float) p.get("lowerAngLimit"));
 		setLowerLinLimit((Float) p.get("lowerLinLimit"));
