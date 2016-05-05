@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -21,6 +22,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
@@ -47,7 +49,7 @@ import com.jme3.scene.Spatial;
 
 
 public class Table implements ActionListener {
-	
+
 	private static final Logger logger = Logger.getLogger(Table.class.getName());
 
     private static Random random = new Random(5566);
@@ -59,14 +61,16 @@ public class Table implements ActionListener {
 	private BulletAppState bulletAppState;
 	private Inventory inventory;
 	private Node robotLocationNode;
-	
+
 	private float tableWidth = 20;
 	private float tableDepth = 12;
 	private static final float TABLE_HEIGHT = 4;
 	private Spatial tableSpatial = null;
-	
+
 	private int idSN = 0;
 	private HashSet<String> uniqueIds = new HashSet<String>();
+
+	private HashMap<String, Element> defs = new HashMap<>();
 
 
 	public Table(String name, MainApp app, Node robotLocationNode) {
@@ -77,27 +81,27 @@ public class Table implements ActionListener {
 		inventory = app.getInventory();
 		this.robotLocationNode = robotLocationNode;
 	}
-	
+
 	public float getWidth() {
 		return tableWidth;
 	}
-	
+
 	public float getDepth() {
 		return tableDepth;
 	}
-	
+
 	public ColorRGBA getColor() {
 		return ColorRGBA.White;
 	}
-	
+
 	public BoundingVolume getWorldBound() {
 		return tableSpatial.getWorldBound();
 	}
-	
+
 	public void setEnabled(boolean v) {
 		enabled = v;
 	}
-	
+
 	public void reloadXml(String xmlFname) {
 		// remove the table (if exists)
 		if (tableSpatial != null) {
@@ -115,15 +119,16 @@ public class Table implements ActionListener {
 			uniqueIds.add(s.getName());
 		}
 		idSN = 0;
-		
+		defs.clear();
+
 		processXml(loadXml(xmlFname, null));
-		
+
 		// relocate the robot according to table size
     	robotLocationNode.setLocalTransform(Transform.IDENTITY);
     	robotLocationNode.setLocalTranslation(0, 2, tableDepth / 2 + 3);
-    	robotLocationNode.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));		
+    	robotLocationNode.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
 	}
-	
+
 	private List<Element> loadXml(String xmlFname, Set<String> xmlFnameLoaded) {
 		// check if the current file has been loaded before
 		if (xmlFnameLoaded == null) {
@@ -142,7 +147,7 @@ public class Table implements ActionListener {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
 		dbf.setValidating(true);
-		dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaLanguage", 
+		dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaLanguage",
 				"http://www.w3.org/2001/XMLSchema");
 		DocumentBuilder db = null;
 		try {
@@ -157,7 +162,7 @@ public class Table implements ActionListener {
 			@Override
 			public void warning(SAXParseException exception) throws SAXException {
 			}
-			
+
 			@Override
 			public void error(SAXParseException exception) throws SAXException {
 				throw exception;
@@ -190,33 +195,38 @@ public class Table implements ActionListener {
 		}
 
 		Element docRoot = doc.getDocumentElement();
-		// load table width and height if at the root document 
+		// load table width and height if at the root document
 		if (xmlFnameLoaded.size() == 1) {
 			tableWidth = Float.parseFloat(docRoot.getAttribute("xspan"));
 			tableDepth = Float.parseFloat(docRoot.getAttribute("yspan"));
 		}
-		// collect all first-level element while recursively processing <include>
-		List<Element> elmList = new LinkedList<>();
-		NodeList firstLevelNodeList = docRoot.getChildNodes();
-		for (int i = 0; i < firstLevelNodeList.getLength(); ++i) {
-			org.w3c.dom.Node node = docRoot.getChildNodes().item(i);
-			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				Element elm = (Element) node;
-				if (elm.getNodeName().equals("include")) {
-					List<Element> subList = loadXml(elm.getAttribute("file"), xmlFnameLoaded);
-					elmList.addAll(subList);
-				} else {
-					elmList.add(elm);
+		// process <include> recursively
+		List<Element> eList = getElementList(docRoot.getChildNodes());
+		ListIterator<Element> itr = eList.listIterator();
+		while (itr.hasNext()) {
+			Element e = itr.next();
+			if (e.getNodeName().equals("include")) {
+				itr.remove();
+				List<Element> subList = loadXml(e.getAttribute("file"), xmlFnameLoaded);
+				for (Element newElm : subList) {
+					itr.add(newElm);
 				}
 			}
 		}
-		
-		return elmList;
+
+		return eList;
 	}
-	
+
 	private void processXml(List<Element> elmList) {
 		makeTable();
 		for (Element elm : elmList) {
+			if (elm.getNodeName().equals("def")) {
+				processDefElement(elm);
+			}
+		}
+		ListIterator<Element> itr = elmList.listIterator();
+		while (itr.hasNext()) {
+			Element elm = itr.next();
 			if (elm.getNodeName().equals("block")) {
 				processBlockElement(elm, true);
 			} else if (elm.getNodeName().equals("cylinder")) {
@@ -232,7 +242,7 @@ public class Table implements ActionListener {
 			} else if (elm.getNodeName().equals("cartridge")) {
 				processCartridgeElement(elm, true);
 			} else if (elm.getNodeName().equals("composite")) {
-				processCompositeElement(elm, true, null, null);
+				processCompositeElement(elm, true, null);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
 			} else if (elm.getNodeName().equals("lidbox")) {
@@ -241,15 +251,29 @@ public class Table implements ActionListener {
 				processDockElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
 				processSliderJointElement(elm);
+			} else if (elm.getNodeName().equals("def")) {
+				// nothing to do here; defs were processed in the first pass
+			} else if (elm.getNodeName().equals("instance")) {
+				expandItrElementHelper(itr, processInstanceElement(elm, null));
 			} else {
 				logger.log(Level.WARNING, "skipping unknown element " + elm.getNodeName());
 			}
 		}
 		inventory.resolveStateControlDownstreamIds();
 	}
-	
+
 	private void showMessageDialog(String msg, int dialogWidth) {
 		JOptionPane.showMessageDialog(null, "<html><body width='" + dialogWidth + "'>" + msg + "</body></html>");
+	}
+
+	private List<Element> getElementList(NodeList nodeList) {
+		List<Element> ret = new LinkedList<>();
+		for (int i = 0; i < nodeList.getLength(); ++i) {
+			if (nodeList.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+				ret.add((Element) nodeList.item(i));
+			}
+		}
+		return ret;
 	}
 	
 	private void makeTable() {
@@ -258,10 +282,99 @@ public class Table implements ActionListener {
 		tableSpatial.setLocalTranslation(0, -TABLE_HEIGHT / 2, 0);
 		MyRigidBodyControl rbc = new MyRigidBodyControl(0);
 		tableSpatial.addControl(rbc);
-		bulletAppState.getPhysicsSpace().add(rbc);		
+		bulletAppState.getPhysicsSpace().add(rbc);
 		rootNode.attachChild(tableSpatial);
 	}
+
+	private void processDefElement(Element e) {
+		String name = e.getAttribute("name");
+		if (defs.containsKey(name)) {
+			String msg = "Duplicated definition detected: " + name + " (overwrite)";
+			logger.log(Level.WARNING, msg);
+			showMessageDialog(msg, 400);
+		}
+		defs.put(name, e);
+	}
 	
+	/**
+	 * Expand {@code <instance>} element to a list of concrete elements without any
+	 * {@code <instance>} elements in their descendants.
+	 * @param e The {@code <instance>} element
+	 * @param vars Variable values inherited from the enclosing {@code <instance>} element.
+	 * @return A list of elements whose descendants do not contain any {@code <instance>} elements.
+	 */
+	private List<Element> processInstanceElement(Element e, Map<String, String> vars) {
+		// look up def
+		String defName = e.getAttribute("def");
+		if (!defs.containsKey(defName)) {
+			String msg = "Definition not found: " + name + " (ignored)";
+			logger.log(Level.WARNING, msg);
+			showMessageDialog(msg, 400);
+			return new LinkedList<>();
+		}
+		// make a copy
+		Element def = (Element) defs.get(defName).cloneNode(true);
+		// get variable
+		if (vars == null) {
+			vars = new HashMap<>();
+		}
+		for (Element child : getElementList(e.getChildNodes())) {
+			if (child.getNodeName().equals("var")) {
+				vars.put(child.getAttribute("name"), child.getAttribute("value"));
+			}
+		}
+		// recursively substitute variables and expand instances in def
+		substVarsAndExpandInstance(def, new HashMap<>(vars));
+		
+		return getElementList(def.getChildNodes());
+	}
+
+	/**
+	 * Helper function for {@link tabletop2.Table.processInstanceElement}.
+	 * For each child element, recursively substitutes variable attribute values. If the child is itself
+	 * an {@code <instance>} element, recursively calls {@link tabletop2.Table.processInstanceElement}
+	 * to expand it.
+	 * @param elm
+	 * @param vars
+	 */
+	private void substVarsAndExpandInstance(Element elm, Map<String, String> vars) {
+		ListIterator<Element> itr = getElementList(elm.getChildNodes()).listIterator();
+		while (itr.hasNext()) {
+			Element child = itr.next();
+			// substitute variable attribute values
+			NamedNodeMap attrs = child.getAttributes();
+			for (int i = 0; i < attrs.getLength(); ++i) {
+				org.w3c.dom.Node attr = attrs.item(i);
+				String attrVal = attr.getNodeValue();
+				if (vars.containsKey(attrVal)) {
+					attr.setNodeValue(vars.get(attrVal));
+				}
+			}
+			
+			if (child.getNodeName().equals("instance")) {
+				expandItrElementHelper(itr, processInstanceElement(child, vars));
+			} else {
+				substVarsAndExpandInstance(child, vars);
+			}
+		}
+	}
+
+	/**
+	 * Replace the last iterated element with a list of elements. The iterator will be positioned right before
+	 * the first element of {@code subList}.
+	 * @param itr
+	 * @param subList
+	 */
+	private void expandItrElementHelper(ListIterator<Element> itr, List<Element> subList) {
+		itr.remove();
+		for (Element e : subList) {
+			itr.add(e);
+		}
+		for (int i = 0; i < subList.size(); ++i) {
+			itr.previous();
+		}
+	}
+
 	private void processSliderJointElement(Element e) {
 		// ignore id
 		Vector3f location = parseVector3(e.getAttribute("location"));
@@ -275,37 +388,45 @@ public class Table implements ActionListener {
 		float init = Float.parseFloat(e.getAttribute("init"));
 		init = FastMath.clamp(init, min, max);
 		boolean collision = Boolean.parseBoolean(e.getAttribute("collision"));
-		
+
 		Spatial[] objs = new Spatial[2];
 		int k = 0;
-		NodeList children = e.getChildNodes();
-		for (int i = 0; i < children.getLength(); ++i) {
-			if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				Element child = (Element) children.item(i);
-				Spatial obj = null;
-				if (child.getNodeName().equals("block")) {
-					obj = processBlockElement(child, true);
-				} else if (child.getNodeName().equals("cylinder")) {
-					obj = processCylinderElement(child, true);
-				} else if (child.getNodeName().equals("sphere")) {
-					obj = processSphereElement(child, true);
-				} else if (child.getNodeName().equals("box")) {
-					obj = processBoxElement(child, true);
-				} else if (child.getNodeName().equals("custom")) {
-					obj = processCustomElement(child, true);
-				} else if (child.getNodeName().equals("lid")) {
-					obj = processLidElement(child, true);
-				} else if (child.getNodeName().equals("cartridge")) {
-					obj = processCartridgeElement(child, true);
-				} else if (child.getNodeName().equals("composite")) {
-					obj = processCompositeElement(child, true, null, null);
-				}
-				if (obj != null) {
+		ListIterator<Element> itr = getElementList(e.getChildNodes()).listIterator();
+		while (itr.hasNext()) {
+			Element child = itr.next();
+			Spatial obj = null;
+			if (child.getNodeName().equals("block")) {
+				obj = processBlockElement(child, true);
+			} else if (child.getNodeName().equals("cylinder")) {
+				obj = processCylinderElement(child, true);
+			} else if (child.getNodeName().equals("sphere")) {
+				obj = processSphereElement(child, true);
+			} else if (child.getNodeName().equals("box")) {
+				obj = processBoxElement(child, true);
+			} else if (child.getNodeName().equals("custom")) {
+				obj = processCustomElement(child, true);
+			} else if (child.getNodeName().equals("lid")) {
+				obj = processLidElement(child, true);
+			} else if (child.getNodeName().equals("cartridge")) {
+				obj = processCartridgeElement(child, true);
+			} else if (child.getNodeName().equals("composite")) {
+				obj = processCompositeElement(child, true, null);
+			} else if (child.getNodeName().equals("instance")) {
+				expandItrElementHelper(itr, processInstanceElement(child, null));
+			}
+			if (obj != null) {
+				if (k >= 2) {
+					String msg = "sliderJoint " + e.getAttribute("id")
+							+ " contains more than two objects: " + obj.getName() + " (ignored)";
+					logger.log(Level.WARNING, msg);
+					showMessageDialog(msg, 400);
+				} else {
 					objs[k] = obj;
 					++k;
 				}
 			}
 		}
+		// make joint between the two objects
 		if (objs[0] != null && objs[1] != null) {
 			Transform jointTrans = new Transform(location, new Quaternion().fromAngles(
 					rotation.x * FastMath.DEG_TO_RAD,
@@ -313,7 +434,7 @@ public class Table implements ActionListener {
 					rotation.z * FastMath.DEG_TO_RAD));
 			MyRigidBodyControl c;
 			Transform trans;
-			
+
 			// transform obj1 using ((the joint's transform) * (obj1's local transform))
 			Transform obj1Trans = objs[0].getLocalTransform();
 			trans = obj1Trans.clone();
@@ -321,7 +442,7 @@ public class Table implements ActionListener {
 			c = objs[0].getControl(MyRigidBodyControl.class);
 			c.setPhysicsLocation(trans.getTranslation());
 			c.setPhysicsRotation(trans.getRotation());
-			
+
 			// transform obj2 using ((the joint's transform) * (slide to init pos) * (obj1's local transform))
 			Transform obj2Trans = objs[1].getLocalTransform();
 			trans = obj2Trans.clone();
@@ -329,15 +450,15 @@ public class Table implements ActionListener {
 			trans.combineWithParent(jointTrans);
 			c = objs[1].getControl(MyRigidBodyControl.class);
 			c.setPhysicsLocation(trans.getTranslation());
-			c.setPhysicsRotation(trans.getRotation());			
-			
+			c.setPhysicsRotation(trans.getRotation());
+
 			// note the negate/transpose: because the objects' local transforms are relative to the pivots,
 			// but these parameters take the pivots' transforms relative to the objects.
-			inventory.addSliderJoint(objs[0], objs[1], 
+			inventory.addSliderJoint(objs[0], objs[1],
 					obj1Trans.getTranslation().negate(),
-					obj2Trans.getTranslation().negate(), 
+					obj2Trans.getTranslation().negate(),
 					obj1Trans.getRotation().toRotationMatrix().transpose(),
-					obj2Trans.getRotation().toRotationMatrix().transpose(), 
+					obj2Trans.getRotation().toRotationMatrix().transpose(),
 					min, max, collision);
 		}
 	}
@@ -357,21 +478,21 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeBlock(id, xspan, yspan, zspan, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-			
+
 	        s.setUserData("obj_shape", "block");
 	        s.setUserData("obj_xspan", xspan);
 	        s.setUserData("obj_zspan", yspan);
 	        s.setUserData("obj_yspan", zspan);
-	        s.setUserData("obj_color", color);	        
+	        s.setUserData("obj_color", color);
 		}
-				
+
 		return s;
 	}
 
@@ -389,10 +510,10 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeCylinder(id, radius, zspan, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
@@ -402,7 +523,7 @@ public class Table implements ActionListener {
 	        s.setUserData("obj_yspan", zspan);
 	        s.setUserData("obj_color", color);
 		}
-		
+
 		return s;
 	}
 
@@ -419,8 +540,8 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeSphere(id, radius, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
 
 		if (isWhole) {
@@ -431,7 +552,7 @@ public class Table implements ActionListener {
 	        s.setUserData("obj_radius", radius);
 	        s.setUserData("obj_color", color);
 		}
-		
+
 		return s;
 	}
 
@@ -451,10 +572,10 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
@@ -464,13 +585,13 @@ public class Table implements ActionListener {
 	        s.setUserData("obj_zspan", yspan);
 	        s.setUserData("obj_yspan", zspan);
 	        s.setUserData("obj_color", color);
-	        s.setUserData("obj_thickness", thickness); 
+	        s.setUserData("obj_thickness", thickness);
 		}
-		
+
 		return s;
 	}
-	
-	private Spatial processCustomElement(Element elm, boolean isWhole) {		
+
+	private Spatial processCustomElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -481,22 +602,22 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeCustom(id, file, color, scale);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-				
+
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-			
+
 			s.setUserData("obj_shape", "custom");
 			s.setUserData("obj_color", color);
-			s.setUserData("obj_scale", scale); 
+			s.setUserData("obj_scale", scale);
 		}
-		
+
 		return s;
 	}
-	
+
 	private Spatial processLidElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
@@ -513,24 +634,24 @@ public class Table implements ActionListener {
 		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
 		float handleThickness = Float.parseFloat(elm.getAttribute("handleThickness"));
 		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-		
-		Node s = new Node(id); 
+
+		Node s = new Node(id);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
 		Spatial lidBody = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
 		s.attachChild(lidBody);
-		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan, 
+		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan,
 				handleThickness, handleColor);
 		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
 		s.attachChild(lidHandle);
 
 		if (isWhole) {
 			float lidMass = Float.parseFloat(elm.getAttribute("mass"));
-			inventory.addItem(s, lidMass);		
-		
+			inventory.addItem(s, lidMass);
+
 			s.setUserData("obj_shape", "lid");
 			s.setUserData("obj_color", color);
 			s.setUserData("obj_xspan", xspan);
@@ -539,13 +660,13 @@ public class Table implements ActionListener {
 			s.setUserData("obj_handleXspan", handleXspan);
 			s.setUserData("obj_handleZspan", handleYspan);
 			s.setUserData("obj_handleYspan", handleZspan);
-			s.setUserData("obj_handleThickness", handleThickness);		
+			s.setUserData("obj_handleThickness", handleThickness);
 			s.setUserData("obj_handleColor", handleColor);
 		}
-		
+
 		return s;
 	}
-	
+
 	private Spatial processCartridgeElement(Element elm, boolean isWhole) {
 		String groupId = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -557,14 +678,14 @@ public class Table implements ActionListener {
 		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
 		ColorRGBA topColor = parseColor(elm.getAttribute("topColor"));
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
-		
+
 		Node node = new Node(groupId);
 		node.setLocalTranslation(location);
 		node.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+
 		String id;
 		// body - central piece
 		id = getUniqueId(groupId + "-bodyC");
@@ -623,9 +744,9 @@ public class Table implements ActionListener {
 		att.setUserData("assembly", "cartridgeSlot");
 		att.setUserData("assemblyEnd", 1);
 		node.attachChild(att);
-		
-		inventory.addItem(node, mass);		
-	
+
+		inventory.addItem(node, mass);
+
 		// annotate...
 		node.setUserData("obj_shape", "cartridge");
 		node.setUserData("obj_width", xspan);
@@ -634,18 +755,16 @@ public class Table implements ActionListener {
 		node.setUserData("obj_color", bodyColor);
 		node.setUserData("obj_handleColor", handleColor);
 		node.setUserData("obj_topColor", topColor);
-		
+
 		return node;
 	}
 
-	private Spatial processCompositeElement(Element elm, boolean isWhole, Spatial whole, 
+	private Spatial processCompositeElement(Element elm, boolean isWhole,
 			Map<Spatial, StateControl> stateControlMap) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
 			id = getUniqueId(id);
 			stateControlMap = new HashMap<>();
-		} else {
-			id = whole.getName() + id;
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -653,36 +772,36 @@ public class Table implements ActionListener {
 		Node node = new Node(id);
 		node.setLocalTranslation(location);
 		node.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
-		NodeList children = elm.getChildNodes();
-		for (int i = 0; i < children.getLength(); ++i) {
-			if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				Element child = (Element) children.item(i);
-				if (child.getNodeName().equals("block")) {
-					node.attachChild(processBlockElement(child, false));
-				} else if (child.getNodeName().equals("cylinder")) {
-					node.attachChild(processCylinderElement(child, false));
-				} else if (child.getNodeName().equals("sphere")) {
-					node.attachChild(processSphereElement(child, false));
-				} else if (child.getNodeName().equals("box")) {
-					node.attachChild(processBoxElement(child, false));
-				} else if (child.getNodeName().equals("custom")) {
-					node.attachChild(processCustomElement(child, false));
-				} else if (child.getNodeName().equals("composite")) {
-					node.attachChild(processCompositeElement(child, false, node, stateControlMap));
-				} else if (child.getNodeName().equals("toggleSwitch")) {
-					node.attachChild(processToggleSwitchElement(child, node, stateControlMap));
-				} else if (child.getNodeName().equals("indicatorSet")) {
-					node.attachChild(processIndicatorSetElement(child, node, stateControlMap));
-				} else {
-					logger.log(Level.WARNING, "skipping unknown composite element " + child.getNodeName());
-				}
+
+		ListIterator<Element> itr = getElementList(elm.getChildNodes()).listIterator();
+		while (itr.hasNext()) {
+			Element child = itr.next();
+			if (child.getNodeName().equals("block")) {
+				node.attachChild(processBlockElement(child, false));
+			} else if (child.getNodeName().equals("cylinder")) {
+				node.attachChild(processCylinderElement(child, false));
+			} else if (child.getNodeName().equals("sphere")) {
+				node.attachChild(processSphereElement(child, false));
+			} else if (child.getNodeName().equals("box")) {
+				node.attachChild(processBoxElement(child, false));
+			} else if (child.getNodeName().equals("custom")) {
+				node.attachChild(processCustomElement(child, false));
+			} else if (child.getNodeName().equals("composite")) {
+				node.attachChild(processCompositeElement(child, false, stateControlMap));
+			} else if (child.getNodeName().equals("toggleSwitch")) {
+				node.attachChild(processToggleSwitchElement(child, stateControlMap));
+			} else if (child.getNodeName().equals("indicatorSet")) {
+				node.attachChild(processIndicatorSetElement(child, stateControlMap));
+			} else if (child.getNodeName().equals("instance")) {
+				expandItrElementHelper(itr, processInstanceElement(child, null));
+			} else {
+				logger.log(Level.WARNING, "skipping unknown composite element " + child.getNodeName());
 			}
 		}
-		
+
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
@@ -691,15 +810,14 @@ public class Table implements ActionListener {
 				inventory.registerStateControl(e.getKey(), e.getValue());
 			}
 
-			node.setUserData("obj_shape", "composite");						
+			node.setUserData("obj_shape", "composite");
 		}
-		
+
 		return node;
 	}
 
-	private Spatial processToggleSwitchElement(Element elm, Spatial whole, 
-			Map<Spatial, StateControl> stateControlMap) {
-		String id = getUniqueId(whole.getName() + elm.getAttribute("id"));
+	private Spatial processToggleSwitchElement(Element elm, Map<Spatial, StateControl> stateControlMap) {
+		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
@@ -710,16 +828,16 @@ public class Table implements ActionListener {
 		boolean leftPressed = Boolean.parseBoolean(elm.getAttribute("leftPressed"));
 		int numStates = Integer.parseInt(elm.getAttribute("numStates"));
 		int initState = Integer.parseInt(elm.getAttribute("initState"));
-		
-		float btxspan = xspan / (1.0f + FastMath.cos(angle)); 
-				
-		Node s = new Node(id); 
+
+		float btxspan = xspan / (1.0f + FastMath.cos(angle));
+
+		Node s = new Node(id);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		// button 1 
+		// button 1
 		Spatial b1 = factory.makeBlock(id + "-b1", btxspan, yspan, zspan, color);
 		b1.setLocalTranslation(-btxspan / 2, yspan / 2, 0);
 		s.attachChild(b1);
@@ -731,34 +849,28 @@ public class Table implements ActionListener {
 		float sine = (yspan / hypoLen) * FastMath.cos(angle) + (btxspan / hypoLen) * FastMath.sin(angle);
 		b2.setLocalTranslation(hypoLen / 2f * cosine, hypoLen / 2f * sine, 0);
 		s.attachChild(b2);
-		
+
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
-		NodeList children = elm.getChildNodes();
-		for (int i = 0; i < children.getLength(); ++i) {
-			org.w3c.dom.Node child = children.item(i);
-			if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				Element e = (Element) child;
-				if (e.getNodeName().equals("downstream")) {
-					dsIds.add(e.getAttribute("id"));
-				}
+		for (Element child : getElementList(elm.getChildNodes())) {
+			if (child.getNodeName().equals("downstream")) {
+				dsIds.add(child.getAttribute("id"));
 			}
-		}		
+		}
 
 		ToggleSwitchControl c = new ToggleSwitchControl(inventory, s, angle, leftPressed, numStates, initState);
-		
+
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-		
+
 		stateControlMap.put(s, c);
-				
+
 		return s;
 	}
 
-	private Spatial processIndicatorSetElement(Element elm, Spatial whole, 
-			Map<Spatial, StateControl> stateControlMap) {
-		String id = getUniqueId(whole.getName() + elm.getAttribute("id"));
+	private Spatial processIndicatorSetElement(Element elm, Map<Spatial, StateControl> stateControlMap) {
+		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
@@ -766,12 +878,12 @@ public class Table implements ActionListener {
 		float lightRadius = Float.parseFloat(elm.getAttribute("lightRadius"));
 		int numLights = Integer.parseInt(elm.getAttribute("numLights"));
 		int initState = Integer.parseInt(elm.getAttribute("initState"));
-		
-		Node s = new Node(id); 
+
+		Node s = new Node(id);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
 
 		float lightIntv = 0;
@@ -787,54 +899,42 @@ public class Table implements ActionListener {
 			light.setLocalTranslation(lightPos);
 			lightPos.x += lightIntv;
 			s.attachChild(light);
-		}		
+		}
 
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
 		LinkedList<ColorRGBA[]> lightStates = new LinkedList<>();
-		NodeList children = elm.getChildNodes();
-		for (int i = 0; i < children.getLength(); ++i) {
-			org.w3c.dom.Node child = children.item(i);
-			if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				Element e = (Element) child;
-				if (e.getNodeName().equals("downstream")) {
-					dsIds.add(e.getAttribute("id"));
-				} else if (e.getNodeName().equals("state")) {
-					ColorRGBA[] ls = new ColorRGBA[numLights];
-					for (int j = 0; j < ls.length; ++j) {
-						ls[j] = null;
-					}					
-					NodeList grandChildren = e.getChildNodes();
-					for (int j = 0; j < grandChildren.getLength(); ++j) {
-						org.w3c.dom.Node grandChild = grandChildren.item(j);
-						if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-							Element e2 = (Element) grandChild;
-							if (e2.getNodeName().equals("light")) {
-								int ind = Integer.parseInt(e2.getAttribute("id"));
-								if (ind < 0 || ind >= numLights) {
-									throw new IllegalArgumentException("invalid light id " + ind);
-								}
-								ColorRGBA color = parseColor(e2.getAttribute("color"));
-								ls[ind] = color;
-							}
+		for (Element child : getElementList(elm.getChildNodes())) {
+			if (child.getNodeName().equals("downstream")) {
+				dsIds.add(child.getAttribute("id"));
+			} else if (child.getNodeName().equals("state")) {
+				ColorRGBA[] ls = new ColorRGBA[numLights];
+				// get <light> elements under <state>
+				for (Element grandChild : getElementList(child.getChildNodes())) {
+					if (grandChild.getNodeName().equals("light")) {
+						int ind = Integer.parseInt(grandChild.getAttribute("id"));
+						if (ind < 0 || ind >= numLights) {
+							throw new IllegalArgumentException("invalid light id " + ind);
 						}
+						ColorRGBA color = parseColor(grandChild.getAttribute("color"));
+						ls[ind] = color;
 					}
-					lightStates.add(ls);
 				}
+				lightStates.add(ls);
 			}
-		}		
+		}
 
 		IndicatorSetControl c = new IndicatorSetControl(inventory, s, initState, lightStates);
-		
+
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-		
+
 		stateControlMap.put(s, c);
-		
+
 		return s;
-		
-//		// button 1 
+
+//		// button 1
 //		Spatial b1 = factory.makeBlock(id + "-b1", btxspan, yspan, zspan, color);
 //		b1.setLocalTranslation(-btxspan / 2, yspan / 2, 0);
 //		s.attachChild(b1);
@@ -846,10 +946,10 @@ public class Table implements ActionListener {
 //		float sine = (yspan / hypoLen) * FastMath.cos(angle) + (btxspan / hypoLen) * FastMath.sin(angle);
 //		b2.setLocalTranslation(hypoLen / 2f * cosine, hypoLen / 2f * sine, 0);
 //		s.attachChild(b2);
-//		
+//
 //		ToggleSwitchControl c = new ToggleSwitchControl(inventory, s, angle, leftPressed, numStates, initState);
 //		stateControls.put(s, c);
-//				
+//
 //		return s;
 	}
 
@@ -864,7 +964,7 @@ public class Table implements ActionListener {
 		int linkCount = Integer.parseInt(elm.getAttribute("linkCount"));
 		float linkPadding = Float.parseFloat(elm.getAttribute("linkPadding"));
 		float linkMass = Float.parseFloat(elm.getAttribute("linkMass"));
-		
+
 		// check if linkCount is enough to connect from start to end locations
 		float dist = start.distance(end);
 		if (linkCount == 0) {
@@ -872,25 +972,25 @@ public class Table implements ActionListener {
 			logger.log(Level.INFO, "chain " + groupId + ": linkCount=" + linkCount);
 		} else {
 			if ((float) linkCount * linkZspan < dist - linkZspan * .5f) {
-				throw new IllegalArgumentException("linkCount " + linkCount 
+				throw new IllegalArgumentException("linkCount " + linkCount
 						+ " too low to connect the start and end locations");
 			}
 		}
-		
+
 		// start making a chain
-		//		
+		//
 		Vector3f vec = new Vector3f(); // temporary storage
 		final Vector3f endNodesSize = new Vector3f(.1f, .1f, .1f);
 		final Vector3f linkPhysicsSize = new Vector3f(linkXspan / 2, linkYspan / 2, linkZspan / 2);
 		// rotate the z axis to the start->end direction
-		// when walking on the links from start to end, z increases in each local model space 
+		// when walking on the links from start to end, z increases in each local model space
 		Quaternion rotStartEndDir = new Quaternion();
 		rotStartEndDir.lookAt(start.subtract(end), Vector3f.UNIT_Y);
 
 		// make start node (static)
 		String id;
 		id = getUniqueId(groupId + "-start");
-		Spatial startNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z, 
+		Spatial startNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z,
 				ColorRGBA.White);
 		startNode.setLocalTranslation(start);
 		startNode.setLocalRotation(rotStartEndDir);
@@ -899,10 +999,10 @@ public class Table implements ActionListener {
 		startNode.setUserData("obj_xspan", endNodesSize.x);
 		startNode.setUserData("obj_yspan", endNodesSize.z);
 		startNode.setUserData("obj_zspan", endNodesSize.y);
-		
+
 		// make end node (static)
 		id = getUniqueId(groupId + "-end");
-		Spatial endNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z, 
+		Spatial endNode = factory.makeBlock(id, endNodesSize.x, endNodesSize.y, endNodesSize.z,
 				ColorRGBA.White);
 		endNode.setLocalTranslation(end);
 		endNode.setLocalRotation(rotStartEndDir);
@@ -911,7 +1011,7 @@ public class Table implements ActionListener {
 		startNode.setUserData("obj_xspan", endNodesSize.x);
 		startNode.setUserData("obj_yspan", endNodesSize.z);
 		startNode.setUserData("obj_zspan", endNodesSize.y);
-		
+
 		Spatial prevSpatial = startNode;
 		Vector3f prevJointPt = new Vector3f(0, 0, -endNodesSize.z);
 		for (int i = 0; i < linkCount; ++i) {
@@ -928,9 +1028,9 @@ public class Table implements ActionListener {
 			link.setUserData("obj_yspan", linkZspan);
 			link.setUserData("obj_zspan", linkYspan);
 			link.setUserData("obj_color", color);
-			
+
 			// connect the link using a joint (or constraint)
-			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link, 
+			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link,
 					prevJointPt, new Vector3f(0, 0, linkZspan / 2));
 			joint.setCollisionBetweenLinkedBodys(false);
 
@@ -960,13 +1060,13 @@ public class Table implements ActionListener {
 		Transform tf = new Transform();
 		tf.setTranslation(location);
 		tf.setRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
-		
+
 		String id;
 		id = getUniqueId(groupId + "-box");
-		Spatial box = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);		
+		Spatial box = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);
 		box.setLocalTransform(tf);
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 		inventory.addItem(box, mass);
@@ -976,19 +1076,19 @@ public class Table implements ActionListener {
 		box.setUserData("obj_yspan", zspan);
 		box.setUserData("obj_thickness", thickness);
 		box.setUserData("color", color);
-		
+
 		id = getUniqueId(groupId + "-lid");
-		Node lid = new Node(id); 
+		Node lid = new Node(id);
 		Spatial lidPlate = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
 		lid.attachChild(lidPlate);
-		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan, 
+		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan,
 				handleThickness, handleColor);
 		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
-		lid.attachChild(lidHandle);		
+		lid.attachChild(lidHandle);
 		lid.setLocalTranslation(0, yspan / 2 + thickness / 2, 0);
 		lid.setLocalTransform(lid.getLocalTransform().combineWithParent(tf));
 		float lidMass = Float.parseFloat(elm.getAttribute("lidMass"));
-		inventory.addItem(lid, lidMass);		
+		inventory.addItem(lid, lidMass);
 		lid.setUserData("obj_shape", "lid");
 		lid.setUserData("obj_xspan", xspan);
 		lid.setUserData("obj_zspan", thickness);
@@ -996,11 +1096,11 @@ public class Table implements ActionListener {
 		lid.setUserData("obj_handleXspan", handleXspan);
 		lid.setUserData("obj_handleZspan", handleYspan);
 		lid.setUserData("obj_handleYspan", handleZspan);
-		lid.setUserData("obj_handleThickness", handleThickness);		
-		lid.setUserData("obj_color", handleColor);		
-		
-		inventory.addSliderJoint(box, lid, 
-				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), null, null, 
+		lid.setUserData("obj_handleThickness", handleThickness);
+		lid.setUserData("obj_color", handleColor);
+
+		inventory.addSliderJoint(box, lid,
+				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), null, null,
 				0, xspan, false);
 //		joint.setDampingDirLin(0.1f);
 //		joint.setDampingDirAng(0.1f);
@@ -1014,7 +1114,7 @@ public class Table implements ActionListener {
 //		joint.setCollisionBetweenLinkedBodys(false);
 //		joint.setLowerLinLimit(0);
 //		joint.setUpperLinLimit(xspan);
-		
+
 //		joint.setDampingDirLin(.001f);
 //		joint.setRestitutionOrthoLin(.5f);
 //		joint.setRestitutionDirLin(0);
@@ -1048,17 +1148,17 @@ public class Table implements ActionListener {
 			switchStates[i] = Integer.parseInt(elm.getAttribute("switchState" + (i + 1)));
 			lightStates[i] = Integer.parseInt(elm.getAttribute("lightState" + (i + 1)));
 		}
-		
+
 		Transform tf = new Transform();
 		tf.setTranslation(location);
 		tf.setRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD, 
-				rotation.y * FastMath.DEG_TO_RAD, 
-				rotation.z * FastMath.DEG_TO_RAD));		
-		String id;		
+				rotation.x * FastMath.DEG_TO_RAD,
+				rotation.y * FastMath.DEG_TO_RAD,
+				rotation.z * FastMath.DEG_TO_RAD));
+		String id;
 		// case
 		id = getUniqueId(groupId + "-case");
-		Spatial caseShape = factory.makeBoxContainer(id + "-shape", yspan, xspan - xThickness, zspan, 
+		Spatial caseShape = factory.makeBoxContainer(id + "-shape", yspan, xspan - xThickness, zspan,
 				yThickness, xThickness, zThickness, caseColor);
 		caseShape.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Z));
 		caseShape.setLocalTranslation(-xThickness / 2, 0, 0);
@@ -1072,9 +1172,9 @@ public class Table implements ActionListener {
 		caseNode.setUserData("obj_height", caseShape.getUserData("obj_height"));
 		caseNode.setUserData("obj_depth", caseShape.getUserData("obj_depth"));
 		caseNode.setUserData("obj_color", caseShape.getUserData("obj_color"));
-		caseNode.setUserData("obj_xthickness", caseShape.getUserData("obj_xthickness")); 
-		caseNode.setUserData("obj_ythickness", caseShape.getUserData("obj_ythickness")); 
-		caseNode.setUserData("obj_zthickness", caseShape.getUserData("obj_zthickness")); 
+		caseNode.setUserData("obj_xthickness", caseShape.getUserData("obj_xthickness"));
+		caseNode.setUserData("obj_ythickness", caseShape.getUserData("obj_ythickness"));
+		caseNode.setUserData("obj_zthickness", caseShape.getUserData("obj_zthickness"));
 
 
 		// (component sizes and locations)
@@ -1100,11 +1200,11 @@ public class Table implements ActionListener {
 		dockNode.setLocalTransform(tf);
 		Node dockOffsetNode = new Node(groupId + "-bodyOffset");
 		dockOffsetNode.setLocalTranslation(0, -(yspan - yThickness * 2 - hBase) / 2, 0);
-		dockNode.attachChild(dockOffsetNode);	
-		
+		dockNode.attachChild(dockOffsetNode);
+
 		// dock base
 		String baseId = getUniqueId(groupId + "-dock-base");
-		Node base = new Node(id);				
+		Node base = new Node(id);
 		// dock base back
 		id = getUniqueId(baseId + "-baseB");
 		float wBaseB = wBase - (wPanel + wHoleToPanel + wHole);
@@ -1137,15 +1237,15 @@ public class Table implements ActionListener {
 		// dock base divider wall 2
 		id = getUniqueId(baseId + "-baseDW2");
 		Spatial baseDW2 = factory.makeBlock(id, wHole, hBase, dBaseDW, color);
-		baseDW2.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, 
+		baseDW2.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0,
 				-dBase / 2 + dBaseNW + dHole * 2 + dBaseDW + dBaseDW / 2);
 		base.attachChild(baseDW2);
 		// dock base divider wall 3
 		id = getUniqueId(baseId + "-baseDW3");
 		Spatial baseDW3 = factory.makeBlock(id, wHole, hBase, dBaseDW, color);
-		baseDW3.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0, 
+		baseDW3.setLocalTranslation(-wBase / 2 + wBaseB + wHole / 2, 0,
 				-dBase / 2 + dBaseNW + dHole * 3 + dBaseDW * 2 + dBaseDW / 2);
-		base.attachChild(baseDW3);		
+		base.attachChild(baseDW3);
 		// slots
 		float slotX = -wBase / 2 + wBaseB + wHole / 2;
 		float slotY = hBase / 2 - (hHole + 0.5f * thSlot) / 2;
@@ -1195,7 +1295,7 @@ public class Table implements ActionListener {
 		// switches
 		Node[] switchButton = new Node[NUM_MODULES];
 		float switchX = -wPanel / 2 + wPanelToSwitch + wSwitch / 2;
-		float switchY = hPanel / 2 + hSwitch / 2; 
+		float switchY = hPanel / 2 + hSwitch / 2;
 		for (int i = 0; i < NUM_MODULES; ++i) {
 			id = getUniqueId(panelId + "-switch" + (i + 1));
 			Node switchNode = new Node(id);
@@ -1226,7 +1326,7 @@ public class Table implements ActionListener {
 			dockNode.setUserData("obj_switch" + (i + 1) + "OffsetY", slotZ[i]);
 			dockNode.setUserData("obj_switch" + (i + 1) + "OffsetZ", panelY + switchY);
 		}
-		
+
 		// indicator lights
 		Node[] indicatorLights = new Node[NUM_MODULES];
 		float lightX = -wPanel / 2 + wPanelToSwitch + wSwitch + wSwitchToIndicator + rIndicator;
@@ -1246,7 +1346,7 @@ public class Table implements ActionListener {
 			id = getUniqueId(groupId + "-light" + (i + 1));
 			indicatorLights[i] = new Node(id);
 			indicator.attachChild(indicatorLights[i]);
-			// (green LED)			
+			// (green LED)
 			Spatial greenLight = factory.makeCylinder("green", rIndicator / 5, 0.005f, ColorRGBA.Green);
 			greenLight.setLocalTranslation(rIndicator / 2, hIndicator / 2 + 0.005f / 2, 0);
 			greenLight.setLocalRotation(rotX90);
@@ -1264,7 +1364,7 @@ public class Table implements ActionListener {
 			dockNode.setUserData("obj_light" + (i + 1) + "OffsetY", slotZ[i]);
 			dockNode.setUserData("obj_light" + (i + 1) + "OffsetZ", panelY + lightY);
 		}
-		
+
 		dockOffsetNode.attachChild(base);
 		dockOffsetNode.attachChild(panel);
 
@@ -1300,9 +1400,9 @@ public class Table implements ActionListener {
 //			ilFunc.setState(lightStates[i]);
 //			sFunc.setState(switchStates[i]);
 //		}
-		
+
 		// sliding joint
-		MySliderJoint joint = inventory.addSliderJoint(dockNode, caseNode, 
+		MySliderJoint joint = inventory.addSliderJoint(dockNode, caseNode,
 				Vector3f.ZERO, Vector3f.ZERO, null, null, 0, wBase, false);
 		joint.setDampingDirLin(1);
 		joint.setDampingDirAng(1);
@@ -1316,12 +1416,12 @@ public class Table implements ActionListener {
 		if (m.find()) {
 			float x = Float.parseFloat(m.group(1));
 			float y = Float.parseFloat(m.group(5));
-			float z = -Float.parseFloat(m.group(3));			
+			float z = -Float.parseFloat(m.group(3));
 			return new Vector3f(x, y, z);
 		}
 		throw new IllegalArgumentException("could not parse '" + str + "'");
 	}
-	
+
 	private ColorRGBA parseColor(String str) {
 		if (str.equals("black")) {
 			return ColorRGBA.Black;
@@ -1365,7 +1465,7 @@ public class Table implements ActionListener {
 			throw new IllegalArgumentException("could not parse '" + str + "'");
 		}
 	}
-	
+
 	public void dropRandomBlock() {
 		final ColorRGBA[] colors = new ColorRGBA[] { ColorRGBA.Red,
 				ColorRGBA.Blue, ColorRGBA.Yellow, ColorRGBA.Green,
@@ -1374,7 +1474,7 @@ public class Table implements ActionListener {
 		Spatial s = factory.makeBlock(getUniqueId("largeblock"), 1.5f, 1.5f, 1.5f,
 				colors[random.nextInt(colors.length)]);
 		s.setLocalTranslation(
-				(random.nextFloat() * 2 - 1) * (tableWidth / 2), 
+				(random.nextFloat() * 2 - 1) * (tableWidth / 2),
 				10,
 				(random.nextFloat() * 2 - 1) * (tableDepth / 2));
 		s.setLocalRotation(new Quaternion().fromAngleAxis(
@@ -1396,7 +1496,7 @@ public class Table implements ActionListener {
         Quaternion rot = new Quaternion().fromAngleAxis(
         		FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_Y);
         for (int i = 0; i < blockCount; ++i) {
-            Spatial s = factory.makeBlock(getUniqueId("smallblock"), 
+            Spatial s = factory.makeBlock(getUniqueId("smallblock"),
                     BOX_SIZE.x, BOX_SIZE.y, BOX_SIZE.z,
                     colors[random.nextInt(colors.length)]);
             s.setLocalTranslation(pos);
@@ -1406,12 +1506,12 @@ public class Table implements ActionListener {
             pos.y += BOX_SIZE.y;
         }
 	}
-	
+
 	public void dropRandomBoxContainer() {
 		Spatial boxContainer = factory.makeBoxContainer(getUniqueId("container"), 5, 3, 5,
 				0.5f, ColorRGBA.Gray);
-		boxContainer.setLocalTranslation((random.nextFloat() * 2 - 1) * (tableWidth / 2), 
-				10, 
+		boxContainer.setLocalTranslation((random.nextFloat() * 2 - 1) * (tableWidth / 2),
+				10,
 				(random.nextFloat() * 2 - 1) * (tableDepth / 2));
 		boxContainer.setLocalRotation(new Quaternion().fromAngleAxis(
 				FastMath.HALF_PI * random.nextFloat(), Vector3f.UNIT_XYZ));
@@ -1421,7 +1521,7 @@ public class Table implements ActionListener {
 	private boolean isValidId(String id) {
 		return id != null && !id.isEmpty() && !uniqueIds.contains(id);
 	}
-	
+
 	private String getUniqueId(String prefix) {
 		if (prefix == null || prefix.isEmpty()) {
 			prefix = "obj";
@@ -1433,17 +1533,17 @@ public class Table implements ActionListener {
 		uniqueIds.add(id);
 		return id;
 	}
-	
+
 	public void initKeys(InputManager inputManager) {
         inputManager.addMapping(name + "MakeBlock", new KeyTrigger(KeyInput.KEY_B));
         inputManager.addMapping(name + "MakeStack", new KeyTrigger(KeyInput.KEY_N));
-        inputManager.addMapping(name + "ClearTable", new KeyTrigger(KeyInput.KEY_C));        
-        
+        inputManager.addMapping(name + "ClearTable", new KeyTrigger(KeyInput.KEY_C));
+
         inputManager.addListener(this, name + "MakeBlock");
         inputManager.addListener(this, name + "MakeStack");
-        inputManager.addListener(this, name + "ClearTable");		
+        inputManager.addListener(this, name + "ClearTable");
 	}
-	
+
 	@Override
 	public void onAction(String eName, boolean isPressed, float tpf) {
 		if (!enabled) {

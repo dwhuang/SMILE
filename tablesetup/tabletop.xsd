@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schema targetNamespace="http://synapse.cs.umd.edu/tabletop-xml" elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tt="http://synapse.cs.umd.edu/tabletop-xml">
+<schema targetNamespace="http://synapse.cs.umd.edu/tabletop-xml" 
+    elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema" 
+    xmlns:tt="http://synapse.cs.umd.edu/tabletop-xml">
 	<simpleType name="colorType">
 		<restriction base="string">
 			<pattern value="black" />
@@ -43,6 +45,11 @@
 			<pattern value="[_a-zA-Z0-9]*" />
 		</restriction>
 	</simpleType>
+    <simpleType name="varNameType">
+        <restriction base="string">
+            <pattern value="__[_a-zA-Z0-9]+__"/>
+        </restriction>
+    </simpleType>
 	<simpleType name="vector3Type">
 		<restriction base="string">
 			<pattern
@@ -194,18 +201,7 @@
         <complexContent>
             <extension base="tt:abstractObjectType">
 		        <sequence minOccurs="0" maxOccurs="unbounded">
-		            <choice>
-		                <element name="block" type="tt:blockType"/>
-		                <element name="cylinder" type="tt:cylinderType"/>
-		                <element name="sphere" type="tt:sphereType"/>
-		                <element name="box" type="tt:boxType"/>
-		                <element name="custom" type="tt:customType"/>
-		                <element name="lid" type="tt:lidType"/>
-		                <element name="cartridge" type="tt:cartridgeType"/>
-		                <element name="composite" type="tt:compositeType"/>
-                        <element name="toggleSwitch" type="tt:toggleSwitchType"/>
-                        <element name="indicatorSet" type="tt:indicatorSetType"/>
-		            </choice>
+                    <group ref="tt:compositeGroup"/>
 		        </sequence>
             </extension>
         </complexContent>
@@ -299,7 +295,7 @@
         </complexContent>
     </complexType>
 
-    <group name="singleObject">
+    <group name="singleObjectGroup">
         <choice>
             <element name="block" type="tt:blockObjectType"/>
             <element name="cylinder" type="tt:cylinderObjectType"/>
@@ -309,10 +305,19 @@
             <element name="lid" type="tt:lidObjectType"/>
             <element name="cartridge" type="tt:cartridgeObjectType"/>
             <element name="composite" type="tt:compositeObjectType"/>            
+            <element name="instance" type="tt:instanceType"/>
         </choice>
     </group>
     
-    <group name="multiObject">
+    <group name="compositeGroup">
+        <choice>
+            <group ref="tt:singleObjectGroup"/>
+            <element name="toggleSwitch" type="tt:toggleSwitchType" />
+            <element name="indicatorSet" type="tt:indicatorSetType" />
+        </choice>
+    </group>
+
+    <group name="multiObjectGroup">
         <choice>
             <element name="chain">
                 <complexType>
@@ -378,7 +383,7 @@
         <complexContent>
             <extension base="tt:abstractObjectType">
 		        <sequence minOccurs="2" maxOccurs="2">
-		            <group ref="tt:singleObject"/>
+		            <group ref="tt:singleObjectGroup"/>
 		        </sequence>
 		        <attribute name="min" type="float" use="optional" default="0"/>
                 <attribute name="max" type="float" use="optional" default="1"/>
@@ -394,6 +399,29 @@
         </choice>
     </group>
 
+    <complexType name="instanceType">
+        <sequence minOccurs="0" maxOccurs="unbounded">
+            <element name="var">
+                <complexType>
+                    <attribute name="name" type="tt:varNameType" use="required" />
+                    <attribute name="value" type="string" use="required" />
+                </complexType>
+            </element>            
+        </sequence>
+        <attribute name="def" type="tt:idType" use="required"/>
+    </complexType>
+ 
+    <complexType name="defType">
+        <sequence minOccurs="1" maxOccurs="unbounded">
+            <choice>
+                <group ref="tt:compositeGroup" />
+                <group ref="tt:multiObjectGroup" />
+                <group ref="tt:joint" />
+            </choice>
+        </sequence>
+        <attribute name="name" type="tt:idType" use="required"/>
+    </complexType>
+
 	<element name="tabletop">
         <complexType>
             <sequence minOccurs="0" maxOccurs="unbounded">
@@ -403,9 +431,10 @@
                             <attribute name="file" type="tt:fileType" use="required"/>
                         </complexType>
                     </element>
-                    <group ref="tt:singleObject"/>
-                    <group ref="tt:multiObject"/>
+                    <group ref="tt:singleObjectGroup"/>
+                    <group ref="tt:multiObjectGroup"/>
                     <group ref="tt:joint"/>
+                    <element name="def" type="tt:defType"/>
                 </choice>
             </sequence>
             <attribute name="xspan" type="tt:spanType"/>

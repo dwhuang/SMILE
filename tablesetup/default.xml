@@ -2,19 +2,30 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-    <sliderJoint location="(1, 0, 1)" min="3" max="7" init="3">
-        <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" rotation="(0, 0, -15)" color="red"/>
+    <def name="switch">
+        <toggleSwitch id="__id__" location="(0, 0, 0)" leftPressed="false" numStates="4">
+            <downstream id="__ds1__"/>
+            <downstream id="__ds2__"/>
+        </toggleSwitch>
+    </def>
+    <def name="green_panel">
+        <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" color="green" />
         <composite id="GreenBlock" location="(0, 0, 0)" rotation="(0, 0, 45)" mass="1">
-            <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" color="green" />
-            <toggleSwitch id="Toggle1" location="(0, 0.3, 0.91)" leftPressed="false" numStates="4">
-                <downstream id="GreenBlockLED"/>
-                <downstream id="GreenBlockToggle2"/>
-            </toggleSwitch>
-            <toggleSwitch id="Toggle2" location="(0, -0.3, 0.91)" leftPressed="false" numStates="4">
-                <downstream id="GreenBlockLED"/>
-                <downstream id="GreenBlockToggle1"/>
-            </toggleSwitch>
-            <indicatorSet location="(0, 0, 1)" id="LED">
+            <composite location="(0, 0.3, 0.91)">
+                <instance def="switch">
+                    <var name="__id__" value="t1"/>
+                    <var name="__ds1__" value="t2"/>
+                    <var name="__ds2__" value="led"/>
+                </instance>
+            </composite>
+            <composite location="(0, -0.3, 0.91)">
+                <instance def="switch">
+                    <var name="__id__" value="t2"/>
+                    <var name="__ds1__" value="t1"/>
+                    <var name="__ds2__" value="led"/>
+                </instance>
+            </composite>
+            <indicatorSet location="(0, 0, 1)" id="led">
                 <state></state>
                 <state>
                     <light id="0" color="red"/>
@@ -25,5 +36,9 @@
                 </state>
             </indicatorSet>
         </composite>
+    </def>
+    <sliderJoint location="(1, 0, 1)" min="3" max="7" init="3">
+        <block id="RedBlock" xspan="2" yspan="2" zspan="2" location="(0, 0, 0)" rotation="(0, 0, -15)" color="red"/>
+        <instance def="green_panel"/>
     </sliderJoint>
 </tabletop>
