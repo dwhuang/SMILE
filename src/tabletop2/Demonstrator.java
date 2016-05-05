@@ -709,6 +709,9 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 l.demoPreTrigger(currHand.id, func.getSpatial());
             }
             func.trigger(r.getGeometry());
+            for (DemoActionListener l : demoActionListeners) {
+                l.demoTrigger(currHand.id, func.getSpatial());
+            }
     	}
     }
     

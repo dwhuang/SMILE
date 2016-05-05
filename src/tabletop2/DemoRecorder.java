@@ -259,7 +259,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 
 	@Override
 	public void objectTriggered(Spatial obj, String name, int state) {
-		if (isRecording) {
+    	if (isRecording) {
 			currSegSymbWritter.print(frameId + ",event," + name + "," + state + "\n");
 			saveRobotVision();
 		}
