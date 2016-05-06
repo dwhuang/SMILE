@@ -7,3 +7,4 @@ tabletop-*
 tags
 *.dylib
 javadoc
+tablesetup/debug.xml

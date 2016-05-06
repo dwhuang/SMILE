@@ -5,25 +5,36 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.JOptionPane;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -51,6 +62,7 @@ import com.jme3.scene.Spatial;
 public class Table implements ActionListener {
 
 	private static final Logger logger = Logger.getLogger(Table.class.getName());
+	private static final String SCHEMA_FNAME = "tablesetup/tabletop.xsd";
 
     private static Random random = new Random(5566);
 
@@ -70,8 +82,9 @@ public class Table implements ActionListener {
 	private int idSN = 0;
 	private HashSet<String> uniqueIds = new HashSet<String>();
 
+	private HashSet<String> xmlFnameLoaded = new HashSet<>();
 	private HashMap<String, Element> defs = new HashMap<>();
-
+	private HashMap<String, HashMap<String, String>> defVars = new HashMap<>();
 
 	public Table(String name, MainApp app, Node robotLocationNode) {
 		this.name = name;
@@ -120,54 +133,82 @@ public class Table implements ActionListener {
 		}
 		idSN = 0;
 		defs.clear();
+		xmlFnameLoaded.clear();
 
-		processXml(loadXml(xmlFname, null));
-
+		Document doc = parseXmlFile(xmlFname);
+		if (doc != null) {
+			processIncludeElements(doc);
+			processDefElements(doc);
+			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>());
+            writeXmlToFile(doc, "tablesetup/debug.xml");
+	        doc = validateXmlTree(doc);
+			processXmlTree(doc);
+		}
+		
 		// relocate the robot according to table size
     	robotLocationNode.setLocalTransform(Transform.IDENTITY);
     	robotLocationNode.setLocalTranslation(0, 2, tableDepth / 2 + 3);
     	robotLocationNode.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y));
 	}
+	
+	/**
+	 * Validate an existing DOM tree.
+	 * @param doc
+	 * @return a document node after validation.
+	 */
+	private Document validateXmlTree(Document doc) {
+		// make schema
+		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		Schema schema = null;
+		try {
+			schema = sf.newSchema(new File(SCHEMA_FNAME));
+		} catch (SAXException e1) {
+			String msg = "schema error: " + SCHEMA_FNAME;
+			logger.log(Level.WARNING, msg, e1);
+			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+			return doc;
+		}
+		// validate
+		Validator validator = schema.newValidator();
+		DOMResult res = new DOMResult();
+		try {
+			validator.validate(new DOMSource(doc), res);
+		} catch (SAXException | IOException e1) {
+			String msg = "schema validation error";
+			logger.log(Level.WARNING, msg, e1);
+			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+			return doc;
+		}
+		return (Document) res.getNode();
+	}
 
-	private List<Element> loadXml(String xmlFname, Set<String> xmlFnameLoaded) {
-		// check if the current file has been loaded before
-		if (xmlFnameLoaded == null) {
-			// this is a root document (first, non-recursive call to this method)
-			xmlFnameLoaded = new HashSet<>();
-		}
-		if (xmlFnameLoaded.contains(xmlFname)) {
-			String msg = "xml file includes itself: " + xmlFname;
-			logger.log(Level.WARNING, msg);
-			showMessageDialog(msg, 400);
-			return new LinkedList<>();
-		} else {
-			xmlFnameLoaded.add(xmlFname);
-		}
+	/**
+	 * Parse XML file into a DOM tree without validation.
+	 * @param fname
+	 * @return a document node
+	 */
+	private Document parseXmlFile(String fname) {
 		// make document parser
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
-		dbf.setValidating(true);
-		dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaLanguage",
-				"http://www.w3.org/2001/XMLSchema");
+		dbf.setSchema(null);
 		DocumentBuilder db = null;
 		try {
 			db = dbf.newDocumentBuilder();
 		} catch (ParserConfigurationException e1) {
-			String msg = "parse error: " + xmlFname;
+			String msg = "parse error: " + fname;
 			logger.log(Level.WARNING, msg, e1);
 			showMessageDialog(msg + ": " + e1.getMessage(), 400);
-			return new LinkedList<>();
+			return null;
 		}
 		db.setErrorHandler(new ErrorHandler() {
 			@Override
 			public void warning(SAXParseException exception) throws SAXException {
 			}
-
 			@Override
 			public void error(SAXParseException exception) throws SAXException {
 				throw exception;
 			}
-
 			@Override
 			public void fatalError(SAXParseException exception) throws SAXException {
 				throw exception;
@@ -176,57 +217,262 @@ public class Table implements ActionListener {
 		// parse document
 		Document doc = null;
 		try {
-			doc = db.parse(new File(xmlFname));
+			doc = db.parse(new File(fname));
 		} catch (SAXException e) {
-			String msg = "cannot parse " + xmlFname;
+			String msg = "cannot parse " + fname;
 			logger.log(Level.WARNING, msg, e);
 			showMessageDialog(msg + ": " + e.getMessage(), 400);
-			return new LinkedList<>();
+			return null;
 		} catch (IOException e) {
-			String msg = "cannot read from " + xmlFname;
+			String msg = "cannot read from " + fname;
 			logger.log(Level.WARNING, msg, e);
 			showMessageDialog(msg + ": " + e.getMessage(), 400);
-			return new LinkedList<>();
+			return null;
 		} catch (RuntimeException e) {
-			String msg = "an error occurs in " + xmlFname;
+			String msg = "an error occurs in " + fname;
 			logger.log(Level.WARNING, msg, e);
 			showMessageDialog(msg + ": " + e.getMessage(), 400);
-			return new LinkedList<>();
+			return null;
 		}
+		xmlFnameLoaded.add(fname);
+		return doc;
+	}
+	
+    private void writeXmlToFile(Document doc, String fname) {
+	    Transformer transformer;
+        try {
+            transformer = TransformerFactory.newInstance().newTransformer();
+        } catch (TransformerConfigurationException
+                | TransformerFactoryConfigurationError e) {
+            e.printStackTrace();
+            return;
+        }
+	    Result output = new StreamResult(new File(fname));
+	    Source input = new DOMSource(doc);
 
-		Element docRoot = doc.getDocumentElement();
-		// load table width and height if at the root document
-		if (xmlFnameLoaded.size() == 1) {
-			tableWidth = Float.parseFloat(docRoot.getAttribute("xspan"));
-			tableDepth = Float.parseFloat(docRoot.getAttribute("yspan"));
-		}
-		// process <include> recursively
-		List<Element> eList = getElementList(docRoot.getChildNodes());
-		ListIterator<Element> itr = eList.listIterator();
-		while (itr.hasNext()) {
-			Element e = itr.next();
-			if (e.getNodeName().equals("include")) {
-				itr.remove();
-				List<Element> subList = loadXml(e.getAttribute("file"), xmlFnameLoaded);
-				for (Element newElm : subList) {
-					itr.add(newElm);
-				}
-			}
-		}
-
-		return eList;
+	    try {
+            transformer.transform(input, output);
+        } catch (TransformerException e) {
+            e.printStackTrace();
+            return;
+        }
+	}
+	
+	@SuppressWarnings("unused")
+    private void walkXmlTree(org.w3c.dom.Node root, String path) {
+	    System.out.println(path + ": " + root);
+	    
+	    path += "->" + root;
+	    for (org.w3c.dom.Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
+	        walkXmlTree(child, path);
+	    }
 	}
 
-	private void processXml(List<Element> elmList) {
+	/**
+	 * Expands all {@code <include>} elements in the document recursively.
+	 * @param doc
+	 */
+	private void processIncludeElements(Document doc) {
+	    Element root = doc.getDocumentElement();
+	    for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
+	        org.w3c.dom.Node nextChild = child.getNextSibling();
+	        if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+	                && child.getNodeName().equals("include")) {
+	            String fname = ((Element) child).getAttribute("file");
+	            Document incDoc = null;
+	            if (!xmlFnameLoaded.contains(fname)) {
+	                incDoc = parseXmlFile(fname);
+	            } else {
+	                String msg = "xml file " + fname + " has already been loaded (skip)";
+	                logger.log(Level.WARNING, msg);
+	                showMessageDialog(msg, 400);
+	            }
+	            if (incDoc != null) {
+	                processIncludeElements(incDoc);
+	                Element incRoot = incDoc.getDocumentElement();
+	                for (org.w3c.dom.Node incChild = incRoot.getFirstChild(); incChild != null;) {
+	                    org.w3c.dom.Node nextIncChild = incChild.getNextSibling();
+	                    incChild = doc.importNode(incChild, true);
+	                    if (incChild != null) {
+	                        root.insertBefore(incChild, child);
+	                    }
+	                    incChild = nextIncChild;
+	                }
+	            }
+                root.removeChild(child);
+	        }
+	        child = nextChild;
+	    }
+	}
+
+	/**
+	 * Store and remove all {@code <def>} elements from {@code doc}.
+	 * @param doc
+	 */
+	private void processDefElements(Document doc) {
+	    Element root = doc.getDocumentElement();
+	    for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
+	        org.w3c.dom.Node nextChild = child.getNextSibling();
+	        if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+	                && child.getNodeName().equals("def")) {
+    	        String name = ((Element) child).getAttribute("name");
+    	        if (defs.containsKey(name)) {
+    	            String msg = "Duplicated definition detected: " + name + " (overwrite)";
+    	            logger.log(Level.WARNING, msg);
+    	            showMessageDialog(msg, 400);
+    	            defs.remove(name);
+    	            defVars.remove(name);
+    	        }
+    	        // get default variable values in def
+                HashMap<String, String> vars = new HashMap<>();
+    	        for (org.w3c.dom.Node defChild = child.getFirstChild(); defChild != null;) {
+    	            org.w3c.dom.Node nextDefChild = defChild.getNextSibling();
+    	            if (defChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+    	                    && defChild.getNodeName().equals("var")) {
+    	                vars.put(((Element) defChild).getAttribute("name"),
+    	                        ((Element) defChild).getAttribute("value"));
+    	                child.removeChild(defChild);
+    	            }
+    	            defChild = nextDefChild;
+    	        }
+    	        defs.put(name, (Element) child);
+                defVars.put(name, vars);
+    	        root.removeChild(child);
+	        }
+	        child = nextChild;
+	    }
+    }
+
+	/**
+	 * Process the subtree {@code root} for {@code <instance>}-related work:
+	 * (1) expand all child {@code <instance>} nodes;
+	 * (2) substitute the root's variable values.
+	 * @param doc
+	 * @param root
+	 * @param vars
+	 */
+    private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
+        // substitute variable values
+        NamedNodeMap attrs = root.getAttributes();
+        for (int i = 0; i < attrs.getLength(); ++i) {
+            org.w3c.dom.Node attr = attrs.item(i);
+            String attrVal = attr.getNodeValue();
+            Pattern pat = Pattern.compile("__([_a-zA-Z0-9]+)(.*?)__");
+            Matcher mat = pat.matcher(attrVal);
+            StringBuffer buf = new StringBuffer();
+            while (mat.find()) {
+                String varName = "__" + mat.group(1) + "__";
+                if (vars.containsKey(varName)) {
+                    String varValue = vars.get(varName);
+                    varValue = performVariableArithmetic(varValue, mat.group(2));
+                    mat.appendReplacement(buf, varValue);
+                } else {
+                    mat.appendReplacement(buf, mat.group());
+                }
+            }
+            mat.appendTail(buf);
+            attr.setNodeValue(buf.toString());
+        }
+        // process children
+        for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
+            org.w3c.dom.Node nextChild = child.getNextSibling();
+            if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+                child = nextChild;
+                continue;
+            }
+            if (child.getNodeName().equals("instance")) {
+                // ----------------------------------------------
+                // expand the instance node by looking up the def
+                // ----------------------------------------------
+                // look up def
+                String defName = ((Element) child).getAttribute("def");
+                DocumentFragment frag = doc.createDocumentFragment();
+                if (!defs.containsKey(defName)) {
+                    String msg = "Definition not found: " + defName + " (ignored)";
+                    logger.log(Level.WARNING, msg);
+                    showMessageDialog(msg, 400);
+                } else {
+                    // make a copy of def
+                    Element def = defs.get(defName);
+                    for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
+                            defChild = defChild.getNextSibling()) {
+                        frag.appendChild(defChild.cloneNode(true));
+                    }
+                    // get variable values
+                    vars.putAll(defVars.get(defName));
+                    for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
+                            grandChild = grandChild.getNextSibling()) {
+                        if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                                && grandChild.getNodeName().equals("var")) {
+                            vars.put(((Element) grandChild).getAttribute("name"),
+                                    ((Element) grandChild).getAttribute("value"));
+                        }
+                    }
+                    // recursively process those new cloned nodes in frag
+                    for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;
+                            dfChild = dfChild.getNextSibling()) {
+                        if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                            processInstanceElements(doc, (Element) dfChild, new HashMap<>(vars));
+                        }
+                    }
+                }
+                // replace <instance> node with frag nodes
+                root.insertBefore(frag, child);
+                root.removeChild(child);
+            } else {
+                // recurse down
+                processInstanceElements(doc, (Element) child, vars);
+            }
+            child = nextChild;
+        }
+    }
+    
+    private String performVariableArithmetic(String val, String postfix) {
+        if (postfix == null || postfix.length() == 0) {
+            return val;
+        }
+        Pattern pat = Pattern.compile("^\\s*([\\+\\-\\*/])\\s*(\\d+(?:\\.\\d+)?)\\s*$");
+        Matcher mat = pat.matcher(postfix);
+        if (mat.find()) {
+            String operator = mat.group(1);
+            String operand = mat.group(2);
+            try {
+                float v1 = Float.parseFloat(val);
+                float v2 = Float.parseFloat(operand);
+                if (operator.equals("+")) {
+                    v1 += v2;
+                } else if (operator.equals("-")) {
+                    v1 -= v2;
+                } else if (operator.equals("*")) {
+                    v1 *= v2;
+                } else if (operator.equals("/")) {
+                    v1 /= v2;
+                }
+                val = "" + v1;
+            } catch (NumberFormatException e) {
+                if (operator.equals("+")) {
+                    // string concatenation
+                    val += operand;
+                } else {
+                    String msg = "cannot perform variable arithmetic: " + val + operator + operand;
+                    logger.log(Level.WARNING, msg);
+                    showMessageDialog(msg, 400);
+                }
+            }
+        }
+        return val;
+    }
+    
+    private void processXmlTree(Document doc) {
+        Element root = doc.getDocumentElement();
+        tableWidth = Float.parseFloat(root.getAttribute("xspan"));
+        tableDepth = Float.parseFloat(root.getAttribute("yspan"));
 		makeTable();
-		for (Element elm : elmList) {
-			if (elm.getNodeName().equals("def")) {
-				processDefElement(elm);
-			}
-		}
-		ListIterator<Element> itr = elmList.listIterator();
-		while (itr.hasNext()) {
-			Element elm = itr.next();
+		for (org.w3c.dom.Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
+		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+		        continue;
+		    }
+		    Element elm = (Element) child;
 			if (elm.getNodeName().equals("block")) {
 				processBlockElement(elm, true);
 			} else if (elm.getNodeName().equals("cylinder")) {
@@ -251,10 +497,6 @@ public class Table implements ActionListener {
 				processDockElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
 				processSliderJointElement(elm);
-			} else if (elm.getNodeName().equals("def")) {
-				// nothing to do here; defs were processed in the first pass
-			} else if (elm.getNodeName().equals("instance")) {
-				expandItrElementHelper(itr, processInstanceElement(elm, null));
 			} else {
 				logger.log(Level.WARNING, "skipping unknown element " + elm.getNodeName());
 			}
@@ -266,15 +508,15 @@ public class Table implements ActionListener {
 		JOptionPane.showMessageDialog(null, "<html><body width='" + dialogWidth + "'>" + msg + "</body></html>");
 	}
 
-	private List<Element> getElementList(NodeList nodeList) {
-		List<Element> ret = new LinkedList<>();
-		for (int i = 0; i < nodeList.getLength(); ++i) {
-			if (nodeList.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-				ret.add((Element) nodeList.item(i));
-			}
-		}
-		return ret;
-	}
+//	private List<Element> getElementList(NodeList nodeList) {
+//		List<Element> ret = new LinkedList<>();
+//		for (int i = 0; i < nodeList.getLength(); ++i) {
+//			if (nodeList.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+//				ret.add((Element) nodeList.item(i));
+//			}
+//		}
+//		return ret;
+//	}
 	
 	private void makeTable() {
 		// make table
@@ -284,95 +526,6 @@ public class Table implements ActionListener {
 		tableSpatial.addControl(rbc);
 		bulletAppState.getPhysicsSpace().add(rbc);
 		rootNode.attachChild(tableSpatial);
-	}
-
-	private void processDefElement(Element e) {
-		String name = e.getAttribute("name");
-		if (defs.containsKey(name)) {
-			String msg = "Duplicated definition detected: " + name + " (overwrite)";
-			logger.log(Level.WARNING, msg);
-			showMessageDialog(msg, 400);
-		}
-		defs.put(name, e);
-	}
-	
-	/**
-	 * Expand {@code <instance>} element to a list of concrete elements without any
-	 * {@code <instance>} elements in their descendants.
-	 * @param e The {@code <instance>} element
-	 * @param vars Variable values inherited from the enclosing {@code <instance>} element.
-	 * @return A list of elements whose descendants do not contain any {@code <instance>} elements.
-	 */
-	private List<Element> processInstanceElement(Element e, Map<String, String> vars) {
-		// look up def
-		String defName = e.getAttribute("def");
-		if (!defs.containsKey(defName)) {
-			String msg = "Definition not found: " + name + " (ignored)";
-			logger.log(Level.WARNING, msg);
-			showMessageDialog(msg, 400);
-			return new LinkedList<>();
-		}
-		// make a copy
-		Element def = (Element) defs.get(defName).cloneNode(true);
-		// get variable
-		if (vars == null) {
-			vars = new HashMap<>();
-		}
-		for (Element child : getElementList(e.getChildNodes())) {
-			if (child.getNodeName().equals("var")) {
-				vars.put(child.getAttribute("name"), child.getAttribute("value"));
-			}
-		}
-		// recursively substitute variables and expand instances in def
-		substVarsAndExpandInstance(def, new HashMap<>(vars));
-		
-		return getElementList(def.getChildNodes());
-	}
-
-	/**
-	 * Helper function for {@link tabletop2.Table.processInstanceElement}.
-	 * For each child element, recursively substitutes variable attribute values. If the child is itself
-	 * an {@code <instance>} element, recursively calls {@link tabletop2.Table.processInstanceElement}
-	 * to expand it.
-	 * @param elm
-	 * @param vars
-	 */
-	private void substVarsAndExpandInstance(Element elm, Map<String, String> vars) {
-		ListIterator<Element> itr = getElementList(elm.getChildNodes()).listIterator();
-		while (itr.hasNext()) {
-			Element child = itr.next();
-			// substitute variable attribute values
-			NamedNodeMap attrs = child.getAttributes();
-			for (int i = 0; i < attrs.getLength(); ++i) {
-				org.w3c.dom.Node attr = attrs.item(i);
-				String attrVal = attr.getNodeValue();
-				if (vars.containsKey(attrVal)) {
-					attr.setNodeValue(vars.get(attrVal));
-				}
-			}
-			
-			if (child.getNodeName().equals("instance")) {
-				expandItrElementHelper(itr, processInstanceElement(child, vars));
-			} else {
-				substVarsAndExpandInstance(child, vars);
-			}
-		}
-	}
-
-	/**
-	 * Replace the last iterated element with a list of elements. The iterator will be positioned right before
-	 * the first element of {@code subList}.
-	 * @param itr
-	 * @param subList
-	 */
-	private void expandItrElementHelper(ListIterator<Element> itr, List<Element> subList) {
-		itr.remove();
-		for (Element e : subList) {
-			itr.add(e);
-		}
-		for (int i = 0; i < subList.size(); ++i) {
-			itr.previous();
-		}
 	}
 
 	private void processSliderJointElement(Element e) {
@@ -391,28 +544,28 @@ public class Table implements ActionListener {
 
 		Spatial[] objs = new Spatial[2];
 		int k = 0;
-		ListIterator<Element> itr = getElementList(e.getChildNodes()).listIterator();
-		while (itr.hasNext()) {
-			Element child = itr.next();
+		for (org.w3c.dom.Node child = e.getFirstChild(); child != null; child = child.getNextSibling()) {
+		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+		        continue;
+		    }
+			Element childElm = (Element) child;
 			Spatial obj = null;
-			if (child.getNodeName().equals("block")) {
-				obj = processBlockElement(child, true);
-			} else if (child.getNodeName().equals("cylinder")) {
-				obj = processCylinderElement(child, true);
-			} else if (child.getNodeName().equals("sphere")) {
-				obj = processSphereElement(child, true);
-			} else if (child.getNodeName().equals("box")) {
-				obj = processBoxElement(child, true);
-			} else if (child.getNodeName().equals("custom")) {
-				obj = processCustomElement(child, true);
-			} else if (child.getNodeName().equals("lid")) {
-				obj = processLidElement(child, true);
-			} else if (child.getNodeName().equals("cartridge")) {
-				obj = processCartridgeElement(child, true);
-			} else if (child.getNodeName().equals("composite")) {
-				obj = processCompositeElement(child, true, null);
-			} else if (child.getNodeName().equals("instance")) {
-				expandItrElementHelper(itr, processInstanceElement(child, null));
+			if (childElm.getNodeName().equals("block")) {
+				obj = processBlockElement(childElm, true);
+			} else if (childElm.getNodeName().equals("cylinder")) {
+				obj = processCylinderElement(childElm, true);
+			} else if (childElm.getNodeName().equals("sphere")) {
+				obj = processSphereElement(childElm, true);
+			} else if (childElm.getNodeName().equals("box")) {
+				obj = processBoxElement(childElm, true);
+			} else if (childElm.getNodeName().equals("custom")) {
+				obj = processCustomElement(childElm, true);
+			} else if (childElm.getNodeName().equals("lid")) {
+				obj = processLidElement(childElm, true);
+			} else if (childElm.getNodeName().equals("cartridge")) {
+				obj = processCartridgeElement(childElm, true);
+			} else if (childElm.getNodeName().equals("composite")) {
+				obj = processCompositeElement(childElm, true, null);
 			}
 			if (obj != null) {
 				if (k >= 2) {
@@ -776,29 +929,29 @@ public class Table implements ActionListener {
 				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
 
-		ListIterator<Element> itr = getElementList(elm.getChildNodes()).listIterator();
-		while (itr.hasNext()) {
-			Element child = itr.next();
-			if (child.getNodeName().equals("block")) {
-				node.attachChild(processBlockElement(child, false));
-			} else if (child.getNodeName().equals("cylinder")) {
-				node.attachChild(processCylinderElement(child, false));
-			} else if (child.getNodeName().equals("sphere")) {
-				node.attachChild(processSphereElement(child, false));
-			} else if (child.getNodeName().equals("box")) {
-				node.attachChild(processBoxElement(child, false));
-			} else if (child.getNodeName().equals("custom")) {
-				node.attachChild(processCustomElement(child, false));
-			} else if (child.getNodeName().equals("composite")) {
-				node.attachChild(processCompositeElement(child, false, stateControlMap));
-			} else if (child.getNodeName().equals("toggleSwitch")) {
-				node.attachChild(processToggleSwitchElement(child, stateControlMap));
-			} else if (child.getNodeName().equals("indicatorSet")) {
-				node.attachChild(processIndicatorSetElement(child, stateControlMap));
-			} else if (child.getNodeName().equals("instance")) {
-				expandItrElementHelper(itr, processInstanceElement(child, null));
+		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+		        continue;
+		    }
+			Element childElm = (Element) child;
+			if (childElm.getNodeName().equals("block")) {
+				node.attachChild(processBlockElement(childElm, false));
+			} else if (childElm.getNodeName().equals("cylinder")) {
+				node.attachChild(processCylinderElement(childElm, false));
+			} else if (childElm.getNodeName().equals("sphere")) {
+				node.attachChild(processSphereElement(childElm, false));
+			} else if (childElm.getNodeName().equals("box")) {
+				node.attachChild(processBoxElement(childElm, false));
+			} else if (childElm.getNodeName().equals("custom")) {
+				node.attachChild(processCustomElement(childElm, false));
+			} else if (childElm.getNodeName().equals("composite")) {
+				node.attachChild(processCompositeElement(childElm, false, stateControlMap));
+			} else if (childElm.getNodeName().equals("toggleSwitch")) {
+				node.attachChild(processToggleSwitchElement(childElm, stateControlMap));
+			} else if (childElm.getNodeName().equals("indicatorSet")) {
+				node.attachChild(processIndicatorSetElement(childElm, stateControlMap));
 			} else {
-				logger.log(Level.WARNING, "skipping unknown composite element " + child.getNodeName());
+				logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
 			}
 		}
 
@@ -852,9 +1005,10 @@ public class Table implements ActionListener {
 
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
-		for (Element child : getElementList(elm.getChildNodes())) {
-			if (child.getNodeName().equals("downstream")) {
-				dsIds.add(child.getAttribute("id"));
+		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+			if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+			        && child.getNodeName().equals("downstream")) {
+				dsIds.add(((Element) child).getAttribute("id"));
 			}
 		}
 
@@ -904,19 +1058,24 @@ public class Table implements ActionListener {
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
 		LinkedList<ColorRGBA[]> lightStates = new LinkedList<>();
-		for (Element child : getElementList(elm.getChildNodes())) {
+		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+		        continue;
+		    }
 			if (child.getNodeName().equals("downstream")) {
-				dsIds.add(child.getAttribute("id"));
+				dsIds.add(((Element) child).getAttribute("id"));
 			} else if (child.getNodeName().equals("state")) {
 				ColorRGBA[] ls = new ColorRGBA[numLights];
 				// get <light> elements under <state>
-				for (Element grandChild : getElementList(child.getChildNodes())) {
-					if (grandChild.getNodeName().equals("light")) {
-						int ind = Integer.parseInt(grandChild.getAttribute("id"));
+				for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
+				        grandChild = grandChild.getNextSibling()) {
+					if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+					        && grandChild.getNodeName().equals("light")) {
+						int ind = Integer.parseInt(((Element) grandChild).getAttribute("id"));
 						if (ind < 0 || ind >= numLights) {
 							throw new IllegalArgumentException("invalid light id " + ind);
 						}
-						ColorRGBA color = parseColor(grandChild.getAttribute("color"));
+						ColorRGBA color = parseColor(((Element) grandChild).getAttribute("color"));
 						ls[ind] = color;
 					}
 				}
