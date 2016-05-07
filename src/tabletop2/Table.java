@@ -501,8 +501,6 @@ public class Table implements ActionListener {
 				processBoxElement(elm, true);
 			} else if (elm.getNodeName().equals("custom")) {
 				processCustomElement(elm, true);
-			} else if (elm.getNodeName().equals("lid")) {
-				processLidElement(elm, true);
 			} else if (elm.getNodeName().equals("cartridge")) {
 				processCartridgeElement(elm, true);
 			} else if (elm.getNodeName().equals("composite")) {
@@ -578,8 +576,6 @@ public class Table implements ActionListener {
 				obj = processBoxElement(childElm, true);
 			} else if (childElm.getNodeName().equals("custom")) {
 				obj = processCustomElement(childElm, true);
-			} else if (childElm.getNodeName().equals("lid")) {
-				obj = processLidElement(childElm, true);
 			} else if (childElm.getNodeName().equals("cartridge")) {
 				obj = processCartridgeElement(childElm, true);
 			} else if (childElm.getNodeName().equals("composite")) {
@@ -784,55 +780,6 @@ public class Table implements ActionListener {
 			s.setUserData("obj_shape", "custom");
 			s.setUserData("obj_color", color);
 			s.setUserData("obj_scale", scale);
-		}
-
-		return s;
-	}
-
-	private Spatial processLidElement(Element elm, boolean isWhole) {
-		String id = elm.getAttribute("id");
-		if (isWhole) {
-			id = getUniqueId(id);
-		}
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		ColorRGBA color = parseColor(elm.getAttribute("color"));
-		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
-		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
-		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
-		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
-		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
-		float handleThickness = Float.parseFloat(elm.getAttribute("handleThickness"));
-		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-
-		Node s = new Node(id);
-		s.setLocalTranslation(location);
-		s.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD,
-				rotation.y * FastMath.DEG_TO_RAD,
-				rotation.z * FastMath.DEG_TO_RAD));
-		Spatial lidBody = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
-		s.attachChild(lidBody);
-		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan,
-				handleThickness, handleColor);
-		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
-		s.attachChild(lidHandle);
-
-		if (isWhole) {
-			float lidMass = Float.parseFloat(elm.getAttribute("mass"));
-			inventory.addItem(s, lidMass);
-
-			s.setUserData("obj_shape", "lid");
-			s.setUserData("obj_color", color);
-			s.setUserData("obj_xspan", xspan);
-			s.setUserData("obj_yspan", zspan);
-			s.setUserData("obj_thickness", thickness);
-			s.setUserData("obj_handleXspan", handleXspan);
-			s.setUserData("obj_handleZspan", handleYspan);
-			s.setUserData("obj_handleYspan", handleZspan);
-			s.setUserData("obj_handleThickness", handleThickness);
-			s.setUserData("obj_handleColor", handleColor);
 		}
 
 		return s;
