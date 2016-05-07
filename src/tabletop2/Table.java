@@ -355,66 +355,68 @@ public class Table implements ActionListener {
     private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
         // substitute variable values
         performVariableSubst(root, vars);
-        // process children
-        for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
-            org.w3c.dom.Node nextChild = child.getNextSibling();
-            if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
-                child = nextChild;
-                continue;
+        if (root.getNodeName().equals("instance")) {
+            performInstanceExpansion(doc, root, vars);
+        } else if (root.getNodeName().equals("def")) {
+            String msg = "Element &lt;def&gt; is not allowed here (removed)";
+            logger.log(Level.WARNING, msg);
+            showMessageDialog(msg, 400);
+            org.w3c.dom.Node parent = root.getParentNode();
+            if (parent.getNodeType() != org.w3c.dom.Node.DOCUMENT_NODE) {
+                parent.removeChild(root);
             }
-            if (child.getNodeName().equals("instance")) {
-                // ----------------------------------------------
-                // expand the instance node by looking up the def
-                // ----------------------------------------------
-                // look up def
-                String defName = ((Element) child).getAttribute("def");
-                DocumentFragment frag = doc.createDocumentFragment();
-                if (!defs.containsKey(defName)) {
-                    String msg = "Definition not found: " + defName + " (ignored)";
-                    logger.log(Level.WARNING, msg);
-                    showMessageDialog(msg, 400);
-                } else {
-                    // make a copy of def
-                    Element def = defs.get(defName);
-                    for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
-                            defChild = defChild.getNextSibling()) {
-                        frag.appendChild(defChild.cloneNode(true));
-                    }
-                    // substitute for variable definitions under <instance>
-                    vars.putAll(defVars.get(defName));
-                    for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
-                            grandChild = grandChild.getNextSibling()) {
-                        if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
-                                && grandChild.getNodeName().equals("var")) {
-                            performVariableSubst((Element) grandChild, vars);
-                        }
-                    }
-                    // get variable values
-                    for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
-                            grandChild = grandChild.getNextSibling()) {
-                        if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
-                                && grandChild.getNodeName().equals("var")) {
-                            vars.put(((Element) grandChild).getAttribute("name"),
-                                    ((Element) grandChild).getAttribute("value"));
-                        }
-                    }
-                    // recursively process those new cloned nodes in frag
-                    for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;
-                            dfChild = dfChild.getNextSibling()) {
-                        if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                            processInstanceElements(doc, (Element) dfChild, new HashMap<>(vars));
-                        }
-                    }
+        } else {
+            for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
+                org.w3c.dom.Node nextChild = child.getNextSibling();
+                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                    processInstanceElements(doc, (Element) child, vars);
                 }
-                // replace <instance> node with frag nodes
-                root.insertBefore(frag, child);
-                root.removeChild(child);
-            } else {
-                // recursive call
-                processInstanceElements(doc, (Element) child, vars);
+                child = nextChild;
             }
-            child = nextChild;
         }
+    }
+    
+    private void performInstanceExpansion(Document doc, Element elm, Map<String, String> vars) {
+        // look up def
+        String defName = elm.getAttribute("def");
+        DocumentFragment frag = doc.createDocumentFragment();
+        if (!defs.containsKey(defName)) {
+            String msg = "Definition not found: " + defName + " (ignored)";
+            logger.log(Level.WARNING, msg);
+            showMessageDialog(msg, 400);
+        } else {
+            // make a copy of def
+            Element def = defs.get(defName);
+            for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
+                    defChild = defChild.getNextSibling()) {
+                frag.appendChild(defChild.cloneNode(true));
+            }
+            // substitute for variable definitions under <instance>
+            vars.putAll(defVars.get(defName));
+            for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                        && child.getNodeName().equals("var")) {
+                    performVariableSubst((Element) child, vars);
+                }
+            }
+            // get variable values
+            for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                        && child.getNodeName().equals("var")) {
+                    vars.put(((Element) child).getAttribute("name"),
+                            ((Element) child).getAttribute("value"));
+                }
+            }
+            // recursively process those new cloned nodes in frag
+            for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;
+                    dfChild = dfChild.getNextSibling()) {
+                if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                    processInstanceElements(doc, (Element) dfChild, new HashMap<>(vars));
+                }
+            }
+        }
+        elm.getParentNode().insertBefore(frag, elm);
+        elm.getParentNode().removeChild(elm);
     }
     
     private void performVariableSubst(Element elm, Map<String, String> vars) {
