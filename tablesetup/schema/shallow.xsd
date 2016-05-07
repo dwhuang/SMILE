@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://synapse.cs.umd.edu/tabletop-xml" 
+    elementFormDefault="qualified" xmlns="http://www.w3.org/2001/XMLSchema" 
+    xmlns:tt="http://synapse.cs.umd.edu/tabletop-xml">
+ 	<simpleType name="spanType">
+		<restriction base="float">
+			<minInclusive value="0.001" />
+		</restriction>
+	</simpleType>
+    <simpleType name="fileType">
+    	<restriction base="string">
+    	</restriction>
+    </simpleType>
+	<simpleType name="idType">
+		<restriction base="string">
+			<pattern value="[_a-zA-Z0-9]*" />
+		</restriction>
+	</simpleType>
+    <simpleType name="varNameType">
+        <restriction base="string">
+            <pattern value="__[_a-zA-Z0-9]+__"/>
+        </restriction>
+    </simpleType>
+
+    <group name="anyType">
+        <choice>
+            <element name="instance" type="tt:instanceType"/>
+            <element name="block"/>
+            <element name="cylinder"/>
+            <element name="sphere"/>
+            <element name="box"/>
+            <element name="custom"/>
+            <element name="cartridge"/>
+            <element name="composite"/>            
+            <element name="toggleSwitch"/>            
+            <element name="indicatorSet"/>            
+            <element name="downstream"/>            
+            <element name="state"/>            
+            <element name="light"/>            
+            <element name="chain"/>            
+            <element name="lidbox"/>            
+            <element name="dock"/>            
+            <element name="sliderJoint"/>            
+        </choice>
+    </group>
+
+    <complexType name="varType">
+        <attribute name="name" type="tt:varNameType" use="required"/>
+        <attribute name="value" type="string" use="required"/>
+    </complexType>
+
+    <complexType name="defType">
+        <sequence minOccurs="0" maxOccurs="unbounded">
+            <element name="var" type="tt:varType" minOccurs="0" maxOccurs="unbounded"/>
+            <group ref="tt:anyType"/>
+        </sequence>
+        <attribute name="name" type="tt:idType" use="required"/>
+    </complexType>
+    
+    <complexType name="instanceType">
+        <sequence minOccurs="0" maxOccurs="unbounded">
+            <element name="var" type="tt:varType"/>
+        </sequence>        
+        <attribute name="def" type="tt:idType" use="required"/>
+    </complexType>
+
+	<element name="tabletop">
+        <complexType>
+            <sequence minOccurs="0" maxOccurs="unbounded">
+                <choice>
+                    <element name="include">
+                        <complexType>
+                            <attribute name="file" type="tt:fileType" use="required"/>
+                        </complexType>
+                    </element>
+                    <element name="def" type="tt:defType"/>
+                    <group ref="tt:anyType"/>
+                </choice>
+            </sequence>
+            <attribute name="xspan" type="tt:spanType"/>
+            <attribute name="yspan" type="tt:spanType"/>
+        </complexType>
+	</element>
+</schema>

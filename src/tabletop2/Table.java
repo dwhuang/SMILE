@@ -62,7 +62,8 @@ import com.jme3.scene.Spatial;
 public class Table implements ActionListener {
 
 	private static final Logger logger = Logger.getLogger(Table.class.getName());
-	private static final String SCHEMA_FNAME = "tablesetup/tabletop.xsd";
+	private static final String SCHEMA_DEEP_FNAME = "tablesetup/schema/deep.xsd";
+    private static final String SCHEMA_SHALLOW_FNAME = "tablesetup/schema/shallow.xsd";
 
     private static Random random = new Random(5566);
 
@@ -141,7 +142,7 @@ public class Table implements ActionListener {
 			processDefElements(doc);
 			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>());
             writeXmlToFile(doc, "tablesetup/debug.xml");
-	        doc = validateXmlTree(doc);
+	        doc = validateXmlTree(doc, true);
 			processXmlTree(doc);
 		}
 		
@@ -156,14 +157,14 @@ public class Table implements ActionListener {
 	 * @param doc
 	 * @return a document node after validation.
 	 */
-	private Document validateXmlTree(Document doc) {
+	private Document validateXmlTree(Document doc, boolean deep) {
 		// make schema
 		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		Schema schema = null;
 		try {
-			schema = sf.newSchema(new File(SCHEMA_FNAME));
+			schema = sf.newSchema(new File(deep ? SCHEMA_DEEP_FNAME : SCHEMA_SHALLOW_FNAME));
 		} catch (SAXException e1) {
-			String msg = "schema error: " + SCHEMA_FNAME;
+			String msg = "schema error: " + SCHEMA_DEEP_FNAME;
 			logger.log(Level.WARNING, msg, e1);
 			showMessageDialog(msg + ": " + e1.getMessage(), 400);
 			return doc;
@@ -234,6 +235,7 @@ public class Table implements ActionListener {
 			showMessageDialog(msg + ": " + e.getMessage(), 400);
 			return null;
 		}
+		doc = validateXmlTree(doc, false);
 		xmlFnameLoaded.add(fname);
 		return doc;
 	}
@@ -285,7 +287,6 @@ public class Table implements ActionListener {
 	            } else {
 	                String msg = "xml file " + fname + " has already been loaded (skip)";
 	                logger.log(Level.WARNING, msg);
-	                showMessageDialog(msg, 400);
 	            }
 	            if (incDoc != null) {
 	                processIncludeElements(incDoc);
@@ -353,26 +354,7 @@ public class Table implements ActionListener {
 	 */
     private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
         // substitute variable values
-        NamedNodeMap attrs = root.getAttributes();
-        for (int i = 0; i < attrs.getLength(); ++i) {
-            org.w3c.dom.Node attr = attrs.item(i);
-            String attrVal = attr.getNodeValue();
-            Pattern pat = Pattern.compile("__([_a-zA-Z0-9]+)(.*?)__");
-            Matcher mat = pat.matcher(attrVal);
-            StringBuffer buf = new StringBuffer();
-            while (mat.find()) {
-                String varName = "__" + mat.group(1) + "__";
-                if (vars.containsKey(varName)) {
-                    String varValue = vars.get(varName);
-                    varValue = performVariableArithmetic(varValue, mat.group(2));
-                    mat.appendReplacement(buf, varValue);
-                } else {
-                    mat.appendReplacement(buf, mat.group());
-                }
-            }
-            mat.appendTail(buf);
-            attr.setNodeValue(buf.toString());
-        }
+        performVariableSubst(root, vars);
         // process children
         for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
             org.w3c.dom.Node nextChild = child.getNextSibling();
@@ -398,8 +380,16 @@ public class Table implements ActionListener {
                             defChild = defChild.getNextSibling()) {
                         frag.appendChild(defChild.cloneNode(true));
                     }
-                    // get variable values
+                    // substitute for variable definitions under <instance>
                     vars.putAll(defVars.get(defName));
+                    for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
+                            grandChild = grandChild.getNextSibling()) {
+                        if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                                && grandChild.getNodeName().equals("var")) {
+                            performVariableSubst((Element) grandChild, vars);
+                        }
+                    }
+                    // get variable values
                     for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
                             grandChild = grandChild.getNextSibling()) {
                         if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
@@ -420,10 +410,36 @@ public class Table implements ActionListener {
                 root.insertBefore(frag, child);
                 root.removeChild(child);
             } else {
-                // recurse down
+                // recursive call
                 processInstanceElements(doc, (Element) child, vars);
             }
             child = nextChild;
+        }
+    }
+    
+    private void performVariableSubst(Element elm, Map<String, String> vars) {
+        NamedNodeMap attrs = elm.getAttributes();
+        for (int i = 0; i < attrs.getLength(); ++i) {
+            org.w3c.dom.Node attr = attrs.item(i);
+            if (elm.getNodeName().equals("var") && attr.getNodeName().equals("name")) {
+                continue;
+            }
+            String attrVal = attr.getNodeValue();
+            Pattern pat = Pattern.compile("__([_a-zA-Z0-9]+)(.*?)__");
+            Matcher mat = pat.matcher(attrVal);
+            StringBuffer buf = new StringBuffer();
+            while (mat.find()) {
+                String varName = "__" + mat.group(1) + "__";
+                if (vars.containsKey(varName)) {
+                    String varValue = vars.get(varName);
+                    varValue = performVariableArithmetic(varValue, mat.group(2));
+                    mat.appendReplacement(buf, varValue);
+                } else {
+                    mat.appendReplacement(buf, mat.group());
+                }
+            }
+            mat.appendTail(buf);
+            attr.setNodeValue(buf.toString());
         }
     }
     
