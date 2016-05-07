@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml">
+    <def name="cartridge">
+        <var name="id" value="cartridge"/>
+        <var name="location" value="(0, 0, 0.372955)"/>
+        <var name="xspan" value="1.12"/>
+        <var name="yspan" value="0.4"/>
+        <var name="zspan" value="0.55"/>
+        <var name="bodyColor" value="darkgray"/>
+        <var name="topColor" value="darkgray"/>
+        <var name="handleColor" value="blue"/>
+        <composite location="$location$">
+            <block id="$id$BodyC" location="(0, 0, 0)" xspan="$xspan*3/7$" yspan="$yspan*3/4$" zspan="$zspan$" color="$bodyColor$"/>
+            <block id="$id$BodyL" location="(-$(xspan*3/7)/2+(xspan*2/7)/2$, 0, 0)"
+                xspan="$xspan*2/7$" yspan="$yspan$" zspan="$zspan$" color="$bodyColor$"/>
+            <block id="$id$BodyR" location="($(xspan*3/7)/2+(xspan*2/7)/2$, 0, 0)"
+                xspan="$xspan*2/7$" yspan="$yspan$" zspan="$zspan$" color="$bodyColor$"/>
+            <block id="$id$BodyLF" location="(-$(xspan*3/7)/2+(xspan*0.3116)/2$, 0, -$zspan/2+(zspan*0.1781)/2$)"
+                xspan="$xspan*0.3116$" yspan="$yspan$" zspan="$zspan*0.1781$" color="$bodyColor$"/>
+            <block id="$id$BodyRF" location="($(xspan*3/7)/2+(xspan*0.3116)/2$, 0, -$zspan/2+(zspan*0.1781)/2$)"
+                xspan="$xspan*0.3116$" yspan="$yspan$" zspan="$zspan*0.1781$" color="$bodyColor$"/>
+            <block id="$id$Top" location="(0, 0, $zspan/2+(zspan*0.1818)/2$)"
+                xspan="$xspan*1.1225$" yspan="$yspan*1.225$" zspan="$zspan*0.1818$" color="$topColor$"/>
+            <block id="$id$Handle" location="(0, 0, $zspan/2+(zspan*0.1818)/2+(zspan*0.4545)/2$)"
+                xspan="$xspan*0.7375$" yspan="$yspan*0.695$" zspan="$zspan*0.4545$" color="$handleColor$"/>
+        </composite>
+    </def>
+</tabletop>

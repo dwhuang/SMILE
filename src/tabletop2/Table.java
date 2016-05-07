@@ -354,7 +354,7 @@ public class Table implements ActionListener {
 	 */
     private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
         // substitute variable values
-        performVariableSubst(root, vars);
+        performVariableSubstUnderElement(root, vars);
         if (root.getNodeName().equals("instance")) {
             performInstanceExpansion(doc, root, vars);
         } else if (root.getNodeName().equals("def")) {
@@ -396,7 +396,7 @@ public class Table implements ActionListener {
             for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
                 if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
                         && child.getNodeName().equals("var")) {
-                    performVariableSubst((Element) child, vars);
+                    performVariableSubstUnderElement((Element) child, vars);
                 }
             }
             // get variable values
@@ -419,25 +419,27 @@ public class Table implements ActionListener {
         elm.getParentNode().removeChild(elm);
     }
     
-    private void performVariableSubst(Element elm, Map<String, String> vars) {
+    private void performVariableSubstUnderElement(Element elm, Map<String, String> vars) {
         NamedNodeMap attrs = elm.getAttributes();
         for (int i = 0; i < attrs.getLength(); ++i) {
             org.w3c.dom.Node attr = attrs.item(i);
-            if (elm.getNodeName().equals("var") && attr.getNodeName().equals("name")) {
-                continue;
-            }
-            String attrVal = attr.getNodeValue();
-            Pattern pat = Pattern.compile("__([_a-zA-Z0-9]+)(.*?)__");
-            Matcher mat = pat.matcher(attrVal);
+            Pattern pat = Pattern.compile("\\$(.*?)\\$");
+            Matcher mat = pat.matcher(attr.getNodeValue());
+            System.out.println("process " + attr.getNodeValue());
             StringBuffer buf = new StringBuffer();
             while (mat.find()) {
-                String varName = "__" + mat.group(1) + "__";
-                if (vars.containsKey(varName)) {
-                    String varValue = vars.get(varName);
-                    varValue = performVariableArithmetic(varValue, mat.group(2));
-                    mat.appendReplacement(buf, varValue);
-                } else {
-                    mat.appendReplacement(buf, mat.group());
+                try {
+                    float ans = performVarArith(new ArithState(mat.group(1)), vars);
+                    mat.appendReplacement(buf, "" + ans);
+                } catch (RuntimeException e) {
+                    if (vars.containsKey(mat.group(1))) {
+                        mat.appendReplacement(buf, vars.get(mat.group(1)));
+                    } else {
+                        String msg = "invalid expression: " + mat.group(1);
+                        logger.log(Level.WARNING, msg, e);
+                        showMessageDialog(msg, 400);
+                        mat.appendReplacement(buf, mat.group());
+                    }
                 }
             }
             mat.appendTail(buf);
@@ -445,39 +447,199 @@ public class Table implements ActionListener {
         }
     }
     
-    private String performVariableArithmetic(String val, String postfix) {
+    private class ArithState {
+        final String str;
+        int ind;
+        ArithState(String str) {
+            this.str = str;
+        }
+        public String toString() {
+            return str.substring(ind);
+        }
+        char getChar() {
+            return str.charAt(ind);
+        }
+        void advance() {
+            ++ind;
+        }
+        boolean isValid() {
+            return ind >= 0 && ind < str.length();
+        }
+    }
+    
+    private float performVarArith(ArithState st, Map<String, String> vars) {
+        System.out.println("\ta " + st);
+        float ans = performVarArithFactor(st, vars);
+        while (st.isValid()) {
+            char c = st.getChar();
+            if (c == ' ' || c == '\t') {
+                st.advance();
+            } else if (c == '+') {
+                st.advance();
+                ans += performVarArithFactor(st, vars);
+            } else if (c == '-') {
+                st.advance();
+                ans -= performVarArithFactor(st, vars);
+            } else {
+                System.out.println("\ta ret1 " + ans + "; " + st);
+                return ans;
+            }
+        }
+        System.out.println("\ta ret2 " + ans + "; " + st);
+        return ans;
+    }
+
+    private float performVarArithFactor(ArithState st, Map<String, String> vars) {
+        System.out.println("\tf " + st);
+        float ans = performVarArithAtom(st, vars);
+        while (st.isValid()) {
+            char c = st.getChar();
+            if (c == ' ' || c == '\t') {
+                st.advance();
+            } else if (c == '*') {
+                st.advance();
+                ans *= performVarArithAtom(st, vars);
+            } else if (c == '/') {
+                st.advance();
+                ans /= performVarArithAtom(st, vars);
+            } else {
+                System.out.println("\tf ret1 " + ans + "; " + st);
+                return ans;
+            }
+        }
+        System.out.println("\tf ret2 " + ans + "; " + st);
+        return ans;
+    }
+
+    private float performVarArithAtom(ArithState st, Map<String, String> vars) {
+        System.out.println("\tt " + st);
+        char c;
+        while (st.isValid()) {
+            c = st.getChar();
+            if (c == ' ' || c == '\t') {
+                st.advance();
+            } else {
+                break;
+            }
+        }
+        boolean neg = false;
+        c = st.getChar();
+        if (c == '-') {
+            neg = true;
+            st.advance();
+        } else if (c == '+') {
+            st.advance();
+        }
+        
+        if (st.getChar() == '(') {
+            st.advance();
+            float ans = performVarArith(st, vars);
+            if (!st.isValid() || st.getChar() != ')') {
+                throw new IllegalArgumentException("mismatched parentheses");
+            }
+            st.advance();
+            System.out.println("\tt ret1 " + (neg ? -ans : ans) + "; " + st);
+            return neg ? -ans : ans;
+        }
+        
+        StringBuffer buf = new StringBuffer();
+        while (st.isValid()) {
+            c = st.getChar();
+            if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '.' || c == '_') {
+                st.advance();
+                buf.append(c);
+            } else {
+                break;
+            }
+        }
+        try {
+            float ans = Float.parseFloat(buf.toString());
+            System.out.println("\tt ret2 " + buf + "; " + st);
+            return neg ? -ans : ans;
+        } catch (NumberFormatException e) {
+            if (vars.containsKey(buf.toString())) {
+                System.out.println("\tt ret3 " + vars.get(buf.toString()) + "; " + st);
+                return Float.parseFloat(vars.get(buf.toString()));
+            }
+            System.out.println(e);
+            throw e;
+        }
+    }
+    
+    private String performVariableSubst(String val, Map<String, String> vars) {
+        System.out.println("val " + val);
+        Pattern pat = Pattern.compile("__([^\\+\\-\\*/]+)([\\+\\-\\*/](?:.*))?__");
+        Matcher mat = pat.matcher(val);
+        StringBuffer buf = new StringBuffer();
+        while (mat.find()) {
+            System.out.println("\tg0 " + mat.group());
+            System.out.println("\tg1 " + mat.group(1));
+            System.out.println("\tg2 " + mat.group(2));
+            if (mat.group(1).length() == 0) {
+                continue;
+            }
+            String varName = "__" + mat.group(1) + "__";
+            System.out.println("\tvarName " + varName);
+            if (vars.containsKey(varName)) {
+                String varValue = vars.get(varName);
+                varValue = performVariableArithmetic(varValue, mat.group(2), vars);
+                mat.appendReplacement(buf, varValue);
+            } else {
+                String newVal = performVariableSubst(varName, vars);
+                if (newVal.equals(val)) {
+                    mat.appendReplacement(buf, mat.group());
+                } else {
+                    mat.appendReplacement(buf, newVal);
+                }
+            }
+        }
+        mat.appendTail(buf);
+        return buf.toString();
+    }
+    
+    private String performVariableArithmetic(String val, String postfix, Map<String, String> vars) {
         if (postfix == null || postfix.length() == 0) {
             return val;
         }
-        Pattern pat = Pattern.compile("^\\s*([\\+\\-\\*/])\\s*(\\d+(?:\\.\\d+)?)\\s*$");
+        System.out.println("arith " + val + " " + postfix);
+        Pattern pat = Pattern.compile("^\\s*([\\+\\-\\*/])\\s*(\\d+(?:\\.\\d+)?|__[_a-zA-Z0-9]+(?:.*)__)\\s*$");
         Matcher mat = pat.matcher(postfix);
         if (mat.find()) {
             String operator = mat.group(1);
             String operand = mat.group(2);
-            try {
-                float v1 = Float.parseFloat(val);
-                float v2 = Float.parseFloat(operand);
-                if (operator.equals("+")) {
-                    v1 += v2;
-                } else if (operator.equals("-")) {
-                    v1 -= v2;
-                } else if (operator.equals("*")) {
-                    v1 *= v2;
-                } else if (operator.equals("/")) {
-                    v1 /= v2;
-                }
-                val = "" + v1;
-            } catch (NumberFormatException e) {
-                if (operator.equals("+")) {
-                    // string concatenation
-                    val += operand;
-                } else {
-                    String msg = "cannot perform variable arithmetic: " + val + operator + operand;
-                    logger.log(Level.WARNING, msg);
-                    showMessageDialog(msg, 400);
+            while (true) {
+                try {
+                    float v1 = Float.parseFloat(val);
+                    float v2 = Float.parseFloat(operand);
+                    if (operator.equals("+")) {
+                        v1 += v2;
+                    } else if (operator.equals("-")) {
+                        v1 -= v2;
+                    } else if (operator.equals("*")) {
+                        v1 *= v2;
+                    } else if (operator.equals("/")) {
+                        v1 /= v2;
+                    }
+                    val = "" + v1;
+                    break;
+                } catch (NumberFormatException e) {
+                    String newOperand = performVariableSubst(operand, vars);
+                    if (operand.equals(newOperand)) {
+                        if (operator.equals("+")) {
+                            // string concatenation
+                            val += operand;
+                        } else {
+                            String msg = "cannot perform variable arithmetic: " + val + operator + operand;
+                            logger.log(Level.WARNING, msg);
+                            showMessageDialog(msg, 400);
+                        }
+                        break;
+                    }
+                    operand = newOperand;
                 }
             }
         }
+        System.out.println("arith ret " + val);
         return val;
     }
     
@@ -854,14 +1016,6 @@ public class Table implements ActionListener {
 		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
 		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
 		node.attachChild(handle);
-		// bottom attach point
-		id = getUniqueId(groupId + "-assemblyPoint");
-		Node att = new Node(id);
-		att.setLocalTranslation(0, -hBodyL / 2 - hBodyLF, 0);
-		att.setLocalRotation(new Quaternion().fromAngles(FastMath.HALF_PI, 0, 0));
-		att.setUserData("assembly", "cartridgeSlot");
-		att.setUserData("assemblyEnd", 1);
-		node.attachChild(att);
 
 		inventory.addItem(node, mass);
 

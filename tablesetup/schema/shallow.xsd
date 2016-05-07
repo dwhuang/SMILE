@@ -16,11 +16,6 @@
 			<pattern value="[_a-zA-Z0-9]*" />
 		</restriction>
 	</simpleType>
-    <simpleType name="varNameType">
-        <restriction base="string">
-            <pattern value="__[_a-zA-Z0-9]+__"/>
-        </restriction>
-    </simpleType>
 
     <group name="anyType">
         <choice>
@@ -45,7 +40,7 @@
     </group>
 
     <complexType name="varType">
-        <attribute name="name" type="tt:varNameType" use="required"/>
+        <attribute name="name" type="tt:idType" use="required"/>
         <attribute name="value" type="string" use="required"/>
     </complexType>
 

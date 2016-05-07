@@ -2,24 +2,24 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
     <include file="tablesetup/def-lid.xml"/>
     <def name="lidbox">
-        <var name="__boxId__" value="Box"/>
-        <var name="__lidId__" value="Lid"/>
+        <var name="boxId" value="Box"/>
+        <var name="lidId" value="Lid"/>
         <sliderJoint location="(0, 0, 4)" rotation="(90, 90, 0)" min="0" max="5.8" init="5.8">
-            <box id="__boxId__" location="(0, 0, -2)" xspan="6" yspan="4" zspan="4" thickness="0.2" color="#00ffff" mass="10"/>
+            <box id="$boxId$" location="(0, 0, -2)" xspan="6" yspan="4" zspan="4" thickness="0.2" color="#00ffff" mass="10"/>
             <instance def="lid">
-                <var name="__id__" value="__lidId__"/>
-                <var name="__mass__" value="1"/>
-                <var name="__location__" value="(0, 0, 0.1)"/>
-                <var name="__rotation__" value="(0, 0, 0)"/>
-                <var name="__xspan__" value="6"/>
-                <var name="__yspan__" value="4"/>
-                <var name="__thickness__" value="0.2"/>
-                <var name="__color__" value="red"/>
-                <var name="__handleXspan__" value="1"/>
-                <var name="__handleYspan__" value="2"/>
-                <var name="__handleZspan__" value="0.5"/>
-                <var name="__handleThickness__" value="0.3"/>
-                <var name="__handleColor__" value="green"/>
+                <var name="id" value="$lidId$"/>
+                <var name="mass" value="1"/>
+                <var name="location" value="(0, 0, 0.1)"/>
+                <var name="rotation" value="(0, 0, 0)"/>
+                <var name="xspan" value="6"/>
+                <var name="yspan" value="4"/>
+                <var name="thickness" value="0.2"/>
+                <var name="color" value="red"/>
+                <var name="handleXspan" value="1"/>
+                <var name="handleYspan" value="2"/>
+                <var name="handleZspan" value="0.5"/>
+                <var name="handleThickness" value="0.3"/>
+                <var name="handleColor" value="green"/>
             </instance>
         </sliderJoint>
     </def>
