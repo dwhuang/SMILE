@@ -15,11 +15,9 @@
         <var name="handleThickness" value="0.3"/>
         <var name="handleColor" value="green"/>
         <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
-            <composite location="(0, 0, $thickness/2$)">
-                <block location="(0, 0, -$thickness/2$)" xspan="$xspan$" yspan="$yspan$" zspan="$thickness$" color="$color$"/>
-                <box location="(0, 0, $handleZspan/2$)" xspan="$handleXspan$" yspan="$handleYspan$" zspan="$handleZspan$"
-                    thickness="$handleThickness$" color="$handleColor$"/>
-            </composite>
+            <block location="(0, 0, 0)" xspan="$xspan$" yspan="$yspan$" zspan="$thickness$" color="$color$"/>
+            <box location="(0, 0, $(handleZspan+thickness)/2$)" xspan="$handleXspan$" yspan="$handleYspan$" zspan="$handleZspan$"
+                thickness="$handleThickness$" color="$handleColor$"/>
         </composite>
     </def>
 </tabletop>

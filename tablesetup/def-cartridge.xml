@@ -3,13 +3,15 @@
     <def name="cartridge">
         <var name="id" value="cartridge"/>
         <var name="location" value="(0, 0, 0.372955)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="2"/>
         <var name="xspan" value="1.12"/>
         <var name="yspan" value="0.4"/>
         <var name="zspan" value="0.55"/>
         <var name="bodyColor" value="darkgray"/>
         <var name="topColor" value="darkgray"/>
         <var name="handleColor" value="blue"/>
-        <composite location="$location$">
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
             <block id="$id$BodyC" location="(0, 0, 0)" xspan="$xspan*3/7$" yspan="$yspan*3/4$" zspan="$zspan$" color="$bodyColor$"/>
             <block id="$id$BodyL" location="(-$(xspan*3/7)/2+(xspan*2/7)/2$, 0, 0)"
                 xspan="$xspan*2/7$" yspan="$yspan$" zspan="$zspan$" color="$bodyColor$"/>

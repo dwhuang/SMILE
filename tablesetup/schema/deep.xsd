@@ -96,6 +96,7 @@
     </complexType>
 
     <attributeGroup name="sphereAttrs">
+        <attributeGroup ref="tt:basicShapeAttrs"/>
         <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
         <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
     </attributeGroup>
@@ -133,43 +134,6 @@
         <attributeGroup ref="tt:basicObjectAttrs"/>
     </complexType>
     
-<!--     <complexType name="lidType">
-        <complexContent>
-            <extension base="tt:abstractShapeType">
-                <attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
-                <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
-                <attribute name="thickness" type="tt:spanType" use="optional" default="0.15"/>
-                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-                <attribute name="handleXspan" type="tt:spanType" use="optional" default="0.3"/>
-                <attribute name="handleYspan" type="tt:spanType" use="optional" default="0.3"/>
-                <attribute name="handleZspan" type="tt:spanType" use="optional" default="0.15"/>
-                <attribute name="handleThickness" type="tt:spanType" use="optional" default="0.05"/>
-                <attribute name="handleColor" type="tt:colorType" use="optional" default="green"/>
-            </extension>
-        </complexContent>
-    </complexType>
-
-    <complexType name="lidObjectType">
-        <complexContent>
-            <extension base="tt:lidType">
-                <attribute name="mass" type="tt:massType" use="optional" default="1"/>
-            </extension>
-        </complexContent>
-    </complexType>
- -->    
-    <attributeGroup name="cartridgeAttrs">
-        <attributeGroup ref="tt:blockAttrs"/>
-        <attribute name="topColor" type="tt:colorType" use="optional" default="darkgray"/>
-        <attribute name="handleColor" type="tt:colorType" use="optional" default="blue"/>
-    </attributeGroup>
-    <complexType name="cartridgeType">
-        <attributeGroup ref="tt:cartridgeAttrs"/>
-    </complexType>
-    <complexType name="cartridgeObjectType">
-        <attributeGroup ref="tt:cartridgeAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-    
     <complexType name="compositeType">
         <sequence minOccurs="0" maxOccurs="unbounded">
             <choice>
@@ -178,8 +142,6 @@
                 <element name="sphere" type="tt:sphereType"/>
                 <element name="box" type="tt:boxType"/>
                 <element name="custom" type="tt:customType"/>
-                <!-- <element name="lid" type="tt:lidType"/> -->
-                <element name="cartridge" type="tt:cartridgeType"/>
                 <element name="composite" type="tt:compositeType"/>            
                 <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
                 <element name="indicatorSet" type="tt:indicatorSetType"/>            
@@ -293,8 +255,6 @@
             <element name="sphere" type="tt:sphereObjectType"/>
             <element name="box" type="tt:boxObjectType"/>
             <element name="custom" type="tt:customObjectType"/>
-            <!-- <element name="lid" type="tt:lidObjectType"/>  -->
-            <element name="cartridge" type="tt:cartridgeObjectType"/>
             <element name="composite" type="tt:compositeObjectType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchObjectType"/>            
             <element name="indicatorSet" type="tt:indicatorSetObjectType"/>            
@@ -315,21 +275,6 @@
                     <attribute name="linkCount" type="tt:countType" use="optional" default="0"/>
                     <attribute name="linkPadding" type="tt:spanType" use="optional" default="0.05"/>
                     <attribute name="linkMass" type="tt:massType" use="optional" default="1"/>
-                </complexType>
-            </element>
-            <element name="lidbox">
-                <complexType>
-                    <complexContent>
-                        <extension base="tt:boxType">
-                      <attribute name="mass" type="tt:massType" use="optional" default="1"/>
-                      <attribute name="lidMass" type="tt:massType" use="optional" default="0.1"/>
-                      <attribute name="handleColor" type="tt:colorType" use="optional" default="gray"/>
-                      <attribute name="handleXspan" type="tt:spanType" use="optional" default="0.5"/>
-                      <attribute name="handleYspan" type="tt:spanType" use="optional" default="0.5"/>
-                      <attribute name="handleZspan" type="tt:spanType" use="optional" default="0.5"/>
-                      <attribute name="handleThickness" type="tt:spanType" use="optional" default="0.5"/>
-                        </extension>
-                    </complexContent>
                 </complexType>
             </element>
             <element name="dock">
@@ -389,8 +334,8 @@
                     <group ref="tt:jointGroup"/>
                 </choice>
             </sequence>
-            <attribute name="xspan" type="tt:spanType"/>
-            <attribute name="yspan" type="tt:spanType"/>
+            <attribute name="xspan" type="tt:spanType" use="optional" default="20"/>
+            <attribute name="yspan" type="tt:spanType" use="optional" default="12"/>
         </complexType>
 	</element>
 </schema>

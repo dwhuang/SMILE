@@ -354,7 +354,7 @@ public class Table implements ActionListener {
 	 */
     private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
         // substitute variable values
-        performVariableSubstUnderElement(root, vars);
+        performVariableSubst(root, vars);
         if (root.getNodeName().equals("instance")) {
             performInstanceExpansion(doc, root, vars);
         } else if (root.getNodeName().equals("def")) {
@@ -392,11 +392,17 @@ public class Table implements ActionListener {
                 frag.appendChild(defChild.cloneNode(true));
             }
             // substitute for variable definitions under <instance>
-            vars.putAll(defVars.get(defName));
             for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
                 if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
                         && child.getNodeName().equals("var")) {
-                    performVariableSubstUnderElement((Element) child, vars);
+                    performVariableSubst((Element) child, vars);
+                }
+            }
+            // add <var> under <def> if the same name does not exist
+            Map<String, String> defv = defVars.get(defName);
+            for (String k : defv.keySet()) {
+                if (!vars.containsKey(k)) {
+                    vars.put(k, defv.get(k));
                 }
             }
             // get variable values
@@ -419,13 +425,13 @@ public class Table implements ActionListener {
         elm.getParentNode().removeChild(elm);
     }
     
-    private void performVariableSubstUnderElement(Element elm, Map<String, String> vars) {
+    private void performVariableSubst(Element elm, Map<String, String> vars) {
         NamedNodeMap attrs = elm.getAttributes();
         for (int i = 0; i < attrs.getLength(); ++i) {
             org.w3c.dom.Node attr = attrs.item(i);
             Pattern pat = Pattern.compile("\\$(.*?)\\$");
             Matcher mat = pat.matcher(attr.getNodeValue());
-            System.out.println("process " + attr.getNodeValue());
+            //System.out.println("process " + attr.getNodeValue());
             StringBuffer buf = new StringBuffer();
             while (mat.find()) {
                 try {
@@ -468,7 +474,7 @@ public class Table implements ActionListener {
     }
     
     private float performVarArith(ArithState st, Map<String, String> vars) {
-        System.out.println("\ta " + st);
+        //System.out.println("\ta " + st);
         float ans = performVarArithFactor(st, vars);
         while (st.isValid()) {
             char c = st.getChar();
@@ -481,16 +487,16 @@ public class Table implements ActionListener {
                 st.advance();
                 ans -= performVarArithFactor(st, vars);
             } else {
-                System.out.println("\ta ret1 " + ans + "; " + st);
+                //System.out.println("\ta ret1 " + ans + "; " + st);
                 return ans;
             }
         }
-        System.out.println("\ta ret2 " + ans + "; " + st);
+        //System.out.println("\ta ret2 " + ans + "; " + st);
         return ans;
     }
 
     private float performVarArithFactor(ArithState st, Map<String, String> vars) {
-        System.out.println("\tf " + st);
+        //System.out.println("\tf " + st);
         float ans = performVarArithAtom(st, vars);
         while (st.isValid()) {
             char c = st.getChar();
@@ -503,16 +509,16 @@ public class Table implements ActionListener {
                 st.advance();
                 ans /= performVarArithAtom(st, vars);
             } else {
-                System.out.println("\tf ret1 " + ans + "; " + st);
+                //System.out.println("\tf ret1 " + ans + "; " + st);
                 return ans;
             }
         }
-        System.out.println("\tf ret2 " + ans + "; " + st);
+        //System.out.println("\tf ret2 " + ans + "; " + st);
         return ans;
     }
 
     private float performVarArithAtom(ArithState st, Map<String, String> vars) {
-        System.out.println("\tt " + st);
+        //System.out.println("\tt " + st);
         char c;
         while (st.isValid()) {
             c = st.getChar();
@@ -538,7 +544,7 @@ public class Table implements ActionListener {
                 throw new IllegalArgumentException("mismatched parentheses");
             }
             st.advance();
-            System.out.println("\tt ret1 " + (neg ? -ans : ans) + "; " + st);
+            //System.out.println("\tt ret1 " + (neg ? -ans : ans) + "; " + st);
             return neg ? -ans : ans;
         }
         
@@ -554,93 +560,16 @@ public class Table implements ActionListener {
         }
         try {
             float ans = Float.parseFloat(buf.toString());
-            System.out.println("\tt ret2 " + buf + "; " + st);
+            //System.out.println("\tt ret2 " + buf + "; " + st);
             return neg ? -ans : ans;
         } catch (NumberFormatException e) {
             if (vars.containsKey(buf.toString())) {
-                System.out.println("\tt ret3 " + vars.get(buf.toString()) + "; " + st);
+                //System.out.println("\tt ret3 " + vars.get(buf.toString()) + "; " + st);
                 return Float.parseFloat(vars.get(buf.toString()));
             }
-            System.out.println(e);
+            //System.out.println(e);
             throw e;
         }
-    }
-    
-    private String performVariableSubst(String val, Map<String, String> vars) {
-        System.out.println("val " + val);
-        Pattern pat = Pattern.compile("__([^\\+\\-\\*/]+)([\\+\\-\\*/](?:.*))?__");
-        Matcher mat = pat.matcher(val);
-        StringBuffer buf = new StringBuffer();
-        while (mat.find()) {
-            System.out.println("\tg0 " + mat.group());
-            System.out.println("\tg1 " + mat.group(1));
-            System.out.println("\tg2 " + mat.group(2));
-            if (mat.group(1).length() == 0) {
-                continue;
-            }
-            String varName = "__" + mat.group(1) + "__";
-            System.out.println("\tvarName " + varName);
-            if (vars.containsKey(varName)) {
-                String varValue = vars.get(varName);
-                varValue = performVariableArithmetic(varValue, mat.group(2), vars);
-                mat.appendReplacement(buf, varValue);
-            } else {
-                String newVal = performVariableSubst(varName, vars);
-                if (newVal.equals(val)) {
-                    mat.appendReplacement(buf, mat.group());
-                } else {
-                    mat.appendReplacement(buf, newVal);
-                }
-            }
-        }
-        mat.appendTail(buf);
-        return buf.toString();
-    }
-    
-    private String performVariableArithmetic(String val, String postfix, Map<String, String> vars) {
-        if (postfix == null || postfix.length() == 0) {
-            return val;
-        }
-        System.out.println("arith " + val + " " + postfix);
-        Pattern pat = Pattern.compile("^\\s*([\\+\\-\\*/])\\s*(\\d+(?:\\.\\d+)?|__[_a-zA-Z0-9]+(?:.*)__)\\s*$");
-        Matcher mat = pat.matcher(postfix);
-        if (mat.find()) {
-            String operator = mat.group(1);
-            String operand = mat.group(2);
-            while (true) {
-                try {
-                    float v1 = Float.parseFloat(val);
-                    float v2 = Float.parseFloat(operand);
-                    if (operator.equals("+")) {
-                        v1 += v2;
-                    } else if (operator.equals("-")) {
-                        v1 -= v2;
-                    } else if (operator.equals("*")) {
-                        v1 *= v2;
-                    } else if (operator.equals("/")) {
-                        v1 /= v2;
-                    }
-                    val = "" + v1;
-                    break;
-                } catch (NumberFormatException e) {
-                    String newOperand = performVariableSubst(operand, vars);
-                    if (operand.equals(newOperand)) {
-                        if (operator.equals("+")) {
-                            // string concatenation
-                            val += operand;
-                        } else {
-                            String msg = "cannot perform variable arithmetic: " + val + operator + operand;
-                            logger.log(Level.WARNING, msg);
-                            showMessageDialog(msg, 400);
-                        }
-                        break;
-                    }
-                    operand = newOperand;
-                }
-            }
-        }
-        System.out.println("arith ret " + val);
-        return val;
     }
     
     private void processXmlTree(Document doc) {
@@ -663,14 +592,10 @@ public class Table implements ActionListener {
 				processBoxElement(elm, true);
 			} else if (elm.getNodeName().equals("custom")) {
 				processCustomElement(elm, true);
-			} else if (elm.getNodeName().equals("cartridge")) {
-				processCartridgeElement(elm, true);
 			} else if (elm.getNodeName().equals("composite")) {
 				processCompositeElement(elm, true, null);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
-			} else if (elm.getNodeName().equals("lidbox")) {
-				processLidBoxElement(elm);
 			} else if (elm.getNodeName().equals("dock")) {
 				processDockElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
@@ -738,8 +663,6 @@ public class Table implements ActionListener {
 				obj = processBoxElement(childElm, true);
 			} else if (childElm.getNodeName().equals("custom")) {
 				obj = processCustomElement(childElm, true);
-			} else if (childElm.getNodeName().equals("cartridge")) {
-				obj = processCartridgeElement(childElm, true);
 			} else if (childElm.getNodeName().equals("composite")) {
 				obj = processCompositeElement(childElm, true, null);
 			}
@@ -945,90 +868,6 @@ public class Table implements ActionListener {
 		}
 
 		return s;
-	}
-
-	private Spatial processCartridgeElement(Element elm, boolean isWhole) {
-		String groupId = getUniqueId(elm.getAttribute("id"));
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
-		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
-		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		ColorRGBA bodyColor = parseColor(elm.getAttribute("color"));
-		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-		ColorRGBA topColor = parseColor(elm.getAttribute("topColor"));
-		float mass = Float.parseFloat(elm.getAttribute("mass"));
-
-		Node node = new Node(groupId);
-		node.setLocalTranslation(location);
-		node.setLocalRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD,
-				rotation.y * FastMath.DEG_TO_RAD,
-				rotation.z * FastMath.DEG_TO_RAD));
-
-		String id;
-		// body - central piece
-		id = getUniqueId(groupId + "-bodyC");
-		float wBodyC = xspan * 3 / 7;
-		float hBodyC = yspan;
-		float dBodyC = zspan * 3 / 4;
-		Spatial bodyC = factory.makeBlock(id, wBodyC, hBodyC, dBodyC, bodyColor);
-		node.attachChild(bodyC);
-		// body - left piece
-		id = getUniqueId(groupId + "-bodyL");
-		float wBodyL = xspan * 2 / 7;
-		float hBodyL = yspan;
-		float dBodyL = zspan; // 0.8163f
-		Spatial bodyL = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
-		bodyL.setLocalTranslation(-(wBodyC / 2 + wBodyL / 2), 0, 0);
-		node.attachChild(bodyL);
-		// body - right piece
-		id = getUniqueId(groupId + "-bodyR");
-		Spatial bodyR = factory.makeBlock(id, wBodyL, hBodyL, dBodyL, bodyColor);
-		bodyR.setLocalTranslation(wBodyC / 2 + wBodyL / 2, 0, 0);
-		node.attachChild(bodyR);
-		// body - left foot
-		id = getUniqueId(groupId + "-bodyLF");
-		float wBodyLF = xspan * 0.3116f;
-		float hBodyLF = yspan * 0.1781f;
-		float dBodyLF = zspan;
-		Spatial bodyLF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
-		bodyLF.setLocalTranslation(-(wBodyC / 2 + wBodyLF / 2), -(hBodyL / 2 + hBodyLF / 2), 0);
-		node.attachChild(bodyLF);
-		// body - right foot
-		id = getUniqueId(groupId + "-bodyRF");
-		Spatial bodyRF = factory.makeBlock(id, wBodyLF, hBodyLF, dBodyLF, bodyColor);
-		bodyRF.setLocalTranslation(wBodyC / 2 + wBodyLF / 2, -(hBodyL / 2 + hBodyLF / 2), 0);
-		node.attachChild(bodyRF);
-		// top
-		id = getUniqueId(groupId + "-top");
-		float wTop = xspan * 1.1225f;
-		float hTop = yspan * 0.1818f;
-		float dTop = zspan * 1.225f;
-		Spatial top = factory.makeBlock(id, wTop, hTop, dTop, topColor);
-		top.setLocalTranslation(0, hBodyC / 2 + hTop / 2, 0);
-		node.attachChild(top);
-		// handle
-		id = getUniqueId(groupId + "-top");
-		float wHandle = xspan * 0.7375f;
-		float hHandle = yspan * 0.4545f;
-		float dHandle = zspan * 0.695f;
-		Spatial handle = factory.makeBlock(id, wHandle, hHandle, dHandle, handleColor);
-		handle.setLocalTranslation(0, (hBodyC + hTop) / 2 + hHandle / 2, 0);
-		node.attachChild(handle);
-
-		inventory.addItem(node, mass);
-
-		// annotate...
-		node.setUserData("obj_shape", "cartridge");
-		node.setUserData("obj_width", xspan);
-		node.setUserData("obj_height", yspan);
-		node.setUserData("obj_depth", zspan);
-		node.setUserData("obj_color", bodyColor);
-		node.setUserData("obj_handleColor", handleColor);
-		node.setUserData("obj_topColor", topColor);
-
-		return node;
 	}
 
 	private Spatial processCompositeElement(Element elm, boolean isWhole,
@@ -1318,87 +1157,6 @@ public class Table implements ActionListener {
 		// connect the last link to the end node
 		vec.set(0, 0, endNodesSize.z);
 		inventory.addSixDofJoint(prevSpatial, endNode, prevJointPt, vec);
-	}
-
-	private void processLidBoxElement(Element elm) {
-		String groupId = getUniqueId(elm.getAttribute("id"));
-		Vector3f location = parseVector3(elm.getAttribute("location"));
-		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-		ColorRGBA color = parseColor(elm.getAttribute("color"));
-		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
-		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
-		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		float thickness = Float.parseFloat(elm.getAttribute("thickness"));
-		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
-		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
-		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
-		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
-		float handleThickness = Float.parseFloat(elm.getAttribute("handleThickness"));
-
-		Transform tf = new Transform();
-		tf.setTranslation(location);
-		tf.setRotation(new Quaternion().fromAngles(
-				rotation.x * FastMath.DEG_TO_RAD,
-				rotation.y * FastMath.DEG_TO_RAD,
-				rotation.z * FastMath.DEG_TO_RAD));
-
-		String id;
-		id = getUniqueId(groupId + "-box");
-		Spatial box = factory.makeBoxContainer(id, xspan, yspan, zspan, thickness, color);
-		box.setLocalTransform(tf);
-		float mass = Float.parseFloat(elm.getAttribute("mass"));
-		inventory.addItem(box, mass);
-		box.setUserData("obj_shape", "box");
-		box.setUserData("obj_xspan", xspan);
-		box.setUserData("obj_zspan", yspan);
-		box.setUserData("obj_yspan", zspan);
-		box.setUserData("obj_thickness", thickness);
-		box.setUserData("color", color);
-
-		id = getUniqueId(groupId + "-lid");
-		Node lid = new Node(id);
-		Spatial lidPlate = factory.makeBlock(id + "-lidbody", xspan, thickness, zspan, color);
-		lid.attachChild(lidPlate);
-		Spatial lidHandle = factory.makeBoxContainer(id + "-lidhandle", handleXspan, handleYspan, handleZspan,
-				handleThickness, handleColor);
-		lidHandle.setLocalTranslation(0, thickness / 2 + handleYspan / 2, 0);
-		lid.attachChild(lidHandle);
-		lid.setLocalTranslation(0, yspan / 2 + thickness / 2, 0);
-		lid.setLocalTransform(lid.getLocalTransform().combineWithParent(tf));
-		float lidMass = Float.parseFloat(elm.getAttribute("lidMass"));
-		inventory.addItem(lid, lidMass);
-		lid.setUserData("obj_shape", "lid");
-		lid.setUserData("obj_xspan", xspan);
-		lid.setUserData("obj_zspan", thickness);
-		lid.setUserData("obj_yspan", zspan);
-		lid.setUserData("obj_handleXspan", handleXspan);
-		lid.setUserData("obj_handleZspan", handleYspan);
-		lid.setUserData("obj_handleYspan", handleZspan);
-		lid.setUserData("obj_handleThickness", handleThickness);
-		lid.setUserData("obj_color", handleColor);
-
-		inventory.addSliderJoint(box, lid,
-				new Vector3f(0, yspan / 2, 0), new Vector3f(0, -thickness / 2, 0), null, null,
-				0, xspan, false);
-//		joint.setDampingDirLin(0.1f);
-//		joint.setDampingDirAng(0.1f);
-//		joint.setSoftnessOrthoLin(1);
-//		joint.setSoftnessOrthoAng(1);
-//		System.out.println(joint.getDampingDirLin());
-//		System.out.println(joint.getDampingDirAng());
-//		System.out.println(joint.getSoftnessOrthoLin());
-//		System.out.println(joint.getSoftnessOrthoAng());
-
-//		joint.setCollisionBetweenLinkedBodys(false);
-//		joint.setLowerLinLimit(0);
-//		joint.setUpperLinLimit(xspan);
-
-//		joint.setDampingDirLin(.001f);
-//		joint.setRestitutionOrthoLin(.5f);
-//		joint.setRestitutionDirLin(0);
-//		joint.setPoweredLinMotor(true);
-//		joint.setMaxLinMotorForce(1);
-//		joint.setTargetLinMotorVelocity(-1);
 	}
 
 	private void processDockElement(Element elm) {

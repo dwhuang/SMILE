@@ -2,24 +2,34 @@
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
     <include file="tablesetup/def-lid.xml"/>
     <def name="lidbox">
-        <var name="boxId" value="Box"/>
-        <var name="lidId" value="Lid"/>
-        <sliderJoint location="(0, 0, 4)" rotation="(90, 90, 0)" min="0" max="5.8" init="5.8">
-            <box id="$boxId$" location="(0, 0, -2)" xspan="6" yspan="4" zspan="4" thickness="0.2" color="#00ffff" mass="10"/>
+        <var name="id" value="lidbox"/>
+        <var name="location" value="(0, 0, 3.8)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="xspan" value="6"/>
+        <var name="yspan" value="4"/>
+        <var name="zspan" value="4"/>
+        <var name="thickness" value="0.2"/>
+        <var name="boxColor" value="#00ffff"/>
+        <var name="boxMass" value="10"/>
+        <var name="lidColor" value="red"/>
+        <var name="lidMass" value="1"/>
+        <var name="handleColor" value="green"/>
+        <sliderJoint location="$location$" rotation="$rotation$" min="0" max="$xspan-thickness$" init="$xspan-thickness$">
+            <box id="$id$Box" location="(0, 0, $-(zspan-thickness)/2$)" xspan="$xspan$" yspan="$yspan$" zspan="$zspan-thickness$"
+                thickness="$thickness$" color="$boxColor$" mass="$boxMass$"/>
             <instance def="lid">
-                <var name="id" value="$lidId$"/>
-                <var name="mass" value="1"/>
-                <var name="location" value="(0, 0, 0.1)"/>
-                <var name="rotation" value="(0, 0, 0)"/>
-                <var name="xspan" value="6"/>
-                <var name="yspan" value="4"/>
-                <var name="thickness" value="0.2"/>
-                <var name="color" value="red"/>
-                <var name="handleXspan" value="1"/>
-                <var name="handleYspan" value="2"/>
-                <var name="handleZspan" value="0.5"/>
-                <var name="handleThickness" value="0.3"/>
-                <var name="handleColor" value="green"/>
+                <var name="id" value="$id$Lid"/>
+                <var name="mass" value="$lidMass$"/>
+                <var name="location" value="(0, 0, $thickness/2$)"/>
+                <var name="xspan" value="$xspan$"/>
+                <var name="yspan" value="$yspan$"/>
+                <var name="thickness" value="$thickness$"/>
+                <var name="color" value="$lidColor$"/>
+                <var name="handleXspan" value="$xspan/6$"/>
+                <var name="handleYspan" value="$yspan/2$"/>
+                <var name="handleZspan" value="$thickness*2$"/>
+                <var name="handleThickness" value="$thickness$"/>
+                <var name="handleColor" value="$handleColor$"/>
             </instance>
         </sliderJoint>
     </def>

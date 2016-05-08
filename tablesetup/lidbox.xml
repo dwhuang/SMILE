@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-    
-    <lidbox xspan="6" yspan="5" zspan="5" thickness="0.6" location="(0, 0, 3)" rotation="(90, 90, 0)" color="#3333bb" mass="10"
-        handleXspan="1" handleYspan="2" handleZspan="0.6" handleThickness="0.2" handleColor="green"/>
-    <block xspan="1.5" yspan="1.5" zspan="1.5" color="orange" location="(0, -1, 2)"/>
-    <block xspan="1.5" yspan="1.5" zspan="1.5" color="pink" location="(0, -1, 5)"/>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <include file="tablesetup/def-lidbox.xml"/>
+    <instance def="lidbox">
+        <var name="rocation" value="(90, 0, 90)"/>
+        <var name="location" value="(0, 0, 2.7)"/>
+        <var name="xspan" value="4"/>
+        <var name="yspan" value="6"/>
+        <var name="zspan" value="3"/>
+        <var name="thickness" value="0.3"/>
+    </instance>
+    <block location="(1, 0, 6)" rotation="(0, 15, 15)" color="yellow"/>
+    <block location="(-1, 0, 6)" rotation="(0, 15, -45)" color="orange"/>
 </tabletop>

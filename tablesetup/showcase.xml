@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
   <chain color="red" start="(9.8, 1, 2)" end="(2.2, 1, 2)" linkCount="15" linkYspan="0.5"/>
   <block mass="0" xspan="0.2" yspan="2" zspan="3" color="gray" location="(9.9, 0.5, 1.5)" rotation="(0, 0, 0)"/>
   <chain color="blue" start="(9.8, 0, 2)" end="(2.2, 0, 2)" linkCount="15" linkYspan="0.5"/>
@@ -50,7 +48,18 @@
   <block xspan="5" yspan="1" zspan="1" color="red" location="(6.5, 3, 3.5)" rotation="(0, 0, 0)"/>
 
   <block xspan="1" yspan="3" zspan="1" color="blue" location="(0, -1, 0.5)" rotation="(0, 0, 0)"/>
-  <lidbox xspan="5" yspan="3" zspan="1" thickness="0.3" location="(-1, -1, 1.5)" color="darkgray" handleColor="gray" handleZspan="0.3" handleThickness="0.15"/>
+  <include file="tablesetup/def-lidbox.xml"/>
+  <instance def="lidbox">
+      <var name="xspan" value="5"/>
+      <var name="yspan" value="3"/>
+      <var name="zspan" value="1.3"/>
+      <var name="thickness" value="0.3"/>
+      <var name="location" value="(-1, -1, 2)"/>
+      <var name="boxColor" value="darkgray"/>
+      <var name="lidColor" value="darkgray"/>
+      <var name="handleColor" value="gray"/>
+  </instance>
+  <!--<lidbox xspan="5" yspan="3" zspan="1" thickness="0.3" location="(-1, -1, 1.5)" color="darkgray" handleColor="gray" handleZspan="0.3" handleThickness="0.15"/>-->
   <block xspan="4" yspan="0.5" zspan="0.5" color="red" location="(-1, -1.5, 1.5)" rotation="(0, 0, 0)"/>
   <block xspan="4" yspan="0.5" zspan="0.5" color="green" location="(-1, -0.5, 1.5)" rotation="(0, 0, 0)"/>
 

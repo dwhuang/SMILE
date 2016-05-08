@@ -1,17 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
-<!--   <block color="brown" id="b1" location="(0, 0, 1)" mass="1" rotation="(0,0,0)" xspan="1" yspan="1" zspan="1"/> -->
-  <!--<composite location="(8, 5, 1)" mass="2">-->
-  <!--  <block color="red" location="(0, 3, 0)"/>-->
-  <!--  <cylinder color="blue" yspan="5" location="(0, 0, 0)"/>-->
-  <!--  <sphere color="pink" radius="1" location="(0, -2.5, 0)"/>-->
-  <!--</composite>-->
-<!--   <sphere location="(2, -2, 1)"/> -->
-<!--     <cylinder radius="1" yspan="5" id="c1" location="(8, 5, 3)"/> -->
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
   <chain color="red" start="(10, 0, 5)" end="(-10, -1, 4)" linkCount="20"/>
   <chain color="blue" start="(10, -0.5, 4)" end="(-10, 0, 5)" linkCount="20"/>
   <chain color="green" start="(10, -1, 4.7)" end="(-10, 0, 3.7)" linkCount="20"/>
-  <!--<box color="gray" xspan="3" yspan="3" zspan="2" mass="2" thickness="0.2" location="(0, 0, 5)"/>-->
 </tabletop>

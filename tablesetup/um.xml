@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="http://synapse.cs.umd.edu/tabletop-xml tabletop.xsd " xspan="20" yspan="12">
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
     <block id="lb1" xspan="4" yspan="1" zspan="1" location="(3, -5, 1)" rotation="(0, 0, 0)" color="yellow"/>
     <block id="llb1" xspan="5" yspan="1" zspan="1" location="(-3, -5, 1)" rotation="(0, 0, 0)" color="brown"/>
 
