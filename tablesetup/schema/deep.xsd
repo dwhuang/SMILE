@@ -31,6 +31,12 @@
 			<minInclusive value="0" />
 		</restriction>
 	</simpleType>
+    <simpleType name="proportionType">
+        <restriction base="float">
+            <minInclusive value="0" />
+            <maxInclusive value="1" />
+        </restriction>
+    </simpleType>
     <simpleType name="countType">
         <restriction base="int">
             <minInclusive value="0" />
@@ -317,6 +323,9 @@
         <attribute name="max" type="float" use="optional" default="1"/>
         <attribute name="init" type="float" use="optional" default="0"/>
         <attribute name="collision" type="boolean" use="optional" default="false"/>
+        <attribute name="damping" type="tt:proportionType" use="optional" default="0"/>
+        <attribute name="restitution" type="tt:proportionType" use="optional" default="0.7"/>
+        <attribute name="softness" type="tt:proportionType" use="optional" default="1"/>
     </complexType>
     
     <group name="jointGroup">

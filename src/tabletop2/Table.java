@@ -139,12 +139,16 @@ public class Table implements ActionListener {
 
 		Document doc = parseXmlFile(xmlFname);
 		if (doc != null) {
-			processIncludeElements(doc);
-			processDefElements(doc);
-			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>());
-            writeXmlToFile(doc, "tablesetup/debug.xml");
-	        doc = validateXmlTree(doc, true);
-			processXmlTree(doc);
+		    try {
+    			processIncludeElements(doc);
+    			processDefElements(doc);
+    			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>());
+                writeXmlToFile(doc, "tablesetup/debug.xml");
+    	        doc = validateXmlTree(doc, true);
+    			processXmlTree(doc);
+		    } catch (Exception e) {
+		        LogMessage.warn("error processing xml input", logger, e);
+		    }
 		}
 		
 		// relocate the robot according to table size
@@ -386,8 +390,13 @@ public class Table implements ActionListener {
                 if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
                         && child.getNodeName().equals("var")) {
                     Element e = (Element) child;
-                    myVars.put(e.getAttribute("name"), performVariableSubst(e.getAttribute("value"), vars));
-                    myVarIsDerived.put(e.getAttribute("name"), Boolean.parseBoolean(e.getAttribute("derived")));
+                    if (Boolean.parseBoolean(e.getAttribute("derived"))) {
+                        myVars.put(e.getAttribute("name"), e.getAttribute("value"));
+                        myVarIsDerived.put(e.getAttribute("name"), true);
+                    } else {
+                        myVars.put(e.getAttribute("name"), performVariableSubst(e.getAttribute("value"), vars));
+                        myVarIsDerived.put(e.getAttribute("name"), false);
+                    }
                 }
             }
             // merge <var> elements under <instance> and <def>. Variables under <instance> take priority.
@@ -711,12 +720,22 @@ public class Table implements ActionListener {
 
 			// note the negate/transpose: because the objects' local transforms are relative to the pivots,
 			// but these parameters take the pivots' transforms relative to the objects.
-			inventory.addSliderJoint(objs[0], objs[1],
+			MySliderJoint joint = inventory.addSliderJoint(objs[0], objs[1],
 					obj1Trans.getTranslation().negate(),
 					obj2Trans.getTranslation().negate(),
 					obj1Trans.getRotation().toRotationMatrix().transpose(),
 					obj2Trans.getRotation().toRotationMatrix().transpose(),
 					min, max, collision);
+			float damping = Float.parseFloat(e.getAttribute("damping"));
+            joint.setDampingDirAng(damping);
+            joint.setDampingDirLin(damping);
+            float restitution = Float.parseFloat(e.getAttribute("restitution"));
+            joint.setRestitutionDirAng(restitution);
+            joint.setRestitutionDirLin(restitution);
+            float softness = Float.parseFloat(e.getAttribute("softness"));
+            joint.setSoftnessDirAng(softness);
+            joint.setSoftnessDirLin(softness);
+            //System.out.println(joint.toParamString());
 		}
 	}
 

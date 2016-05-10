@@ -17,10 +17,11 @@ public class LogMessage {
     public static void warn(String msg, Logger logger, Throwable e) {
         if (e != null) {
             logger.log(Level.WARNING, msg, e);
+            showDialog(msg + ": " + e);
         } else {
             logger.log(Level.WARNING, msg);
+            showDialog(msg);
         }
-        showDialog(msg);
     }
 
     public static void warn(String msg, Logger logger) {

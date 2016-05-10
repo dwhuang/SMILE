@@ -1,5 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <include file="tablesetup/def-box.xml"/>
+    <def name="dockdrawer">
+        <var name="x" value="0"/>
+        <var name="y" value="0"/>
+        <var name="z" value="$dockZspan / 2 + aboveDockZspan / 2 + caseZthickness$" derived="true"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="dockId" value="dock"/>
+        <var name="dockXspan" value="4.2"/>
+        <var name="dockYspan" value="3.45"/>
+        <var name="dockZspan" value="2.3"/>
+        <var name="aboveDockZspan" value="0.5"/>
+        <var name="dockControlState0" value="0"/><!-- nearest control -->
+        <var name="dockControlState1" value="0"/>
+        <var name="dockControlState2" value="2"/>
+        <var name="dockControlState3" value="0"/><!-- farthest control -->
+        <var name="caseId" value="dockcase"/>
+        <var name="caseXthickness" value="0.3"/>
+        <var name="caseYthickness" value="0.15"/>
+        <var name="caseZthickness" value="0.1"/>
+        <sliderJoint max="$dockXspan$" location="($x$, $y$, $z$)" rotation="$rotation$" damping="1">
+            <instance def="dock">
+                <var name="id" value="$dockId$"/>
+                <var name="location" value="(0, 0, $-aboveDockZspan / 2$)"/>
+                <var name="xspan" value="$dockXspan$"/>
+                <var name="yspan" value="$dockYspan$"/>
+                <var name="zspan" value="$dockZspan$"/>
+                <var name="initState0" value="$dockControlState0$"/>
+                <var name="initState1" value="$dockControlState1$"/>
+                <var name="initState2" value="$dockControlState2$"/>
+                <var name="initState3" value="$dockControlState3$"/>
+            </instance>
+            <instance def="box">
+                <var name="id" value="$caseId$"/>
+                <var name="location" value="($massX$, 0, 0)" derived="true"/>
+                <var name="massX" value="$aboveDockZspan / 2$"/>
+                <var name="massZ" value="$caseXthickness / 2$"/>
+                <var name="rotation" value="(0, 90, 0)"/>
+                <var name="mass" value="100"/>
+                <var name="color" value="darkgray"/>
+                <var name="xspan" value="$dockZspan + caseZthickness * 2 + aboveDockZspan$"/>
+                <var name="yspan" value="$dockYspan + caseYthickness * 2$"/>
+                <var name="zspan" value="$dockXspan + caseXthickness$"/>
+                <var name="xthickness" value="$caseZthickness$"/>
+                <var name="ythickness" value="$caseYthickness$"/>
+                <var name="zthickness" value="$caseXthickness$"/>
+            </instance>
+        </sliderJoint>
+    </def>
     <def name="dock">
         <!-- ========== parameters ========== -->
         <var name="id" value="dock"/>
@@ -13,12 +61,9 @@
         <var name="handleColor" value="blue"/>
         <var name="initState0" value="0"/>
         <var name="initState1" value="0"/>
-        <var name="initState2" value="2"/>
+        <var name="initState2" value="0"/>
         <var name="initState3" value="0"/>
         <!-- ========== constants ========== -->
-        <!--<var name="xthickness" value="0.3"/>-->
-        <!--<var name="ythickness" value="0.15"/>-->
-        <!--<var name="zthickness" value="0.1"/>-->
         <var name="slotX" value="-0.7875"/>
         <var name="slotXspan" value="1.375"/>
         <var name="slotYspan" value="0.625"/>

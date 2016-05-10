@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml">
+    <def name="box">
+        <var name="id" value="box"/>
+        <var name="location" value="($massX$, $massY$, $zspan / 2 + massZ$)" derived="true"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="massX" value="0"/>
+        <var name="massY" value="0"/>
+        <var name="massZ" value="0"/>
+        <var name="xspan" value="2"/>
+        <var name="yspan" value="2"/>
+        <var name="zspan" value="2"/>
+        <var name="xthickness" value="0.3"/>
+        <var name="ythickness" value="0.3"/>
+        <var name="zthickness" value="0.3"/>
+        <var name="color" value="gray"/>
+        <var name="mass" value="1"/>
+        <!-- ==================== -->
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <composite location="($-massX$, $-massY$, $-massZ$)">
+                <block id="bottom" xspan="$xspan$" yspan="$yspan$" zspan="$zthickness$" color="$color$"
+                    location="(0, 0, $-zspan / 2 + zthickness / 2$)"/>
+                <block id="left" xspan="$xthickness$" yspan="$yspan$" zspan="$zspan - zthickness$" color="$color$"
+                    location="($-xspan / 2 + xthickness / 2$, 0, $zthickness / 2$)"/>
+                <block id="right" xspan="$xthickness$" yspan="$yspan$" zspan="$zspan - zthickness$" color="$color$"
+                    location="($xspan / 2 - xthickness / 2$, 0, $zthickness / 2$)"/>
+                <block id="near" xspan="$xspan - xthickness * 2$" yspan="$ythickness$" zspan="$zspan - zthickness$" color="$color$"
+                    location="(0, $-yspan / 2 + ythickness / 2$, $zthickness / 2$)"/>
+                <block id="far" xspan="$xspan - xthickness * 2$" yspan="$ythickness$" zspan="$zspan - zthickness$" color="$color$"
+                    location="(0, $yspan / 2 - ythickness / 2$, $zthickness / 2$)"/>
+            </composite>
+        </composite>
+    </def>
+</tabletop>

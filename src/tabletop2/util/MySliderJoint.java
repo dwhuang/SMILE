@@ -49,7 +49,7 @@ public class MySliderJoint extends SliderJoint {
 		p.put("softnessOrthoLin", getSoftnessOrthoLin());
 
 		p.put("isPoweredAngMotor", isPoweredAngMotor());
-		p.put("isPoweredLinMotor", isPoweredLinMotor());		
+		p.put("isPoweredLinMotor", isPoweredLinMotor());
 		p.put("maxAngMotorForce", getMaxAngMotorForce());
 		p.put("maxLinMotorForce", getMaxLinMotorForce());
 		p.put("targetAngMotorVelocity", getTargetAngMotorVelocity());
@@ -88,5 +88,41 @@ public class MySliderJoint extends SliderJoint {
 		setMaxLinMotorForce((Float) p.get("maxLinMotorForce"));
 		setTargetAngMotorVelocity((Float) p.get("targetAngMotorVelocity"));
 		setTargetLinMotorVelocity((Float) p.get("targetLinMotorVelocity"));
+	}
+	
+	public String toParamString() {
+	    StringBuffer buf = new StringBuffer();
+	    buf.append("collisionBetweenLinkedBodys" + ": " + collisionBetweenLinkedBodys + "\n");
+	    buf.append("lowerAngLimit" + ": " + getLowerAngLimit() + "\n");
+        buf.append("lowerLinLimit" + ": " + getLowerLinLimit() + "\n");
+        buf.append("upperAngLimit" + ": " + getUpperAngLimit() + "\n");
+        buf.append("upperLinLimit" + ": " + getUpperLinLimit() + "\n");
+
+        buf.append("dampingDirAng" + ": " + getDampingDirAng() + "\n");
+        buf.append("dampingDirLin" + ": " + getDampingDirLin() + "\n");
+        buf.append("dampingLimAng" + ": " + getDampingLimAng() + "\n");
+        buf.append("dampingLimLin" + ": " + getDampingLimLin() + "\n");
+        buf.append("dampingOrthoAng" + ": " + getDampingOrthoAng() + "\n");
+        buf.append("dampingOrthoLin" + ": " + getDampingOrthoLin() + "\n");
+        buf.append("restitutionDirAng" + ": " + getRestitutionDirAng() + "\n");
+        buf.append("restitutionDirLin" + ": " + getRestitutionDirLin() + "\n");
+        buf.append("restitutionLimAng" + ": " + getRestitutionLimAng() + "\n");
+        buf.append("restitutionLimLin" + ": " + getRestitutionLimLin() + "\n");
+        buf.append("restitutionOrthoAng" + ": " + getRestitutionOrthoAng() + "\n");
+        buf.append("restitutionOrthoLin" + ": " + getRestitutionOrthoLin() + "\n");
+        buf.append("softnessDirAng" + ": " + getSoftnessDirAng() + "\n");
+        buf.append("softnessDirLin" + ": " + getSoftnessDirLin() + "\n");
+        buf.append("softnessLimAng" + ": " + getSoftnessLimAng() + "\n");
+        buf.append("softnessLimLin" + ": " + getSoftnessLimLin() + "\n");
+        buf.append("softnessOrthoAng" + ": " + getSoftnessOrthoAng() + "\n");
+        buf.append("softnessOrthoLin" + ": " + getSoftnessOrthoLin() + "\n");
+
+        buf.append("isPoweredAngMotor" + ": " + isPoweredAngMotor() + "\n");
+        buf.append("isPoweredLinMotor" + ": " + isPoweredLinMotor() + "\n");
+        buf.append("maxAngMotorForce" + ": " + getMaxAngMotorForce() + "\n");
+        buf.append("maxLinMotorForce" + ": " + getMaxLinMotorForce() + "\n");
+        buf.append("targetAngMotorVelocity" + ": " + getTargetAngMotorVelocity() + "\n");
+        buf.append("targetLinMotorVelocity" + ": " + getTargetLinMotorVelocity() + "\n");
+        return buf.toString();
 	}
 }
