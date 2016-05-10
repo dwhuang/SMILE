@@ -702,16 +702,23 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (r == null) {
     		return;
     	}
-    	StateControl func = inventory.getDeepestStateControlFromSpatial(r.getGeometry());
-    	if (func != null) {
+    	StateControl c = inventory.getDeepestStateControlForManualTrigger(r.getGeometry());
+    	if (c != null) {
         	// notify listeners
             for (DemoPreActionListener l : demoPreActionListeners) {
-                l.demoPreTrigger(currHand.id, func.getSpatial());
+                l.demoPreTrigger(currHand.id, c.getSpatial());
             }
-            func.trigger(r.getGeometry(), true);
+            c.trigger(r.getGeometry(), true);
             for (DemoActionListener l : demoActionListeners) {
-                l.demoTrigger(currHand.id, func.getSpatial());
+                l.demoTrigger(currHand.id, c.getSpatial());
             }
+    	} else {
+    	    Spatial s = inventory.getPointable(r.getGeometry());
+    	    if (s != null) {
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoPointTo(currHand.id, s);
+                }
+    	    }
     	}
     }
     

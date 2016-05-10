@@ -19,4 +19,5 @@ public interface DemoActionListener {
     public void demoRelease(HandId handId);
     public void demoDestroy(HandId handId);
 	public void demoTrigger(HandId handId, Spatial s);
+	public void demoPointTo(HandId handId, Spatial s);
 }

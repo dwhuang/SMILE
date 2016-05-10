@@ -59,4 +59,9 @@ public class ToggleSwitchControl extends StateControl {
 	public String getType() {
 	    return "toggleSwitch";
 	}
+
+	@Override
+	public boolean allowManualTrigger() {
+        return true;
+    }
 }

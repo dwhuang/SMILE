@@ -117,6 +117,11 @@ public class DemoWindowController implements WindowController, DemoActionListene
 		updateRecInfo();
 	}
 	
+    @Override
+    public void demoPointTo(HandId handId, Spatial s) {
+        updateRecInfo();
+    }
+    
 	private void updateRbHand() {
 		Demonstrator.Hand hand = demonstrator.getCurrHand();
 		rbHand[hand.getId().getValue()].select();
@@ -134,7 +139,7 @@ public class DemoWindowController implements WindowController, DemoActionListene
             btRelease.disable();
             btDestroy.disable();
             btPlaneRotL.disable();
-            btPlaneRotR.disable();                    
+            btPlaneRotR.disable();
             for (int i = 0; i < sbObjRot.length; ++i) {
                 sbObjRot[i].disable();
                 sbObjRot[i].setValue(180);

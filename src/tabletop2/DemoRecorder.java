@@ -246,6 +246,14 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	public void demoTrigger(HandId handId, Spatial s) {
 	}
 	
+    @Override
+    public void demoPointTo(HandId handId, Spatial s) {
+        if (isRecording) {
+            saveToHistory();
+            currSegSymbWritter.print(frameId + ",pointTo," + handId.toString() + "," + s.getName() + "\n");
+        }
+    }
+    
 	@Override
 	public void objectCreated(Spatial obj) {
 		if (isRecording) {

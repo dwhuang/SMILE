@@ -184,7 +184,7 @@
         <var name="indicatorRadius" value="$yspan / 3$" derived="true"/>
         <var name="switchToIndicatorXspan" value="$xspan - switchXspan - switchXmargin * 2 - yspan / 3 * 2$" derived="true"/>
         <!-- ============================== -->
-        <composite id="$id$" location="$location$">
+        <composite id="$id$" location="$location$" pointable="true">
             <composite location="($-xspan / 2 + switchBaseXspan / 2$, 0, 0)">
                 <block id="$id$SwitchBase" xspan="$switchBaseXspan$" yspan="$yspan$" zspan="$zspan$" color="white" location="(0, 0, 0)"/>
                 <toggleSwitch id="$id$Switch" location="(0, 0, -0.12)" xspan="$switchXspan$" yspan="$yspan - switchYmargin * 2$" zspan="0.15"

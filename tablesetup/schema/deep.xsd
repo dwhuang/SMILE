@@ -75,6 +75,7 @@
 				</documentation>
 			</annotation>
 		</attribute>
+        <attribute name="pointable" type="boolean" use="optional" default="false"/>
     </complexType>
     <attributeGroup name="objectAttrs">
         <attribute name="mass" type="tt:massType" use="optional" default="1"/>

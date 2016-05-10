@@ -33,7 +33,7 @@ public abstract class StateControl {
 		for (String id : downstreamIds) {
 			Spatial s = map.get(id);
 			if (s != null) {
-				downstreams.add(inventory.getDeepestStateControlFromSpatial(s));
+				downstreams.add(inventory.getStateControl(s));
 			} else {
 				logger.log(Level.WARNING, "cannot resolve downstream id " + id);
 			}
@@ -93,5 +93,9 @@ public abstract class StateControl {
 	
     public String getVisibleStateString() {
         return "" + visibleState;
+    }
+
+    public boolean allowManualTrigger() {
+        return false;
     }
 }

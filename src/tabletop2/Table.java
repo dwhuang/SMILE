@@ -779,7 +779,8 @@ public class Table implements ActionListener {
 
 	private Spatial processBlockElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
-		if (isWhole) {
+		boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+		if (isWhole || pointable) {
 			id = getUniqueId(id);
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -801,13 +802,17 @@ public class Table implements ActionListener {
 			inventory.addItem(s, mass);
 			processDescriptionElements(elm, s, "block");
 		}
+		if (pointable) {
+		    s.setUserData("pointable", "" + pointable);
+		}
 
 		return s;
 	}
 
 	private Spatial processCylinderElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
-		if (isWhole) {
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+		if (isWhole || pointable) {
 			id = getUniqueId(id);
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -828,13 +833,17 @@ public class Table implements ActionListener {
 			inventory.addItem(s, mass);
 			processDescriptionElements(elm, s, "cylinder");
 		}
+		if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+		}
 
 		return s;
 	}
 
 	private Spatial processSphereElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
-		if (isWhole) {
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+		if (isWhole || pointable) {
 			id = getUniqueId(id);
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -854,13 +863,17 @@ public class Table implements ActionListener {
 			inventory.addItem(s, mass);
 			processDescriptionElements(elm, s, "sphere");
 		}
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
 
 		return s;
 	}
 
 	private Spatial processBoxElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
-		if (isWhole) {
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+		if (isWhole || pointable) {
 			id = getUniqueId(id);
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -883,12 +896,19 @@ public class Table implements ActionListener {
 			inventory.addItem(s, mass);
 			processDescriptionElements(elm, s, "box");
 		}
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
 
 		return s;
 	}
 
 	private Spatial processCustomElement(Element elm, boolean isWhole) {
-		String id = getUniqueId(elm.getAttribute("id"));
+		String id = elm.getAttribute("id");
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+        if (isWhole || pointable) {
+            id = getUniqueId(id);
+        }
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
@@ -912,15 +932,19 @@ public class Table implements ActionListener {
 			}
 			processDescriptionElements(elm, s, shapeName);
 		}
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
 
 		return s;
 	}
 
 	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
-		if (isWhole) {
-			id = getUniqueId(id);
-		}
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+        if (isWhole || pointable) {
+            id = getUniqueId(id);
+        }
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 
@@ -965,12 +989,16 @@ public class Table implements ActionListener {
 			inventory.addItem(node, mass);
 			node.setUserData("obj_shape", "composite");
 		}
+        if (pointable) {
+            node.setUserData("pointable", "" + pointable);
+        }
 
 		return node;
 	}
 
 	private Spatial processToggleSwitchElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
@@ -1024,12 +1052,16 @@ public class Table implements ActionListener {
 		    inventory.addItem(s, mass);
 	        processDescriptionElements(elm, s, "toggleSwitch");
 		}
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
 
 		return s;
 	}
 
 	private Spatial processIndicatorSetElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
@@ -1106,6 +1138,9 @@ public class Table implements ActionListener {
             float mass = Float.parseFloat(elm.getAttribute("mass"));
             inventory.addItem(s, mass);
             processDescriptionElements(elm, s, "indicatorSet");
+        }
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
         }
 
 		return s;

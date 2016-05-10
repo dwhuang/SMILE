@@ -114,14 +114,19 @@ public class Inventory {
         }
     }
 
-    public StateControl getDeepestStateControlFromSpatial(Spatial s) {
+    public StateControl getDeepestStateControlForManualTrigger(Spatial s) {
     	while (s != null) {
-    		if (stateControls.containsKey(s)) {
-    			return stateControls.get(s);
+    	    StateControl c = stateControls.get(s);
+    		if (c != null && c.allowManualTrigger()) {
+    			return c;
     		}
     		s = s.getParent();
     	}
     	return null;
+    }
+    
+    public StateControl getStateControl(Spatial s) {
+        return stateControls.get(s);
     }
     
     public void notifyStateChanged(StateControl c) {
@@ -353,7 +358,7 @@ public class Inventory {
     
     public Spatial getItem(Spatial g) {
     	Spatial s = g;
-    	while (s != rootNode) {
+    	while (s != null && s != rootNode) {
     		if (items.contains(s)) {
     			return s;
     		}
@@ -370,6 +375,17 @@ public class Inventory {
     		}
     	}
     	return null;
+    }
+    
+    public Spatial getPointable(Spatial g) {
+        Spatial s = g;
+        while (s != null && s != rootNode) {
+            if (Boolean.parseBoolean((String) s.getUserData("pointable")) || items.contains(s)) {
+                return s;
+            }
+            s = s.getParent();
+        }
+        return null;
     }
     
 //    public Transform getLocalToItemTransform(Spatial item, Node node) {
