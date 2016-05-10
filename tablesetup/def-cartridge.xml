@@ -12,6 +12,7 @@
         <var name="topColor" value="darkgray"/>
         <var name="handleColor" value="blue"/>
         <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <description name="shape" value="cartridge"/>
             <block id="$id$BodyC" location="(0, 0, 0)" xspan="$xspan*3/7$" yspan="$yspan*3/4$" zspan="$zspan$" color="$bodyColor$"/>
             <block id="$id$BodyL" location="(-$(xspan*3/7)/2+(xspan*2/7)/2$, 0, 0)"
                 xspan="$xspan*2/7$" yspan="$yspan$" zspan="$zspan$" color="$bodyColor$"/>

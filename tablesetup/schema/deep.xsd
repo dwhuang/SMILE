@@ -58,7 +58,15 @@
 		</restriction>
 	</simpleType>
     
-    <attributeGroup name="basicShapeAttrs">
+    <complexType name="shapeType">
+        <sequence minOccurs="0" maxOccurs="unbounded">
+            <element name="description">
+                <complexType>
+                    <attribute name="name" type="tt:idType" use="required"/>
+                    <attribute name="value" type="string" use="required"/>
+                </complexType>
+            </element>
+        </sequence>
 		<attribute name="id" type="tt:idType" use="optional"/>
 		<attribute name="location" type="tt:vector3Type" use="required" />
 		<attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)">
@@ -67,117 +75,140 @@
 				</documentation>
 			</annotation>
 		</attribute>
-    </attributeGroup>
-    <attributeGroup name="basicObjectAttrs">
+    </complexType>
+    <attributeGroup name="objectAttrs">
         <attribute name="mass" type="tt:massType" use="optional" default="1"/>
     </attributeGroup>
     
     <attributeGroup name="blockAttrs">
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-        <attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
-        <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
-        <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
     </attributeGroup>
     <complexType name="blockType">
-        <attributeGroup ref="tt:blockAttrs"/>
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+                <attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
+                <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+                <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+            </extension>
+        </complexContent>
     </complexType>
     <complexType name="blockObjectType">
-        <attributeGroup ref="tt:blockAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-    
-	<attributeGroup name="cylinderAttrs">
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-        <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
-        <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
-	</attributeGroup>
-    <complexType name="cylinderType">
-        <attributeGroup ref="tt:cylinderAttrs"/>
-    </complexType>
-    <complexType name="cylinderObjectType">
-        <attributeGroup ref="tt:cylinderAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-
-    <attributeGroup name="sphereAttrs">
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-        <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
-    </attributeGroup>
-    <complexType name="sphereType">
-        <attributeGroup ref="tt:sphereAttrs"/>
-    </complexType>    
-    <complexType name="sphereObjectType">
-        <attributeGroup ref="tt:sphereAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-
-    <attributeGroup name="boxAttrs">
-        <attributeGroup ref="tt:blockAttrs"/>
-        <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
-    </attributeGroup>    
-    <complexType name="boxType">
-        <attributeGroup ref="tt:boxAttrs"/>
-    </complexType>
-    <complexType name="boxObjectType">
-        <attributeGroup ref="tt:boxAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-
-    <attributeGroup name="customAttrs">
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="file" type="tt:fileType" use="required" />
-        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-        <attribute name="scale" type="tt:spanType" use="optional" default="1"/>
-    </attributeGroup>
-	<complexType name="customType">
-        <attributeGroup ref="tt:customAttrs"/>
-	</complexType>
-    <complexType name="customObjectType">
-        <attributeGroup ref="tt:customAttrs"/>
-        <attributeGroup ref="tt:basicObjectAttrs"/>
-    </complexType>
-    
-    <complexType name="compositeType">
-        <sequence minOccurs="0" maxOccurs="unbounded">
-            <choice>
-                <element name="block" type="tt:blockType"/>
-                <element name="cylinder" type="tt:cylinderType"/>
-                <element name="sphere" type="tt:sphereType"/>
-                <element name="box" type="tt:boxType"/>
-                <element name="custom" type="tt:customType"/>
-                <element name="composite" type="tt:compositeType"/>            
-                <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
-                <element name="indicatorSet" type="tt:indicatorSetType"/>            
-            </choice>
-        </sequence>
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-    </complexType>
-    <complexType name="compositeObjectType">
         <complexContent>
-            <extension base="tt:compositeType">
-                <attributeGroup ref="tt:basicObjectAttrs"/>
+            <extension base="tt:blockType">
+                <attributeGroup ref="tt:objectAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     
-    <complexType name="abstractStatefulObjectType">
-        <sequence minOccurs="0" maxOccurs="unbounded">
-            <element name="downstream">
-                <complexType>
-                    <attribute name="id" type="tt:idType" use="required"/>
-                </complexType>
-            </element>
-        </sequence>
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="initState" type="tt:countType" use="optional" default="0"/>
+    <complexType name="cylinderType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+                <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+                <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="cylinderObjectType">
+        <complexContent>
+            <extension base="tt:cylinderType">
+                <attributeGroup ref="tt:objectAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="sphereType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+                <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+            </extension>
+        </complexContent>
+    </complexType>    
+    <complexType name="sphereObjectType">
+        <complexContent>
+            <extension base="tt:sphereType">
+                <attributeGroup ref="tt:objectAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="boxType">
+        <complexContent>
+            <extension base="tt:blockType">
+                <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="boxObjectType">
+        <complexContent>
+            <extension base="tt:boxType">
+                <attributeGroup ref="tt:objectAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+	<complexType name="customType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attribute name="file" type="tt:fileType" use="required" />
+                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+                <attribute name="scale" type="tt:spanType" use="optional" default="1"/>
+            </extension>
+        </complexContent>
+	</complexType>
+    <complexType name="customObjectType">
+        <complexContent>
+            <extension base="tt:customType">
+                <attributeGroup ref="tt:objectAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    
+    <complexType name="compositeType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <choice>
+                        <element name="block" type="tt:blockType"/>
+                        <element name="cylinder" type="tt:cylinderType"/>
+                        <element name="sphere" type="tt:sphereType"/>
+                        <element name="box" type="tt:boxType"/>
+                        <element name="custom" type="tt:customType"/>
+                        <element name="composite" type="tt:compositeType"/>            
+                        <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
+                        <element name="indicatorSet" type="tt:indicatorSetType"/>            
+                    </choice>
+                </sequence>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="compositeObjectType">
+        <complexContent>
+            <extension base="tt:compositeType">
+                <attributeGroup ref="tt:objectAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    
+    <complexType name="controlType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <element name="downstream">
+                        <complexType>
+                            <attribute name="id" type="tt:idType" use="required"/>
+                        </complexType>
+                    </element>
+                </sequence>
+                <attribute name="initState" type="tt:countType" use="optional" default="0"/>
+            </extension>
+        </complexContent>
     </complexType>
     
     <complexType name="toggleSwitchType">
         <complexContent>
-            <extension base="tt:abstractStatefulObjectType">
+            <extension base="tt:controlType">
                 <annotation>
                     <documentation>
                         An integer internal state [0, numState) increases every time the switch is toggled.
@@ -199,14 +230,14 @@
     <complexType name="toggleSwitchObjectType">
         <complexContent>
             <extension base="tt:toggleSwitchType">
-                <attributeGroup ref="tt:basicObjectAttrs"/>
+                <attributeGroup ref="tt:objectAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     
     <complexType name="indicatorSetType">
         <complexContent>
-            <extension base="tt:abstractStatefulObjectType">
+            <extension base="tt:controlType">
                 <annotation>
                     <documentation>Max number of lights = 32</documentation>
                 </annotation>
@@ -236,6 +267,7 @@
                                     </complexType>
                                 </element>
                             </sequence>
+                            <attribute name="descriptionName" type="tt:idType" use="optional"/>
                         </complexType>
                     </element>
                 </sequence>
@@ -249,7 +281,7 @@
     <complexType name="indicatorSetObjectType">
         <complexContent>
             <extension base="tt:indicatorSetType">
-                <attributeGroup ref="tt:basicObjectAttrs"/>
+                <attributeGroup ref="tt:objectAttrs"/>
             </extension>
         </complexContent>
     </complexType>    
@@ -315,17 +347,20 @@
     </group>
     
     <complexType name="sliderJointType">
-        <sequence minOccurs="2" maxOccurs="2">
-            <group ref="tt:singleObjectGroup"/>
-        </sequence>
-        <attributeGroup ref="tt:basicShapeAttrs"/>
-        <attribute name="min" type="float" use="optional" default="0"/>
-        <attribute name="max" type="float" use="optional" default="1"/>
-        <attribute name="init" type="float" use="optional" default="0"/>
-        <attribute name="collision" type="boolean" use="optional" default="false"/>
-        <attribute name="damping" type="tt:proportionType" use="optional" default="0"/>
-        <attribute name="restitution" type="tt:proportionType" use="optional" default="0.7"/>
-        <attribute name="softness" type="tt:proportionType" use="optional" default="1"/>
+        <complexContent>
+            <extension base="tt:shapeType">
+                <sequence minOccurs="2" maxOccurs="2">
+                    <group ref="tt:singleObjectGroup"/>
+                </sequence>
+                <attribute name="min" type="float" use="optional" default="0"/>
+                <attribute name="max" type="float" use="optional" default="1"/>
+                <attribute name="init" type="float" use="optional" default="0"/>
+                <attribute name="collision" type="boolean" use="optional" default="false"/>
+                <attribute name="damping" type="tt:proportionType" use="optional" default="0"/>
+                <attribute name="restitution" type="tt:proportionType" use="optional" default="0.7"/>
+                <attribute name="softness" type="tt:proportionType" use="optional" default="1"/>
+            </extension>
+        </complexContent>
     </complexType>
     
     <group name="jointGroup">

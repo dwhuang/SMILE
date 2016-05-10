@@ -12,8 +12,10 @@ import com.jme3.scene.Spatial;
 public class IndicatorSetControl extends StateControl {
 	List<Geometry> lights = new ArrayList<>();
 	List<ColorRGBA[]> lightStates;
+	List<String> lightStateNames;
 	
-	public IndicatorSetControl(Inventory inv, Spatial s, int initState, List<ColorRGBA[]> lightStates) {
+	public IndicatorSetControl(Inventory inv, Spatial s, int initState, List<ColorRGBA[]> lightStates,
+	        List<String> lightStateNames) {
 		super(inv, s);
 		// get all lights (Geometry)
 		for (Spatial sl : ((Node) s).getChildren()) {
@@ -23,6 +25,7 @@ public class IndicatorSetControl extends StateControl {
 		}
 		
 		this.lightStates = lightStates;
+		this.lightStateNames = lightStateNames;
 		// sanity check
 		for (ColorRGBA[] colors : lightStates) {
 			if (colors.length != lights.size()) {
@@ -62,11 +65,21 @@ public class IndicatorSetControl extends StateControl {
 	}
 
 	@Override
-	public void trigger(Object o) {
+	public void trigger(Object o, boolean notify) {
 		if (o instanceof StateControl) {
 			StateControl c = (StateControl) o;
-			setState(c.getState(), true);
-            triggerDownstreams();
+			setState(c.getState(), notify);
+            triggerDownstreams(notify);
 		}
 	}
+
+    @Override
+    public String getVisibleStateString() {
+        return lightStateNames.get(visibleState);
+    }
+
+    @Override
+    public String getType() {
+        return "indicatorSet";
+    }
 }

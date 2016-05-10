@@ -152,7 +152,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             	if (leftButton) {
             		if (!isPressed) {
 	                    Spatial cursorObj = getCursorItem(rootNode);
-	                    if (cursorObj != null) { 
+	                    if (cursorObj != null) {
 	                        grasp(cursorObj);
 	                    }
                 	}
@@ -207,7 +207,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             		}
             	}
             	if (graspingHand == null) {
-            		throw new IllegalStateException("item " + s 
+            		throw new IllegalStateException("item " + s
             				+ " is neither free nor being grapsed by a demonstrator hand.");
             	}
             	HandId currHandId = currHand.id;
@@ -221,12 +221,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
             	if (getHand(HandId.BothHands).state != HandState.Idle) {
             		getHand(HandId.BothHands).release();
             	}
-                if (id == HandId.LeftHand 
+                if (id == HandId.LeftHand
                 		&& getHand(HandId.RightHand).state != HandState.Idle
             			&& getHand(HandId.AnyHand).state != HandState.Idle) {
             		getHand(HandId.AnyHand).release();
                 }
-                if (id == HandId.RightHand 
+                if (id == HandId.RightHand
                 		&& getHand(HandId.LeftHand).state != HandState.Idle
             			&& getHand(HandId.AnyHand).state != HandState.Idle) {
             		getHand(HandId.AnyHand).release();
@@ -287,7 +287,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             
             // notify listeners
             for (DemoActionListener l : Demonstrator.this.demoActionListeners) {
-                l.demoGrasp(currHand.id, graspedItem, 
+                l.demoGrasp(currHand.id, graspedItem,
                 		graspNode.getLocalTranslation(), graspNode.getLocalRotation());
             }
         }
@@ -354,7 +354,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         	} else {
         		throw new IllegalArgumentException("unknown axis index " + axisIndex);
         	}
-        	float angleDiff = angle - userRotAngles[axisIndex];    	
+        	float angleDiff = angle - userRotAngles[axisIndex];
         	quat.fromAngleNormalAxis(angleDiff, rotAxis);
         	quat.multLocal(graspNode.getLocalRotation());
         	float delta = rotate(quat, deltaRangePrecision);
@@ -414,7 +414,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
 //            if (joints != null) {
 //                for (PhysicsJoint j : joints) {
 //                    bulletAppState.getPhysicsSpace().remove(j);
-//                    
+//
 //                    MyRigidBodyControl c = (MyRigidBodyControl)j.getBodyA();
 //                    c.forceActivationState(CollisionObject.ACTIVE_TAG);
 //                    c.activate();
@@ -457,7 +457,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         
         private void restoreFromMemento(Memento m) {
         	if (m.id != id) {
-        		throw new IllegalArgumentException("inconsistent memento hand id: " + m.id 
+        		throw new IllegalArgumentException("inconsistent memento hand id: " + m.id
         				+ " (my id is " + id + ")");
         	}
         	state = m.state;
@@ -474,7 +474,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             	userRotAngles[2] = m.userRotAngles[2];
         	}
         }
-    }    
+    }
     
     public Demonstrator(String name, MainApp app) {
     	this.name = name;
@@ -487,7 +487,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         
         visualAid = new Node(name + "VisualAid");
         movingPlane = new Node(name + "MovingPlane");
-        visualAid.attachChild(movingPlane);        
+        visualAid.attachChild(movingPlane);
         Factory factory = app.getFactory();
         
         Vector2f planeSize = new Vector2f(table.getWidth(), table.getWidth());
@@ -501,19 +501,19 @@ public class Demonstrator implements ActionListener, AnalogListener {
         g.setLocalRotation(new Quaternion(new float[]{0, FastMath.PI, 0}));
         g.setLocalTranslation(planeSize.x / 2, -planeSize.y / 2, 0);
         movingPlane.attachChild(g);
-        g = factory.makeUnshadedLine(name + "ShadowLine", Vector3f.ZERO, 
+        g = factory.makeUnshadedLine(name + "ShadowLine", Vector3f.ZERO,
                 new Vector3f(0, -planeSize.y / 2, 0), ColorRGBA.Black);
         movingPlane.attachChild(g);
         
-        g = factory.makeUnshadedArrow(name + "AxisArrowX", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowX",
                 Vector3f.UNIT_X.mult(10), 2, ColorRGBA.Red);
         g.setLocalTranslation(Vector3f.UNIT_X.negate().multLocal(5));
         visualAid.attachChild(g);
-        g = factory.makeUnshadedArrow(name + "AxisArrowY", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowY",
                 Vector3f.UNIT_Y.mult(10), 2, ColorRGBA.Blue);
         g.setLocalTranslation(Vector3f.UNIT_Y.negate().multLocal(5));
         visualAid.attachChild(g);
-        g = factory.makeUnshadedArrow(name + "AxisArrowZ", 
+        g = factory.makeUnshadedArrow(name + "AxisArrowZ",
                 Vector3f.UNIT_Z.mult(10).negateLocal(), 2, ColorRGBA.Green);
         g.setLocalTranslation(Vector3f.UNIT_Z.mult(5));
         visualAid.attachChild(g);
@@ -555,8 +555,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
     public void initKeys(InputManager inputManager) {
         inputManager.addMapping(name + "LeftClick", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping(name + "RightClick", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
-        inputManager.addMapping(name + "MouseMove", 
-                new MouseAxisTrigger(MouseInput.AXIS_X, true), 
+        inputManager.addMapping(name + "MouseMove",
+                new MouseAxisTrigger(MouseInput.AXIS_X, true),
                 new MouseAxisTrigger(MouseInput.AXIS_X, false),
                 new MouseAxisTrigger(MouseInput.AXIS_Y, true),
                 new MouseAxisTrigger(MouseInput.AXIS_Y, false));
@@ -648,7 +648,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             sceneProcessor.highlightSpatial(highlightSpatial);
     	} else {
             sceneProcessor.setShowVisualAid(false);
-            sceneProcessor.highlightSpatial(null);    		
+            sceneProcessor.highlightSpatial(null);
     	}
     }
 
@@ -708,7 +708,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             for (DemoPreActionListener l : demoPreActionListeners) {
                 l.demoPreTrigger(currHand.id, func.getSpatial());
             }
-            func.trigger(r.getGeometry());
+            func.trigger(r.getGeometry(), true);
             for (DemoActionListener l : demoActionListeners) {
                 l.demoTrigger(currHand.id, func.getSpatial());
             }

@@ -37,21 +37,26 @@ public class ToggleSwitchControl extends StateControl {
 	}
 	
 	@Override
-	public void trigger(Object o) {
+	public void trigger(Object o, boolean notify) {
 		if (o instanceof Geometry) {
 			Geometry g = (Geometry) o;
 			int buttonPressed = ((Node) spatial).getChildIndex(g);
-			if (setVisibleState(buttonPressed, true)) {
+			if (setVisibleState(buttonPressed, notify)) {
 				state = (state + 1) % numStates;
-				triggerDownstreams();
+				triggerDownstreams(notify);
 			}
 		} else if (o instanceof StateControl) {
 			StateControl c = (StateControl) o;
 			int st = c.getState();
 			if (st >= 0 && st < numStates && st != state) {
 				state = st;
-				triggerDownstreams();
+				triggerDownstreams(notify);
 			}
 		}
+	}
+	
+	@Override
+	public String getType() {
+	    return "toggleSwitch";
 	}
 }

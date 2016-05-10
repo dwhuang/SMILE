@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,7 +18,6 @@ import tabletop2.Demonstrator.HandId;
 import tabletop2.util.FileUtils;
 import tabletop2.util.MyRigidBodyControl;
 
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
@@ -53,7 +53,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		
 		ItemTransformState(ItemTransformState st) {
 			set(st);
-		}	
+		}
 		
 		ItemTransformState() {
 		}
@@ -61,7 +61,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		void set(Spatial item) {
 			isActive = item.getControl(MyRigidBodyControl.class).isActive();
 			
-			final Transform trans = item.getWorldTransform();			
+			final Transform trans = item.getWorldTransform();
 			trans.getTranslation(location);
 			trans.getRotation().toAngles(angles);
 			// location: transform to user coordinate system
@@ -129,10 +129,13 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		FileUtils.deleteRecursively(demoDir);
 		demoDir.mkdir();
 		
-		if (startNewSegment()) {			
+		if (startNewSegment()) {
 			isRecording = true;
 			for (Spatial item : inventory.allItems()) {
 				printObjectCreateSymbols(item);
+			}
+			for (Map.Entry<Spatial, StateControl> entry : inventory.allStateControls().entrySet()) {
+			    objectControlInitialized(entry.getKey(), entry.getValue());
 			}
 		}
 	}
@@ -193,14 +196,14 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	public void demoPreGrasp(HandId handId) {
 		if (isRecording) {
 			saveToHistory();
-		}		
+		}
 	}
 
 	@Override
 	public void demoPreRelease(HandId handId) {
 		if (isRecording) {
 			saveToHistory();
-		}		
+		}
 	}
 
 	@Override
@@ -258,12 +261,22 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	}
 
 	@Override
-	public void objectTriggered(Spatial obj, String name, int state) {
+	public void objectControlTriggered(Spatial obj, StateControl c) {
     	if (isRecording) {
-			currSegSymbWritter.print(frameId + ",event," + name + "," + state + "\n");
+			currSegSymbWritter.print(frameId + ",controlStateChanged," + obj.getName() + ","
+			        + c.getVisibleStateString() + "\n");
 			saveRobotVision();
 		}
 	}
+
+    @Override
+    public void objectControlInitialized(Spatial obj, StateControl c) {
+        if (isRecording) {
+            currSegSymbWritter.print(frameId + ",controlInitialized," + obj.getName() + "," + c.getType()
+                    + "," + inventory.getItem(obj).getName() + "," + c.getVisibleStateString() + "\n");
+            saveRobotVision();
+        }
+    }
 
 	private boolean startNewSegment() {
 		if (currSegSymbWritter != null) {
@@ -281,7 +294,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		} catch (FileNotFoundException e) {
 			logger.log(Level.SEVERE, "cannot write to " + symbFile, e);
 			currSegSymbWritter = null;
-			return false;			
+			return false;
 		}
 		return true;
 	}
@@ -304,7 +317,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		} catch (FileNotFoundException e) {
 			logger.log(Level.SEVERE, "cannot append to " + symbFile, e);
 			currSegSymbWritter = null;
-			return false;			
+			return false;
 		}
 		return true;
 	}
@@ -363,33 +376,16 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	private void printObjectCreateSymbols(Spatial item) {
 		buf.setLength(0);
 		buf.append(frameId + ",create," + item.getName());
-		String shape = item.getUserData("obj_shape");
-		buf.append(",shape," + shape);
-		buf.append(",mass," + item.getControl(MyRigidBodyControl.class).getMass());
-				
-		for (String k : item.getUserDataKeys()) {
-			if (k.startsWith("obj_") && !k.equals("obj_shape")) {
-				String kName = k.substring(4);
-				buf.append("," + kName);
-				if (kName.endsWith("Color") || kName.endsWith("color")) {
-					buf.append(",#");
-					ColorRGBA color = item.getUserData(k);
-					int rgba = color.asIntRGBA();
-					rgba &= 0xffffff00;
-					rgba >>= 8;
-					String hex = Integer.toHexString(rgba);
-					if (hex.length() < 6) {
-						for (int i = 0; i < 6 - hex.length(); ++i) {
-							buf.append("0");
-						}
-					}
-					buf.append(hex);
-				} else {
-					buf.append("," + item.getUserData(k));
-				}
-			}
+		String descrCountStr = item.getUserData("descriptionCount");
+		int descrCount = 0;
+		try {
+		    descrCount = Integer.parseInt(descrCountStr);
+		} catch (Exception e) {}
+		for (int i = 0; i < descrCount; ++i) {
+		    String name = item.getUserData("description" + i + "Name");
+		    String value = item.getUserData("description" + i + "Value");
+		    buf.append("," + name + "," + value.replaceAll("\\,", "\\\\,"));
 		}
-		
 		buf.append("\n");
 		currSegSymbWritter.print(buf);
 	}

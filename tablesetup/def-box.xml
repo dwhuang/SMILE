@@ -15,8 +15,10 @@
         <var name="zthickness" value="0.3"/>
         <var name="color" value="gray"/>
         <var name="mass" value="1"/>
+        <var name="descrShape" value="box"/>
         <!-- ==================== -->
         <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <description name="shape" value="$descrShape$"/>
             <composite location="($-massX$, $-massY$, $-massZ$)">
                 <block id="bottom" xspan="$xspan$" yspan="$yspan$" zspan="$zthickness$" color="$color$"
                     location="(0, 0, $-zspan / 2 + zthickness / 2$)"/>

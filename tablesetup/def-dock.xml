@@ -4,7 +4,7 @@
     <def name="dockdrawer">
         <var name="x" value="0"/>
         <var name="y" value="0"/>
-        <var name="z" value="$dockZspan / 2 + aboveDockZspan / 2 + caseZthickness$" derived="true"/>
+        <var name="z" value="$dockZspan / 2 + caseZthickness$" derived="true"/>
         <var name="rotation" value="(0, 0, 0)"/>
         <var name="dockId" value="dock"/>
         <var name="dockXspan" value="4.2"/>
@@ -22,7 +22,7 @@
         <sliderJoint max="$dockXspan$" location="($x$, $y$, $z$)" rotation="$rotation$" damping="1">
             <instance def="dock">
                 <var name="id" value="$dockId$"/>
-                <var name="location" value="(0, 0, $-aboveDockZspan / 2$)"/>
+                <var name="location" value="(0, 0, 0)"/>
                 <var name="xspan" value="$dockXspan$"/>
                 <var name="yspan" value="$dockYspan$"/>
                 <var name="zspan" value="$dockZspan$"/>
@@ -33,10 +33,10 @@
             </instance>
             <instance def="box">
                 <var name="id" value="$caseId$"/>
-                <var name="location" value="($massX$, 0, 0)" derived="true"/>
+                <var name="rotation" value="(0, 90, 0)"/>
+                <var name="location" value="(0, 0, 0)"/>
                 <var name="massX" value="$aboveDockZspan / 2$"/>
                 <var name="massZ" value="$caseXthickness / 2$"/>
-                <var name="rotation" value="(0, 90, 0)"/>
                 <var name="mass" value="100"/>
                 <var name="color" value="darkgray"/>
                 <var name="xspan" value="$dockZspan + caseZthickness * 2 + aboveDockZspan$"/>
@@ -45,6 +45,7 @@
                 <var name="xthickness" value="$caseZthickness$"/>
                 <var name="ythickness" value="$caseYthickness$"/>
                 <var name="zthickness" value="$caseXthickness$"/>
+                <var name="descrShape" value="case"/>
             </instance>
         </sliderJoint>
     </def>
@@ -92,6 +93,7 @@
         <var name="controlXspan" value="$panelXspan - panelToSwitchXspan - 0.15$" derived="true"/>
         <!-- ============================== -->
         <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <description name="shape" value="dock"/>
             <composite id="body" location="(0, 0, $-controlZspan / 2 - panelZspan / 2$)">
                 <block id="baseLeft" xspan="$baseLeftXspan$" yspan="$yspan$" zspan="$baseZspan$" color="$color$"
                     location="($-xspan / 2 + baseLeftXspan / 2$, 0, 0)"/>
@@ -193,15 +195,15 @@
             <composite location="($xspan / 2 - indicatorRadius$, 0, 0)">
                 <cylinder id="$id$IndicatorBase" radius="$indicatorRadius$" yspan="$zspan$" color="white" rotation="(90, 0, 0)" location="(0, 0, 0)"/>
                 <indicatorSet id="$id$Indicator" xspan="$indicatorRadius * 1.5$" numLights="2" location="(0, 0, $zspan / 2$)">
-                    <state>
+                    <state descriptionName="green">
                         <light id="1" color="green"/>
                     </state>
-                    <state>
+                    <state descriptionName="off">
                     </state>
-                    <state>
+                    <state descriptionName="red">
                         <light id="0" color="red"/>
                     </state>
-                    <state>
+                    <state descriptionName="off">
                     </state>
                 </indicatorSet>
             </composite>

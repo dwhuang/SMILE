@@ -33,7 +33,7 @@
         <var name="topColor" value="magenta"/>
     </instance>
     <instance def="cartridge">
-        <var name="id" value="c4"/>
+        <var name="id" value="c5"/>
         <var name="location" value="(5.76,-0.8,2.228)"/>
         <var name="topColor" value="yellow"/>
     </instance>

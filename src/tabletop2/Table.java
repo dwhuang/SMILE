@@ -2,8 +2,10 @@ package tabletop2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
@@ -642,6 +644,42 @@ public class Table implements ActionListener {
 		bulletAppState.getPhysicsSpace().add(rbc);
 		rootNode.attachChild(tableSpatial);
 	}
+	
+	private static void putDescriptionToSpatial(Spatial s, String name, String value) {
+	    int count = 0;
+	    try {
+	        count = Integer.parseInt((String) s.getUserData("descriptionCount"));
+	    } catch (Exception e) {}
+	    int i;
+	    for (i = 0; i < count; ++i) {
+	        String oldName = s.getUserData("description" + i + "Name");
+	        if (oldName.equals(name)) {
+	            break;
+	        }
+	    }
+	    s.setUserData("description" + i + "Name", name);
+        s.setUserData("description" + i + "Value", value);
+        if (i == count) {
+            s.setUserData("descriptionCount", "" + (count + 1));
+        }
+	}
+	
+	private void processDescriptionElements(Element root, Spatial s, String defaultShape) {
+	    LinkedHashMap<String, String> d = new LinkedHashMap<>();
+	    if (defaultShape != null) {
+	        d.put("shape", defaultShape);
+	    }
+	    for (org.w3c.dom.Node child = root.getFirstChild(); child != null; ) {
+	        org.w3c.dom.Node nextChild = child.getNextSibling();
+	        if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+	                && child.getNodeName().equals("description")) {
+	            putDescriptionToSpatial(s, ((Element) child).getAttribute("name"),
+	                    ((Element) child).getAttribute("value"));
+	            root.removeChild(child);
+	        }
+	        child = nextChild;
+	    }
+	}
 
 	private void processSliderJointElement(Element e) {
 		// ignore id
@@ -761,12 +799,7 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-
-	        s.setUserData("obj_shape", "block");
-	        s.setUserData("obj_xspan", xspan);
-	        s.setUserData("obj_zspan", yspan);
-	        s.setUserData("obj_yspan", zspan);
-	        s.setUserData("obj_color", color);
+			processDescriptionElements(elm, s, "block");
 		}
 
 		return s;
@@ -793,11 +826,7 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-
-			s.setUserData("obj_shape", "cylinder");
-	        s.setUserData("obj_radius", radius);
-	        s.setUserData("obj_yspan", zspan);
-	        s.setUserData("obj_color", color);
+			processDescriptionElements(elm, s, "cylinder");
 		}
 
 		return s;
@@ -823,10 +852,7 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-
-	        s.setUserData("obj_shape", "cylinder");
-	        s.setUserData("obj_radius", radius);
-	        s.setUserData("obj_color", color);
+			processDescriptionElements(elm, s, "sphere");
 		}
 
 		return s;
@@ -855,13 +881,7 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-
-			s.setUserData("obj_shape", "box");
-	        s.setUserData("obj_xspan", xspan);
-	        s.setUserData("obj_zspan", yspan);
-	        s.setUserData("obj_yspan", zspan);
-	        s.setUserData("obj_color", color);
-	        s.setUserData("obj_thickness", thickness);
+			processDescriptionElements(elm, s, "box");
 		}
 
 		return s;
@@ -885,10 +905,12 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
-
-			s.setUserData("obj_shape", "custom");
-			s.setUserData("obj_color", color);
-			s.setUserData("obj_scale", scale);
+			
+			String shapeName = new File(file).getName().split(".")[0];
+			if (shapeName == null || shapeName.length() == 0) {
+			    shapeName = "custom";
+			}
+			processDescriptionElements(elm, s, shapeName);
 		}
 
 		return s;
@@ -908,6 +930,9 @@ public class Table implements ActionListener {
 				rotation.x * FastMath.DEG_TO_RAD,
 				rotation.y * FastMath.DEG_TO_RAD,
 				rotation.z * FastMath.DEG_TO_RAD));
+		if (isWhole) {
+		    processDescriptionElements(elm, node, "composite");
+		}
 
 		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
 		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
@@ -997,6 +1022,7 @@ public class Table implements ActionListener {
 		if (isWhole) {
 		    float mass = Float.parseFloat(elm.getAttribute("mass"));
 		    inventory.addItem(s, mass);
+	        processDescriptionElements(elm, s, "toggleSwitch");
 		}
 
 		return s;
@@ -1037,6 +1063,7 @@ public class Table implements ActionListener {
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
 		LinkedList<ColorRGBA[]> lightStates = new LinkedList<>();
+		ArrayList<String> lightStateNames = new ArrayList<>();
 		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
 		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
 		        continue;
@@ -1044,8 +1071,14 @@ public class Table implements ActionListener {
 			if (child.getNodeName().equals("downstream")) {
 				dsIds.add(((Element) child).getAttribute("id"));
 			} else if (child.getNodeName().equals("state")) {
+			    // try to get the descriptive name of the state
+			    String lsName = ((Element) child).getAttribute("descriptionName");
+			    if (lsName == null || lsName.length() == 0) {
+			        lsName = "" + lightStateNames.size();
+			    }
+			    lightStateNames.add(lsName);
+                // get <light> elements under <state>
 				ColorRGBA[] ls = new ColorRGBA[numLights];
-				// get <light> elements under <state>
 				for (org.w3c.dom.Node grandChild = child.getFirstChild(); grandChild != null;
 				        grandChild = grandChild.getNextSibling()) {
 					if (grandChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
@@ -1062,7 +1095,7 @@ public class Table implements ActionListener {
 			}
 		}
 
-		IndicatorSetControl c = new IndicatorSetControl(inventory, s, initState, lightStates);
+		IndicatorSetControl c = new IndicatorSetControl(inventory, s, initState, lightStates, lightStateNames);
 
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
@@ -1072,6 +1105,7 @@ public class Table implements ActionListener {
         if (isWhole) {
             float mass = Float.parseFloat(elm.getAttribute("mass"));
             inventory.addItem(s, mass);
+            processDescriptionElements(elm, s, "indicatorSet");
         }
 
 		return s;
@@ -1137,10 +1171,15 @@ public class Table implements ActionListener {
 		startNode.setLocalTranslation(start);
 		startNode.setLocalRotation(rotStartEndDir);
 		inventory.addItem(startNode, 0);
-		startNode.setUserData("obj_shape", "chain-endpoint");
-		startNode.setUserData("obj_xspan", endNodesSize.x);
-		startNode.setUserData("obj_yspan", endNodesSize.z);
-		startNode.setUserData("obj_zspan", endNodesSize.y);
+		startNode.setUserData("descriptionCount", 4);
+		startNode.setUserData("description0Name", "shape");
+		startNode.setUserData("description0Value", "chain-endpoint");
+        startNode.setUserData("description1Name", "xspan");
+        startNode.setUserData("description1Value", endNodesSize.x);
+        startNode.setUserData("description2Name", "yspan");
+        startNode.setUserData("description2Value", endNodesSize.z);
+        startNode.setUserData("description3Name", "zspan");
+        startNode.setUserData("description3Value", endNodesSize.y);
 
 		// make end node (static)
 		id = getUniqueId(groupId + "-end");
@@ -1149,10 +1188,15 @@ public class Table implements ActionListener {
 		endNode.setLocalTranslation(end);
 		endNode.setLocalRotation(rotStartEndDir);
 		inventory.addItem(endNode, 0);
-		startNode.setUserData("obj_shape", "chain-endpoint");
-		startNode.setUserData("obj_xspan", endNodesSize.x);
-		startNode.setUserData("obj_yspan", endNodesSize.z);
-		startNode.setUserData("obj_zspan", endNodesSize.y);
+		endNode.setUserData("descriptionCount", 4);
+		endNode.setUserData("description0Name", "shape");
+		endNode.setUserData("description0Value", "chain-endpoint");
+        endNode.setUserData("description1Name", "xspan");
+        endNode.setUserData("description1Value", endNodesSize.x);
+        endNode.setUserData("description2Name", "yspan");
+        endNode.setUserData("description2Value", endNodesSize.z);
+        endNode.setUserData("description3Name", "zspan");
+        endNode.setUserData("description3Value", endNodesSize.y);
 
 		Spatial prevSpatial = startNode;
 		Vector3f prevJointPt = new Vector3f(0, 0, -endNodesSize.z);
@@ -1165,11 +1209,17 @@ public class Table implements ActionListener {
 			link.setLocalTranslation(vec);
 			inventory.addItem(link, linkMass, new BoxCollisionShape(linkPhysicsSize));
 			link.getControl(MyRigidBodyControl.class).setAngularDamping(1);
-			link.setUserData("obj_shape", "chain-link");
-			link.setUserData("obj_xspan", linkXspan);
-			link.setUserData("obj_yspan", linkZspan);
-			link.setUserData("obj_zspan", linkYspan);
-			link.setUserData("obj_color", color);
+			link.setUserData("descriptionCount", 5);
+			link.setUserData("description0Name", "shape");
+			link.setUserData("description0Value", "chain-link");
+			link.setUserData("description1Name", "xspan");
+			link.setUserData("description1Value", linkXspan);
+			link.setUserData("description2Name", "yspan");
+			link.setUserData("description2Value", linkZspan);
+			link.setUserData("description3Name", "zspan");
+			link.setUserData("description3Value", linkYspan);
+            link.setUserData("description4Name", "color");
+            link.setUserData("description4Value", color);
 
 			// connect the link using a joint (or constraint)
 			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link,

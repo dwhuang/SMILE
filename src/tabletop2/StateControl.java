@@ -40,9 +40,9 @@ public abstract class StateControl {
 		}
 	}
 	
-	protected void triggerDownstreams() {
+	protected void triggerDownstreams(boolean notify) {
 		for (StateControl c : downstreams) {
-			c.trigger(this);
+			c.trigger(this, notify);
 		}
 	}
 	
@@ -58,17 +58,13 @@ public abstract class StateControl {
 		return state;
 	}
 	
-	public int getVisibleState() {
-		return visibleState;
-	}
-	
 	public void restoreStates(int state, int visibleState) {
 		this.state = state;
 		setVisibleState(visibleState, false);
 	}
 	
 	/**
-	 * Set the appearance of the object 
+	 * Set the appearance of the object
 	 * @param vs Visible state
 	 * @return state changed
 	 */
@@ -87,5 +83,15 @@ public abstract class StateControl {
 	 * Trigger an internal state change, which may in turn affect the object's appearance
 	 * @param o
 	 */
-	public abstract void trigger(Object o);
+	public abstract void trigger(Object o, boolean notify);
+
+	public abstract String getType();
+	
+	public int getVisibleState() {
+	    return visibleState;
+	}
+	
+    public String getVisibleStateString() {
+        return "" + visibleState;
+    }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import tabletop2.gui.LogMessage;
@@ -46,6 +47,10 @@ public class Inventory {
     
     public HashSet<Spatial> allItems() {
     	return new HashSet<Spatial>(items);
+    }
+    
+    public HashMap<Spatial, StateControl> allStateControls() {
+        return new HashMap<Spatial, StateControl>(stateControls);
     }
     
     public MyRigidBodyControl addItem(Spatial item, float mass) {
@@ -98,7 +103,14 @@ public class Inventory {
         
         for (StateControl c : stateControls.values()) {
             c.resolveDownstreamIds(idMap);
-            c.triggerDownstreams();
+            c.triggerDownstreams(false);
+        }
+        
+        // control init events
+        for (Map.Entry<Spatial, StateControl> entry : stateControls.entrySet()) {
+            for (InventoryListener l : listeners) {
+                l.objectControlInitialized(entry.getKey(), entry.getValue());
+            }
         }
     }
 
@@ -114,8 +126,7 @@ public class Inventory {
     
     public void notifyStateChanged(StateControl c) {
     	for (InventoryListener l : listeners) {
-    		Spatial s = c.getSpatial();
-    		l.objectTriggered(getItem(s), s.getName(), c.getVisibleState());
+    		l.objectControlTriggered(c.getSpatial(), c);
     	}
     }
     
