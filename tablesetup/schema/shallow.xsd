@@ -42,6 +42,7 @@
     <complexType name="varType">
         <attribute name="name" type="tt:idType" use="required"/>
         <attribute name="value" type="string" use="required"/>
+        <attribute name="derived" type="boolean" use="optional" default="false"/>
     </complexType>
 
     <complexType name="defType">

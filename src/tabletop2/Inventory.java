@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Logger;
 
+import tabletop2.gui.LogMessage;
 import tabletop2.util.MyRigidBodyControl;
 import tabletop2.util.MySliderJoint;
 
@@ -26,7 +28,9 @@ import com.jme3.scene.Spatial;
  * @author dwhuang
  */
 public class Inventory {
-	private Node rootNode;
+    private static final Logger logger = Logger.getLogger(Table.class.getName());
+
+    private Node rootNode;
 	private BulletAppState bulletAppState;
 	
     private HashSet<Spatial> items = new HashSet<Spatial>();
@@ -67,15 +71,37 @@ public class Inventory {
     	
     	return rbc;
     }
-    
+
     public void registerStateControl(Spatial s, StateControl c) {
-    	Spatial item = getItem(s);
-    	if (item == null) {
-    		throw new IllegalArgumentException("Spatial " + s + " is not a part of any known item");
-    	}
     	stateControls.put(s, c);
     }
-    
+
+    /**
+     * First call registerStateControl to add all state-controlled object, and then
+     * call this function to initialize all the added objects.
+     */
+    public void initStateControls() {
+        HashMap<Spatial, StateControl> stateControlsClone = new HashMap<>(stateControls);
+        HashMap<String, Spatial> idMap = new HashMap<>();
+        stateControls.clear();
+        for (Spatial s : stateControlsClone.keySet()) {
+            // check that each spatial belongs to an item
+            Spatial item = getItem(s);
+            if (item == null) {
+                LogMessage.warn("State-controlled spatial " + s + " is not a part of any known item (removed)", logger);
+                continue;
+            }
+            stateControls.put(s, stateControlsClone.get(s));
+            // collect all state control ids
+            idMap.put(s.getName(), s);
+        }
+        
+        for (StateControl c : stateControls.values()) {
+            c.resolveDownstreamIds(idMap);
+            c.triggerDownstreams();
+        }
+    }
+
     public StateControl getDeepestStateControlFromSpatial(Spatial s) {
     	while (s != null) {
     		if (stateControls.containsKey(s)) {
@@ -96,16 +122,6 @@ public class Inventory {
 //    public String getAssemblyName(Node node) {
 //    	return assemblyNames.get(node);
 //    }
-
-    public void resolveStateControlDownstreamIds() {
-    	HashMap<String, Spatial> idMap = new HashMap<>();
-    	for (Spatial s : stateControls.keySet()) {
-    		idMap.put(s.getName(), s);
-    	}
-    	for (StateControl c : stateControls.values()) {
-    		c.resolveDownstreamIds(idMap);
-    	}
-	}
 
 	public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
     	if (!items.contains(item1)) {
@@ -131,20 +147,20 @@ public class Inventory {
     	}
     	if (!items.contains(item2)) {
     		throw new IllegalArgumentException(item2 + " does not exist in the inventory");
-    	}    	
+    	}
     	MyRigidBodyControl c1 = item1.getControl(MyRigidBodyControl.class);
     	MyRigidBodyControl c2 = item2.getControl(MyRigidBodyControl.class);
     	if (refPt1 == null) {
-    		refPt1 = new Vector3f();    		
+    		refPt1 = new Vector3f();
     	}
     	if (refPt2 == null) {
-    		refPt2 = new Vector3f();    		
+    		refPt2 = new Vector3f();
     	}
     	if (rot1 == null) {
-    		rot1 = new Matrix3f();    		
+    		rot1 = new Matrix3f();
     	}
     	if (rot2 == null) {
-    		rot2 = new Matrix3f();    		
+    		rot2 = new Matrix3f();
     	}
     	
     	MySliderJoint joint = new MySliderJoint(c1, c2, refPt1, refPt2, rot1, rot2, false);
@@ -156,7 +172,7 @@ public class Inventory {
     	return joint;
     }
     
-//    public FunctionalJoint addFunctionalJoint(Spatial item1, Spatial item2, Node node1, Node node2, 
+//    public FunctionalJoint addFunctionalJoint(Spatial item1, Spatial item2, Node node1, Node node2,
 //    		FunctionalJointType type) {
 //    	if (!items.contains(item1)) {
 //    		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
@@ -170,7 +186,7 @@ public class Inventory {
 //    	getLocalToItemTransform(item2, node2).transformVector(refPt2, refPt2);
 //    	MyRigidBodyControl c1 = item1.getControl(MyRigidBodyControl.class);
 //    	MyRigidBodyControl c2 = item2.getControl(MyRigidBodyControl.class);
-//    	
+//
 //    	// create the physics joint
 //    	SixDofJoint joint = new SixDofJoint(c1, c2, refPt1, refPt2, false);
 //    	joint.setCollisionBetweenLinkedBodys(false);
@@ -180,7 +196,7 @@ public class Inventory {
 //    	joint.setLinearUpperLimit(Vector3f.ZERO);
 //        joints.add(joint);
 //        bulletAppState.getPhysicsSpace().add(joint);
-//        
+//
 //        // create the functional joint
 //        FunctionalJoint fj = new FunctionalJoint();
 //        fj.joint = joint;
@@ -189,24 +205,24 @@ public class Inventory {
 //        fj.node1 = node1;
 //        fj.node2 = node2;
 //        fj.type = type;
-//        
+//
 //        // record the functional joint
 //        functionalJoints.get(item1).put(node1, fj);
 //        functionalJoints.get(item2).put(node2, fj);
-//        
+//
 //        // wake up the connected items if needed
 //        updateItemInsomnia(item1);
-//        
+//
 //    	return fj;
 //    }
-//    
+//
 //    public FunctionalJoint removeFunctionalJoint(Node node1, Node node2) {
 //    	Spatial item1 = getItem(node1);
 //    	Spatial item2 = getItem(node2);
 //    	FunctionalJoint fj1 = getFunctionalJoint(item1, node1);
 //    	FunctionalJoint fj2 = getFunctionalJoint(item2, node2);
 //    	if (fj1 != fj2) {
-//    		throw new IllegalArgumentException("node " + node1.getName() + " and node " + node2.getName() 
+//    		throw new IllegalArgumentException("node " + node1.getName() + " and node " + node2.getName()
 //    				+ " do not have a common functional joint");
 //    	}
 //    	// remove the physics joint
@@ -220,10 +236,10 @@ public class Inventory {
 //        functionalJoints.get(item2).put(node2, null);
 //        // wake up both items if needed
 //        updateItemInsomnia(item1);
-//        updateItemInsomnia(item2);        
+//        updateItemInsomnia(item2);
 //        return fj1;
 //    }
-//    
+//
 //    public FunctionalJoint getFunctionalJoint(Spatial item, Node node) {
 //    	return functionalJoints.get(item).get(node);
 //    }
@@ -297,12 +313,12 @@ public class Inventory {
 					return;
 				}
 				GhostControl gc = s.getControl(GhostControl.class);
-				if (gc != null) {					
+				if (gc != null) {
 					bulletAppState.getPhysicsSpace().remove(gc);
 					s.removeControl(gc);
 				}
 //				assemblyNames.remove((Node) s);
-			}        	
+			}
         });
         
         // remove physics control from the item
@@ -348,7 +364,7 @@ public class Inventory {
 //    public Transform getLocalToItemTransform(Spatial item, Node node) {
 //    	Transform tr = new Transform();
 //    	tr.set(node.getLocalTransform());
-//    	
+//
 //    	Node tmp = node;
 //    	while (tmp.getParent() != item) {
 //    		tmp = tmp.getParent();
@@ -394,7 +410,7 @@ public class Inventory {
     	public Spatial spatial;
     	public Transform trans;
     	public float mass;
-    	public boolean isKinematic; 
+    	public boolean isKinematic;
     }
     
 	public enum JointType {
@@ -421,11 +437,11 @@ public class Inventory {
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
     	private HashSet<StateControlInfo> stateControlInfoSet = new HashSet<>();
-//    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials 
+//    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials
 //    			= new HashMap<PhysicsJoint, ArrayList<Spatial>>();
     	
     	private Memento() {
-    	}    	
+    	}
     }
     
     public Memento saveToMemento() {
@@ -483,7 +499,7 @@ public class Inventory {
     		if (info.type == JointType.Slider) {
     			Matrix3f rotA = (Matrix3f) info.param.get("rotA");
     			Matrix3f rotB = (Matrix3f) info.param.get("rotB");
-        		MySliderJoint joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2, 
+        		MySliderJoint joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2,
         				rotA, rotB, 0, 0, false);
         		joint.loadParam(info.param);
     		} else {

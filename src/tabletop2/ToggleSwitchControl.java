@@ -9,7 +9,7 @@ public class ToggleSwitchControl extends StateControl {
 	static final Quaternion[] rot = new Quaternion[2];
 	int numStates;
 	
-	public ToggleSwitchControl(Inventory inv, Spatial spatial, float angle, boolean leftPressed, 
+	public ToggleSwitchControl(Inventory inv, Spatial spatial, float angle, boolean leftPressed,
 			int numStates, int initState) {
 		super(inv, spatial);
 		rot[0] = new Quaternion();

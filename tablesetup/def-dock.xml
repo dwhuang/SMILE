@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <def name="dock">
+        <!-- ========== parameters ========== -->
+        <var name="id" value="dock"/>
+        <var name="location" value="(0, 0, $zspan/2$)" derived="true"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="500"/>
+        <var name="xspan" value="4.2"/>
+        <var name="yspan" value="3.45"/>
+        <var name="zspan" value="2.3"/>
+        <var name="color" value="gray"/>
+        <var name="handleColor" value="blue"/>
+        <var name="initState0" value="0"/>
+        <var name="initState1" value="0"/>
+        <var name="initState2" value="2"/>
+        <var name="initState3" value="0"/>
+        <!-- ========== constants ========== -->
+        <!--<var name="xthickness" value="0.3"/>-->
+        <!--<var name="ythickness" value="0.15"/>-->
+        <!--<var name="zthickness" value="0.1"/>-->
+        <var name="slotX" value="-0.7875"/>
+        <var name="slotXspan" value="1.375"/>
+        <var name="slotYspan" value="0.625"/>
+        <var name="slotZspan" value="0.648"/>
+        <var name="slotThickness" value="0.087"/> <!-- max cartridge insertable size = 1.2 * 0.45 * 0.56-->
+        <var name="slotToPanelXspan" value="0.5"/>
+        <var name="panelXspan" value="1.7"/>
+        <var name="panelZspan" value="0.15"/>
+        <var name="abovePanelZspan" value="0.5"/>
+        <var name="controlYspan" value="0.45"/>
+        <var name="controlZspan" value="0.05"/>
+        <var name="panelToSwitchXspan" value="0.03"/>
+        <var name="frontYmargin" value="0.15"/>
+        <var name="frontZmargin" value="0.1"/>
+        <var name="frontThickness" value="0.3"/>
+        <var name="handleXspan" value="0.25"/>
+        <var name="handleYspan" value="0.6"/>
+        <var name="handleZspan" value="0.3"/>
+        <var name="handleZ" value="1.075"/>
+        <!-- ========== internal ========== -->
+        <var name="baseLeftXspan" value="$slotX - (-xspan / 2) - slotXspan / 2$" derived="true"/>
+        <var name="baseRightXspan" value="$(xspan / 2) - slotX - slotXspan / 2$" derived="true"/>
+        <var name="baseZspan" value="$zspan - panelZspan - controlZspan$" derived="true"/>
+        <var name="slotOuterWallYspan" value="$(yspan - slotYspan * 4) * 0.25$" derived="true"/>
+        <var name="slotInnerWallYspan" value="$(yspan - slotYspan * 4) * 0.5 / (4 - 1)$" derived="true"/>
+        <var name="controlXspan" value="$panelXspan - panelToSwitchXspan - 0.15$" derived="true"/>
+        <!-- ============================== -->
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <composite id="body" location="(0, 0, $-controlZspan / 2 - panelZspan / 2$)">
+                <block id="baseLeft" xspan="$baseLeftXspan$" yspan="$yspan$" zspan="$baseZspan$" color="$color$"
+                    location="($-xspan / 2 + baseLeftXspan / 2$, 0, 0)"/>
+                <block id="baseRight" xspan="$baseRightXspan$" yspan="$yspan$" zspan="$baseZspan$" color="$color$"
+                    location="($xspan / 2 - baseRightXspan / 2$, 0, 0)"/>
+                <composite id="slots" location="($slotX$, 0, 0)">
+                    <block id="slotNearOuterWall" xspan="$slotXspan$" yspan="$slotOuterWallYspan$" zspan="$baseZspan$" color="$color$"
+                        location="(0, $-yspan / 2 + slotOuterWallYspan / 2$, 0)"/>
+                    <block id="slotFarOuterWall" xspan="$slotXspan$" yspan="$slotOuterWallYspan$" zspan="$baseZspan$" color="$color$"
+                        location="(0, $yspan / 2 - slotOuterWallYspan / 2$, 0)"/>
+                    <block id="slotInnerWall1" xspan="$slotXspan$" yspan="$slotInnerWallYspan$" zspan="$baseZspan$" color="$color$"
+                        location="(0, $-yspan / 2 + slotOuterWallYspan + slotYspan + slotInnerWallYspan * 0.5$, 0)"/>
+                    <block id="slotInnerWall2" xspan="$slotXspan$" yspan="$slotInnerWallYspan$" zspan="$baseZspan$" color="$color$"
+                        location="(0, $-yspan / 2 + slotOuterWallYspan + slotYspan * 2 + slotInnerWallYspan * 1.5$, 0)"/>
+                    <block id="slotInnerWall3" xspan="$slotXspan$" yspan="$slotInnerWallYspan$" zspan="$baseZspan$" color="$color$"
+                        location="(0, $-yspan / 2 + slotOuterWallYspan + slotYspan * 3 + slotInnerWallYspan * 2.5$, 0)"/>
+                    <composite id="slotCases" location="(0, 0, $baseZspan / 2 - slotZspan / 2 - slotThickness / 4$)">
+                        <box id="slot0" xspan="$slotXspan$" yspan="$slotYspan$" zspan="$slotZspan + slotThickness$" thickness="0.087" color="darkgray"
+                            location="(0, $-yspan / 2 + slotOuterWallYspan + slotYspan * 0.5$, 0)"/>
+                        <box id="slot1" xspan="$slotXspan$" yspan="$slotYspan$" zspan="$slotZspan + slotThickness$" thickness="0.087" color="darkgray"
+                            location="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan + slotYspan * 1.5$, 0)"/>
+                        <box id="slot2" xspan="$slotXspan$" yspan="$slotYspan$" zspan="$slotZspan + slotThickness$" thickness="0.087" color="darkgray"
+                            location="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan * 2 + slotYspan * 2.5$, 0)"/>
+                        <box id="slot3" xspan="$slotXspan$" yspan="$slotYspan$" zspan="$slotZspan + slotThickness$" thickness="0.087" color="darkgray"
+                            location="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan * 3 + slotYspan * 3.5$, 0)"/>
+                    </composite>
+                </composite>
+                <composite id="panel" location="($xspan / 2 - panelXspan / 2$, 0, $baseZspan / 2 + panelZspan / 2$)">
+                    <block id="panelBase" xspan="$panelXspan$" yspan="$yspan$" zspan="$panelZspan$" color="$color$" location="(0, 0, 0)"/>
+                    <composite id="controls" location="($-panelXspan / 2 + controlXspan / 2 + panelToSwitchXspan$, 0, $panelZspan / 2 + controlZspan / 2$)">
+                        <instance def="diskControl">
+                            <var name="id" value="diskControl0"/>
+                            <var name="xspan" value="$controlXspan$"/>
+                            <var name="yspan" value="$controlYspan$"/>
+                            <var name="zspan" value="$controlZspan$"/>
+                            <var name="initState" value="$initState0$"/>
+                            <var name="location" value="(0, $-yspan / 2 + slotOuterWallYspan + slotYspan * 0.5$, 0)"/>
+                        </instance>
+                        <instance def="diskControl">
+                            <var name="id" value="diskControl1"/>
+                            <var name="xspan" value="$controlXspan$"/>
+                            <var name="yspan" value="$controlYspan$"/>
+                            <var name="zspan" value="$controlZspan$"/>
+                            <var name="initState" value="$initState1$"/>
+                            <var name="location" value="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan + slotYspan * 1.5$, 0)"/>
+                        </instance>
+                        <instance def="diskControl">
+                            <var name="id" value="diskControl2"/>
+                            <var name="xspan" value="$controlXspan$"/>
+                            <var name="yspan" value="$controlYspan$"/>
+                            <var name="zspan" value="$controlZspan$"/>
+                            <var name="initState" value="$initState2$"/>
+                            <var name="location" value="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan * 2 + slotYspan * 2.5$, 0)"/>
+                        </instance>
+                        <instance def="diskControl">
+                            <var name="id" value="diskControl3"/>
+                            <var name="xspan" value="$controlXspan$"/>
+                            <var name="yspan" value="$controlYspan$"/>
+                            <var name="zspan" value="$controlZspan$"/>
+                            <var name="initState" value="$initState3$"/>
+                            <var name="location" value="(0, $-yspan / 2 + slotOuterWallYspan + slotInnerWallYspan * 3+ slotYspan * 3.5$, 0)"/>
+                        </instance>
+                    </composite>
+                </composite>
+            </composite>
+            <composite id="front" location="($xspan / 2 + frontThickness / 2$, 0, $abovePanelZspan / 2$)">
+                <block id="plate" xspan="$frontThickness$" yspan="$yspan + frontYmargin * 2$" zspan="$zspan + abovePanelZspan + frontZmargin * 2$"
+                    color="$color$" location="(0, 0, 0)"/>
+                <block id="handle" xspan="$handleXspan$" yspan="$handleYspan$" zspan="$handleZspan$" color="$handleColor$"
+                    location="($frontThickness / 2 + handleXspan / 2$, 0, $handleZ$)"/>
+            </composite>
+        </composite>
+    </def>
+    <def name="diskControl">
+        <!-- ========== parameters ========== -->
+        <var name="id" value="diskControl"/>
+        <var name="location" value="(0, 0, 0)"/>
+        <var name="xspan" value="1.15"/>
+        <var name="yspan" value="0.45"/>
+        <var name="zspan" value="0.05"/>
+        <var name="initState" value="0"/>
+        <!-- ========== constants ========== -->
+        <var name="switchXmargin" value="0.03"/>
+        <var name="switchYmargin" value="0.07"/>
+        <var name="switchXspan" value="1.1"/>
+        <!-- ========== internal ========== -->
+        <var name="switchBaseXspan" value="$switchXspan + switchXmargin * 2$" derived="true"/>
+        <var name="indicatorRadius" value="$yspan / 3$" derived="true"/>
+        <var name="switchToIndicatorXspan" value="$xspan - switchXspan - switchXmargin * 2 - yspan / 3 * 2$" derived="true"/>
+        <!-- ============================== -->
+        <composite id="$id$" location="$location$">
+            <composite location="($-xspan / 2 + switchBaseXspan / 2$, 0, 0)">
+                <block id="$id$SwitchBase" xspan="$switchBaseXspan$" yspan="$yspan$" zspan="$zspan$" color="white" location="(0, 0, 0)"/>
+                <toggleSwitch id="$id$Switch" location="(0, 0, -0.12)" xspan="$switchXspan$" yspan="$yspan - switchYmargin * 2$" zspan="0.15"
+                    numStates="4" initState="$initState$">
+                    <downstream id="$id$Indicator"/>
+                </toggleSwitch>
+            </composite>
+            <composite location="($xspan / 2 - indicatorRadius$, 0, 0)">
+                <cylinder id="$id$IndicatorBase" radius="$indicatorRadius$" yspan="$zspan$" color="white" rotation="(90, 0, 0)" location="(0, 0, 0)"/>
+                <indicatorSet id="$id$Indicator" xspan="$indicatorRadius * 1.5$" numLights="2" location="(0, 0, $zspan / 2$)">
+                    <state>
+                        <light id="1" color="green"/>
+                    </state>
+                    <state>
+                    </state>
+                    <state>
+                        <light id="0" color="red"/>
+                    </state>
+                    <state>
+                    </state>
+                </indicatorSet>
+            </composite>
+        </composite>
+    </def>
+</tabletop>

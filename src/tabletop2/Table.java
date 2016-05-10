@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.JOptionPane;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -39,6 +38,7 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import tabletop2.gui.LogMessage;
 import tabletop2.util.MyRigidBodyControl;
 import tabletop2.util.MySliderJoint;
 
@@ -86,6 +86,7 @@ public class Table implements ActionListener {
 	private HashSet<String> xmlFnameLoaded = new HashSet<>();
 	private HashMap<String, Element> defs = new HashMap<>();
 	private HashMap<String, HashMap<String, String>> defVars = new HashMap<>();
+    private HashMap<String, HashMap<String, Boolean>> defVarIsDerived = new HashMap<>();
 
 	public Table(String name, MainApp app, Node robotLocationNode) {
 		this.name = name;
@@ -164,9 +165,7 @@ public class Table implements ActionListener {
 		try {
 			schema = sf.newSchema(new File(deep ? SCHEMA_DEEP_FNAME : SCHEMA_SHALLOW_FNAME));
 		} catch (SAXException e1) {
-			String msg = "schema error: " + SCHEMA_DEEP_FNAME;
-			logger.log(Level.WARNING, msg, e1);
-			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+			LogMessage.warn("schema error: " + SCHEMA_DEEP_FNAME, logger, e1);
 			return doc;
 		}
 		// validate
@@ -175,9 +174,7 @@ public class Table implements ActionListener {
 		try {
 			validator.validate(new DOMSource(doc), res);
 		} catch (SAXException | IOException e1) {
-			String msg = "schema validation error";
-			logger.log(Level.WARNING, msg, e1);
-			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+		    LogMessage.warn("schema validation error", logger, e1);
 			return doc;
 		}
 		return (Document) res.getNode();
@@ -197,9 +194,7 @@ public class Table implements ActionListener {
 		try {
 			db = dbf.newDocumentBuilder();
 		} catch (ParserConfigurationException e1) {
-			String msg = "parse error: " + fname;
-			logger.log(Level.WARNING, msg, e1);
-			showMessageDialog(msg + ": " + e1.getMessage(), 400);
+		    LogMessage.warn("parse error: " + fname, logger, e1);
 			return null;
 		}
 		db.setErrorHandler(new ErrorHandler() {
@@ -220,19 +215,13 @@ public class Table implements ActionListener {
 		try {
 			doc = db.parse(new File(fname));
 		} catch (SAXException e) {
-			String msg = "cannot parse " + fname;
-			logger.log(Level.WARNING, msg, e);
-			showMessageDialog(msg + ": " + e.getMessage(), 400);
+		    LogMessage.warn("cannot parse " + fname, logger, e);
 			return null;
 		} catch (IOException e) {
-			String msg = "cannot read from " + fname;
-			logger.log(Level.WARNING, msg, e);
-			showMessageDialog(msg + ": " + e.getMessage(), 400);
+		    LogMessage.warn("cannot read from " + fname, logger, e);
 			return null;
 		} catch (RuntimeException e) {
-			String msg = "an error occurs in " + fname;
-			logger.log(Level.WARNING, msg, e);
-			showMessageDialog(msg + ": " + e.getMessage(), 400);
+		    LogMessage.warn("an error occurs in " + fname, logger, e);
 			return null;
 		}
 		doc = validateXmlTree(doc, false);
@@ -318,26 +307,27 @@ public class Table implements ActionListener {
 	                && child.getNodeName().equals("def")) {
     	        String name = ((Element) child).getAttribute("name");
     	        if (defs.containsKey(name)) {
-    	            String msg = "Duplicated definition detected: " + name + " (overwrite)";
-    	            logger.log(Level.WARNING, msg);
-    	            showMessageDialog(msg, 400);
+    	            LogMessage.warn("Duplicated definition detected: " + name + " (overwrite)", logger);
     	            defs.remove(name);
     	            defVars.remove(name);
     	        }
     	        // get default variable values in def
                 HashMap<String, String> vars = new HashMap<>();
+                HashMap<String, Boolean> varIsDerived = new HashMap<>();
     	        for (org.w3c.dom.Node defChild = child.getFirstChild(); defChild != null;) {
     	            org.w3c.dom.Node nextDefChild = defChild.getNextSibling();
     	            if (defChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
     	                    && defChild.getNodeName().equals("var")) {
-    	                vars.put(((Element) defChild).getAttribute("name"),
-    	                        ((Element) defChild).getAttribute("value"));
+    	                Element e = (Element) defChild;
+    	                vars.put(e.getAttribute("name"), e.getAttribute("value"));
+    	                varIsDerived.put(e.getAttribute("name"), Boolean.parseBoolean(e.getAttribute("derived")));
     	                child.removeChild(defChild);
     	            }
     	            defChild = nextDefChild;
     	        }
     	        defs.put(name, (Element) child);
                 defVars.put(name, vars);
+                defVarIsDerived.put(name, varIsDerived);
     	        root.removeChild(child);
 	        }
 	        child = nextChild;
@@ -358,9 +348,7 @@ public class Table implements ActionListener {
         if (root.getNodeName().equals("instance")) {
             performInstanceExpansion(doc, root, vars);
         } else if (root.getNodeName().equals("def")) {
-            String msg = "Element &lt;def&gt; is not allowed here (removed)";
-            logger.log(Level.WARNING, msg);
-            showMessageDialog(msg, 400);
+            LogMessage.warn("Element &lt;def&gt; is not allowed here (removed)", logger);
             org.w3c.dom.Node parent = root.getParentNode();
             if (parent.getNodeType() != org.w3c.dom.Node.DOCUMENT_NODE) {
                 parent.removeChild(root);
@@ -381,43 +369,59 @@ public class Table implements ActionListener {
         String defName = elm.getAttribute("def");
         DocumentFragment frag = doc.createDocumentFragment();
         if (!defs.containsKey(defName)) {
-            String msg = "Definition not found: " + defName + " (ignored)";
-            logger.log(Level.WARNING, msg);
-            showMessageDialog(msg, 400);
+            LogMessage.warn("Definition not found: " + defName + " (ignored)", logger);
         } else {
+            // make a copy of variables
+            vars = new HashMap<>(vars);
             // make a copy of def
             Element def = defs.get(defName);
             for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
                     defChild = defChild.getNextSibling()) {
                 frag.appendChild(defChild.cloneNode(true));
             }
-            // substitute for variable definitions under <instance>
+            // get <var> elements under <instance>
+            HashMap<String, String> myVars = new HashMap<>();
+            HashMap<String, Boolean> myVarIsDerived = new HashMap<>();
             for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
                 if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
                         && child.getNodeName().equals("var")) {
-                    performVariableSubst((Element) child, vars);
+                    Element e = (Element) child;
+                    myVars.put(e.getAttribute("name"), performVariableSubst(e.getAttribute("value"), vars));
+                    myVarIsDerived.put(e.getAttribute("name"), Boolean.parseBoolean(e.getAttribute("derived")));
                 }
             }
-            // add <var> under <def> if the same name does not exist
+            // merge <var> elements under <instance> and <def>. Variables under <instance> take priority.
             Map<String, String> defv = defVars.get(defName);
+            Map<String, Boolean> defvd = defVarIsDerived.get(defName);
             for (String k : defv.keySet()) {
-                if (!vars.containsKey(k)) {
-                    vars.put(k, defv.get(k));
+                if (!myVars.containsKey(k)) {
+                    myVars.put(k, defv.get(k));
+                    myVarIsDerived.put(k, defvd.get(k));
                 }
             }
-            // get variable values
-            for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
-                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
-                        && child.getNodeName().equals("var")) {
-                    vars.put(((Element) child).getAttribute("name"),
-                            ((Element) child).getAttribute("value"));
+            // merge non-derived variables with the enclosing scope
+            for (String k : myVars.keySet()) {
+                if (!myVarIsDerived.get(k)) {
+                    vars.put(k, myVars.get(k));
+                }
+            }
+            // process derived variables
+            for (String k : myVars.keySet()) {
+                if (myVarIsDerived.containsKey(k)) {
+                    myVars.put(k, performVariableSubst(myVars.get(k), vars));
+                }
+            }
+            // merge derived variables with the enclosing scope
+            for (String k : myVars.keySet()) {
+                if (myVarIsDerived.containsKey(k)) {
+                    vars.put(k, myVars.get(k));
                 }
             }
             // recursively process those new cloned nodes in frag
             for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;
                     dfChild = dfChild.getNextSibling()) {
                 if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    processInstanceElements(doc, (Element) dfChild, new HashMap<>(vars));
+                    processInstanceElements(doc, (Element) dfChild, vars);
                 }
             }
         }
@@ -425,31 +429,39 @@ public class Table implements ActionListener {
         elm.getParentNode().removeChild(elm);
     }
     
+    private String performVariableSubst(String str, Map<String, String> vars) {
+        Pattern pat = Pattern.compile("\\$(.*?)\\$");
+        Matcher mat = pat.matcher(str);
+        //System.out.println("process " + attr.getNodeValue());
+        StringBuffer buf = new StringBuffer();
+        while (mat.find()) {
+            try {
+                float ans = performVarArith(new ArithState(mat.group(1)), vars);
+                // if ans is very close to an integer, cast it to int type
+                int ansInt = Math.round(ans);
+                if (Math.abs(ans - ansInt) < 0.000001) {
+                    mat.appendReplacement(buf, "" + ansInt);
+                } else {
+                    mat.appendReplacement(buf, "" + ans);
+                }
+            } catch (RuntimeException e) {
+                if (vars.containsKey(mat.group(1))) {
+                    mat.appendReplacement(buf, vars.get(mat.group(1)));
+                } else {
+                    LogMessage.warn("invalid expression: " + mat.group(1), logger, e);
+                    mat.appendReplacement(buf, mat.group());
+                }
+            }
+        }
+        mat.appendTail(buf);
+        return buf.toString();
+    }
+    
     private void performVariableSubst(Element elm, Map<String, String> vars) {
         NamedNodeMap attrs = elm.getAttributes();
         for (int i = 0; i < attrs.getLength(); ++i) {
             org.w3c.dom.Node attr = attrs.item(i);
-            Pattern pat = Pattern.compile("\\$(.*?)\\$");
-            Matcher mat = pat.matcher(attr.getNodeValue());
-            //System.out.println("process " + attr.getNodeValue());
-            StringBuffer buf = new StringBuffer();
-            while (mat.find()) {
-                try {
-                    float ans = performVarArith(new ArithState(mat.group(1)), vars);
-                    mat.appendReplacement(buf, "" + ans);
-                } catch (RuntimeException e) {
-                    if (vars.containsKey(mat.group(1))) {
-                        mat.appendReplacement(buf, vars.get(mat.group(1)));
-                    } else {
-                        String msg = "invalid expression: " + mat.group(1);
-                        logger.log(Level.WARNING, msg, e);
-                        showMessageDialog(msg, 400);
-                        mat.appendReplacement(buf, mat.group());
-                    }
-                }
-            }
-            mat.appendTail(buf);
-            attr.setNodeValue(buf.toString());
+            attr.setNodeValue(performVariableSubst(attr.getNodeValue(), vars));
         }
     }
     
@@ -565,7 +577,8 @@ public class Table implements ActionListener {
         } catch (NumberFormatException e) {
             if (vars.containsKey(buf.toString())) {
                 //System.out.println("\tt ret3 " + vars.get(buf.toString()) + "; " + st);
-                return Float.parseFloat(vars.get(buf.toString()));
+                float res = Float.parseFloat(vars.get(buf.toString()));
+                return neg ? -res : res;
             }
             //System.out.println(e);
             throw e;
@@ -593,7 +606,11 @@ public class Table implements ActionListener {
 			} else if (elm.getNodeName().equals("custom")) {
 				processCustomElement(elm, true);
 			} else if (elm.getNodeName().equals("composite")) {
-				processCompositeElement(elm, true, null);
+				processCompositeElement(elm, true);
+            } else if (elm.getNodeName().equals("toggleSwitch")) {
+                processToggleSwitchElement(elm, true);
+            } else if (elm.getNodeName().equals("indicatorSet")) {
+                processIndicatorSetElement(elm, true);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
 			} else if (elm.getNodeName().equals("dock")) {
@@ -604,23 +621,9 @@ public class Table implements ActionListener {
 				logger.log(Level.WARNING, "skipping unknown element " + elm.getNodeName());
 			}
 		}
-		inventory.resolveStateControlDownstreamIds();
+		inventory.initStateControls();
 	}
 
-	private void showMessageDialog(String msg, int dialogWidth) {
-		JOptionPane.showMessageDialog(null, "<html><body width='" + dialogWidth + "'>" + msg + "</body></html>");
-	}
-
-//	private List<Element> getElementList(NodeList nodeList) {
-//		List<Element> ret = new LinkedList<>();
-//		for (int i = 0; i < nodeList.getLength(); ++i) {
-//			if (nodeList.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-//				ret.add((Element) nodeList.item(i));
-//			}
-//		}
-//		return ret;
-//	}
-	
 	private void makeTable() {
 		// make table
 		tableSpatial = factory.makeBigBlock(name, tableWidth, TABLE_HEIGHT, tableDepth, ColorRGBA.White, 4);
@@ -664,14 +667,16 @@ public class Table implements ActionListener {
 			} else if (childElm.getNodeName().equals("custom")) {
 				obj = processCustomElement(childElm, true);
 			} else if (childElm.getNodeName().equals("composite")) {
-				obj = processCompositeElement(childElm, true, null);
+				obj = processCompositeElement(childElm, true);
+            } else if (childElm.getNodeName().equals("toggleSwitch")) {
+                obj = processToggleSwitchElement(childElm, true);
+            } else if (childElm.getNodeName().equals("indicatorSet")) {
+                obj = processIndicatorSetElement(childElm, true);
 			}
 			if (obj != null) {
 				if (k >= 2) {
-					String msg = "sliderJoint " + e.getAttribute("id")
-							+ " contains more than two objects: " + obj.getName() + " (ignored)";
-					logger.log(Level.WARNING, msg);
-					showMessageDialog(msg, 400);
+					LogMessage.warn("sliderJoint " + e.getAttribute("id")
+							+ " contains more than two objects: " + obj.getName() + " (ignored)", logger);
 				} else {
 					objs[k] = obj;
 					++k;
@@ -870,12 +875,10 @@ public class Table implements ActionListener {
 		return s;
 	}
 
-	private Spatial processCompositeElement(Element elm, boolean isWhole,
-			Map<Spatial, StateControl> stateControlMap) {
+	private Spatial processCompositeElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
 		if (isWhole) {
 			id = getUniqueId(id);
-			stateControlMap = new HashMap<>();
 		}
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -903,11 +906,11 @@ public class Table implements ActionListener {
 			} else if (childElm.getNodeName().equals("custom")) {
 				node.attachChild(processCustomElement(childElm, false));
 			} else if (childElm.getNodeName().equals("composite")) {
-				node.attachChild(processCompositeElement(childElm, false, stateControlMap));
+				node.attachChild(processCompositeElement(childElm, false));
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
-				node.attachChild(processToggleSwitchElement(childElm, stateControlMap));
+				node.attachChild(processToggleSwitchElement(childElm, false));
 			} else if (childElm.getNodeName().equals("indicatorSet")) {
-				node.attachChild(processIndicatorSetElement(childElm, stateControlMap));
+				node.attachChild(processIndicatorSetElement(childElm, false));
 			} else {
 				logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
 			}
@@ -916,18 +919,13 @@ public class Table implements ActionListener {
 		if (isWhole) {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(node, mass);
-			// register state controls
-			for (Map.Entry<Spatial, StateControl> e : stateControlMap.entrySet()) {
-				inventory.registerStateControl(e.getKey(), e.getValue());
-			}
-
 			node.setUserData("obj_shape", "composite");
 		}
 
 		return node;
 	}
 
-	private Spatial processToggleSwitchElement(Element elm, Map<Spatial, StateControl> stateControlMap) {
+	private Spatial processToggleSwitchElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -975,13 +973,17 @@ public class Table implements ActionListener {
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-
-		stateControlMap.put(s, c);
+		inventory.registerStateControl(s, c);
+		
+		if (isWhole) {
+		    float mass = Float.parseFloat(elm.getAttribute("mass"));
+		    inventory.addItem(s, mass);
+		}
 
 		return s;
 	}
 
-	private Spatial processIndicatorSetElement(Element elm, Map<Spatial, StateControl> stateControlMap) {
+	private Spatial processIndicatorSetElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
 		Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
@@ -1046,8 +1048,12 @@ public class Table implements ActionListener {
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-
-		stateControlMap.put(s, c);
+        inventory.registerStateControl(s, c);
+        
+        if (isWhole) {
+            float mass = Float.parseFloat(elm.getAttribute("mass"));
+            inventory.addItem(s, mass);
+        }
 
 		return s;
 
@@ -1167,15 +1173,15 @@ public class Table implements ActionListener {
 		float xspan = Float.parseFloat(elm.getAttribute("xspan"));
 		float yspan = Float.parseFloat(elm.getAttribute("zspan"));
 		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
-		float xThickness = Float.parseFloat(elm.getAttribute("xthickness"));
-		float yThickness = Float.parseFloat(elm.getAttribute("zthickness"));
-		float zThickness = Float.parseFloat(elm.getAttribute("ythickness"));
-		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan"));
-		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan"));
-		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan"));
+		float xThickness = Float.parseFloat(elm.getAttribute("xthickness")); // 0.3
+		float yThickness = Float.parseFloat(elm.getAttribute("zthickness")); // 0.1
+		float zThickness = Float.parseFloat(elm.getAttribute("ythickness")); // 0.15
+		float handleXspan = Float.parseFloat(elm.getAttribute("handleXspan")); // 0.25
+		float handleYspan = Float.parseFloat(elm.getAttribute("handleZspan")); // 0.3
+		float handleZspan = Float.parseFloat(elm.getAttribute("handleYspan")); // 0.6
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
-		ColorRGBA caseColor = parseColor(elm.getAttribute("caseColor"));
-		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor"));
+		ColorRGBA caseColor = parseColor(elm.getAttribute("caseColor")); // darkgray
+		ColorRGBA handleColor = parseColor(elm.getAttribute("handleColor")); // blue
 		float mass = Float.parseFloat(elm.getAttribute("mass"));
 		float caseMass = Float.parseFloat(elm.getAttribute("caseMass"));
 		int[] switchStates = new int[NUM_MODULES];
@@ -1446,19 +1452,19 @@ public class Table implements ActionListener {
 		joint.setSoftnessOrthoAng(1);
 	}
 
-	private Vector3f parseVector3(String str) {
-		Pattern pattern = Pattern.compile("^\\s*\\((\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\s*,\\s*(\\-?\\d*(\\.\\d+)?)\\)\\s*$");
-		Matcher m = pattern.matcher(str);
-		if (m.find()) {
-			float x = Float.parseFloat(m.group(1));
-			float y = Float.parseFloat(m.group(5));
-			float z = -Float.parseFloat(m.group(3));
-			return new Vector3f(x, y, z);
-		}
-		throw new IllegalArgumentException("could not parse '" + str + "'");
-	}
-
-	private ColorRGBA parseColor(String str) {
+    private Vector3f parseVector3(String str) {
+        Pattern pattern = Pattern.compile("^\\s*\\(([\\d\\.\\-E]+)\\s*,\\s*([\\d\\.\\-E]+)\\s*,\\s*([\\d\\.\\-E]+)\\s*\\)\\s*$");
+        Matcher m = pattern.matcher(str);
+        if (m.find()) {
+            float x = Float.parseFloat(m.group(1));
+            float y = Float.parseFloat(m.group(3));
+            float z = -Float.parseFloat(m.group(2));
+            return new Vector3f(x, y, z);
+        }
+        throw new IllegalArgumentException("could not parse '" + str + "'");
+    }
+    
+    private ColorRGBA parseColor(String str) {
 		if (str.equals("black")) {
 			return ColorRGBA.Black;
 		} else if (str.equals("blue")) {

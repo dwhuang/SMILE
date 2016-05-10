@@ -22,11 +22,11 @@ public class IndicatorSetControl extends StateControl {
 			}
 		}
 		
-		this.lightStates = lightStates;		
+		this.lightStates = lightStates;
 		// sanity check
-		for (ColorRGBA[] colors : lightStates) {			
+		for (ColorRGBA[] colors : lightStates) {
 			if (colors.length != lights.size()) {
-				throw new IllegalArgumentException("lightStates does not have " 
+				throw new IllegalArgumentException("lightStates does not have "
 						+ lights.size() + " elements: " + colors.length);
 			}
 		}
@@ -52,7 +52,7 @@ public class IndicatorSetControl extends StateControl {
 					((Node) spatial).attachChild(light);
 					// change light color
 					Material mat = light.getMaterial();
-			        mat.setColor("Ambient", ls[i].mult(0.8f));      
+			        mat.setColor("Ambient", ls[i].mult(0.8f));
 			        mat.setColor("Diffuse", ls[i]);
 				}
 			}
@@ -66,6 +66,7 @@ public class IndicatorSetControl extends StateControl {
 		if (o instanceof StateControl) {
 			StateControl c = (StateControl) o;
 			setState(c.getState(), true);
+            triggerDownstreams();
 		}
 	}
 }
