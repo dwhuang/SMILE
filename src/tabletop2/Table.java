@@ -89,6 +89,8 @@ public class Table implements ActionListener {
 	private HashMap<String, Element> defs = new HashMap<>();
 	private HashMap<String, HashMap<String, String>> defVars = new HashMap<>();
     private HashMap<String, HashMap<String, Boolean>> defVarIsDerived = new HashMap<>();
+    
+    private boolean shiftKey = false;
 
 	public Table(String name, MainApp app, Node robotLocationNode) {
 		this.name = name;
@@ -1396,6 +1398,8 @@ public class Table implements ActionListener {
         inputManager.addMapping(name + "MakeStack", new KeyTrigger(KeyInput.KEY_N));
         inputManager.addMapping(name + "ClearTable", new KeyTrigger(KeyInput.KEY_C));
 
+        inputManager.addListener(this, "shiftKey");
+        
         inputManager.addListener(this, name + "MakeBlock");
         inputManager.addListener(this, name + "MakeStack");
         inputManager.addListener(this, name + "ClearTable");
@@ -1406,7 +1410,9 @@ public class Table implements ActionListener {
 		if (!enabled) {
 			return;
 		}
-    	if (eName.equals(name + "MakeBlock")) {
+		if (eName.equals("shiftKey")) {
+		    shiftKey  = isPressed;
+		} else if (eName.equals(name + "MakeBlock")) {
             if (!isPressed) {
             	dropRandomBlock();
             }
@@ -1415,7 +1421,7 @@ public class Table implements ActionListener {
             	dropRandomStackOfBlocks(5);
             }
         } else if (eName.equals(name + "ClearTable")) {
-        	if (!isPressed) {
+        	if (!isPressed && !shiftKey) {
         		inventory.removeAllFreeItems();
         	}
         }

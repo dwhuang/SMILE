@@ -78,7 +78,7 @@ public class Robot implements AnalogListener, ActionListener {
     private Camera headCamcorder;
     private ImageCapturer headImageCapturer;
     private int screenPicIndex = 0;
-    private Material screenDefault;    
+    private Material screenDefault;
     private MatlabAgent matlabAgent;
     private boolean isHidden = false;
     
@@ -107,7 +107,7 @@ public class Robot implements AnalogListener, ActionListener {
 //        new RobotJointState(0, -3.059f, 3.059f, -1),
 //        new RobotJointState(0, -1.571f, 2.094f, 1),
 //        new RobotJointState(0, -3.059f, 3.059f, -1)
-    };    
+    };
     private RobotJointState[] leftJointStates = new RobotJointState[] {
         new RobotJointState(0.25f, -1.7f, 1.7f, 1),
         new RobotJointState(0, -2.147f, 1.047f, 1),
@@ -125,10 +125,16 @@ public class Robot implements AnalogListener, ActionListener {
     
     private boolean demoCue = false;
     private float timeSinceLastHeadVision = 0;
-    private ArrayList<PhysicsControl> phyList = new ArrayList<>(); 
+    private ArrayList<PhysicsControl> phyList = new ArrayList<>(); // all physics control of the robot
+    
+    private boolean rageClear = false;
+    private float rageClearElapsed = 0;
+    private boolean rageClearBeforeIsHidden;
+    private float[] rageClearBeforeLeftAngles = new float[7];
+    private float[] rageClearBeforeRightAngles = new float[7];
     
     private transient Vector3f vec = new Vector3f();
-    private transient Quaternion quat = new Quaternion();    
+    private transient Quaternion quat = new Quaternion();
     
     public Robot(String name, MainApp app, Node robotLocationNode) {
     	this.name = name;
@@ -144,9 +150,9 @@ public class Robot implements AnalogListener, ActionListener {
         // the camera attached near the top of the head screen is used
         // to take pictures, which are sent to the control agent
         headCamcorder = new Camera(HEAD_CAM_RES_WIDTH, HEAD_CAM_RES_HEIGHT);
-        headCamcorder.setFrustumPerspective(HEAD_CAM_FOV, 
+        headCamcorder.setFrustumPerspective(HEAD_CAM_FOV,
                 HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
-        headImageCapturer = new ImageCapturer(headCamcorder, renderManager, 
+        headImageCapturer = new ImageCapturer(headCamcorder, renderManager,
                 headCamNode, this.rootNode);
         headImageCapturer.syncCamera();
         
@@ -154,12 +160,12 @@ public class Robot implements AnalogListener, ActionListener {
         showNextFacialExpression();
         
         // control agent
-        matlabAgent = new MatlabAgent(leftJointStates, rightJointStates, 
+        matlabAgent = new MatlabAgent(leftJointStates, rightJointStates,
                 leftGripper, rightGripper, locTrackers, rootNode, factory);
     }
     
     public BufferedImage getVisualImage() {
-    	return headImageCapturer.takePicture();    	
+    	return headImageCapturer.takePicture();
     }
     
     public void stop() {
@@ -206,7 +212,7 @@ public class Robot implements AnalogListener, ActionListener {
         node = attachLink(" H0", node, headJointStates[0], "head0");
 
         // head camera position
-        headCamNode = attachSpatialCenter(name + " head camera", node, 0.12839f, 0.06368f + 0.2f, 0, 
+        headCamNode = attachSpatialCenter(name + " head camera", node, 0.12839f, 0.06368f + 0.2f, 0,
         		1.92f - 1.57f + FastMath.PI / 5, 1.57f, 0);
         // NOTE cheat a little here to get a better view of the table,
         // by moving the real camera position up by 0.2f and rotating downward by pi/6
@@ -219,7 +225,7 @@ public class Robot implements AnalogListener, ActionListener {
         screenDefault = screen.getMaterial();
 
         // right arm
-        node = attachSpatialCenter(name + " right limb", base, 
+        node = attachSpatialCenter(name + " right limb", base,
                 0.024645f, 0.118588f, 0.219645f,
                 0, -0.7845f, 0);
         node = attachLimb(name + " right", node, rightJointStates);
@@ -230,7 +236,7 @@ public class Robot implements AnalogListener, ActionListener {
         phyList.add(rightGripper.getPhysics());
         
         // left arm
-        node = attachSpatialCenter(name + " left limb", base, 
+        node = attachSpatialCenter(name + " left limb", base,
                 0.024645f, 0.118588f, -0.219645f,
                 0, 0.7845f, 0);
         node = attachLimb(name + " left", node, leftJointStates);
@@ -264,63 +270,63 @@ public class Robot implements AnalogListener, ActionListener {
     }
     
     private Node attachLimb(String name, Node parentNode, RobotJointState[] jointStates) {
-    	Node node = attachSpatialCenter(name + " S0", parentNode, 
+    	Node node = attachSpatialCenter(name + " S0", parentNode,
                 0.055695f, 0, -0.011038f,
                 0, 0, 0);
         node = attachLink(name + " S0", node, jointStates[S0], "shoulder0");
         addLinkPhysics(name + " S0", node, 5.7f, 0.06f, 0.2722f, 0, 0.1361f, 0);
 
-        node = attachSpatialCenter(name + " S1", node, 
+        node = attachSpatialCenter(name + " S1", node,
                 0.069f, 0.27035f, 0,
                 -1.571f, 0, 0);
         node = attachLink(name + " S1", node, jointStates[S1], "shoulder1");
         addLinkPhysics(name + " S1", node, 3.23f, 0.06f, 0.12f, 0, 0, 0);
 
-        node = attachSpatialCenter(name + " E0", node, 
+        node = attachSpatialCenter(name + " E0", node,
                 0.102f, 0, 0,
                 1.571f, 1.571f, 0);
         node = attachLink(name + " E0", node, jointStates[E0], "elbow0");
-        addLinkPhysics(name + " E0", node, 4.31f, 0.06f, 0.107f + 0.3f, 
+        addLinkPhysics(name + " E0", node, 4.31f, 0.06f, 0.107f + 0.3f,
                 0, -0.0535f + 0.15f, 0);
 
-        node = attachSpatialCenter(name + " E1", node, 
+        node = attachSpatialCenter(name + " E1", node,
                 0.069f, 0.26242f, 0,
                 -1.571f, 0, 1.571f);
         node = attachLink(name + " E1", node, jointStates[E1], "elbow1");
         addLinkPhysics(name + " E1", node, 2.07f, 0.06f, 0.1f, 0, 0, 0);
 
-        node = attachSpatialCenter(name + " W0", node, 
+        node = attachSpatialCenter(name + " W0", node,
                 0.10359f, 0, 0,
                 1.571f, 1.571f, 0);
         node = attachLink(name + " W0", node, jointStates[W0], "wrist0");
-        addLinkPhysics(name + " W0", node, 2.25f, 0.06f, 0.088f + 0.2f, 
+        addLinkPhysics(name + " W0", node, 2.25f, 0.06f, 0.088f + 0.2f,
                 0, -0.044f + 0.1f, 0);
 
-        node = attachSpatialCenter(name + " W1", node, 
+        node = attachSpatialCenter(name + " W1", node,
                 0.01f, 0.2707f, 0,
                 -1.571f, 0, 1.571f);
         node = attachLink(name + " W1", node, jointStates[W1], "wrist1");
         addLinkPhysics(name + " W1", node, 1.61f, 0.06f, 0.1f, 0, 0, 0);
         
-        node = attachSpatialCenter(name + " W2", node, 
+        node = attachSpatialCenter(name + " W2", node,
                 0.115975f, 0, 0,
                 1.571f, 1.571f, 0);
         node = attachLink(name + " W2", node, jointStates[W2], "wrist2");
-        addLinkPhysics(name + " W2", node, 0.35f, 0.06f, 0.165f + 0.05f, 
+        addLinkPhysics(name + " W2", node, 0.35f, 0.06f, 0.165f + 0.05f,
                 0, 0 + 0.025f, 0);
 
         vec.set(0, 0.11355f, 0);
         vec.addLocal(0, -0.0232f, 0);
         vec.addLocal(0, 0.05f, 0f);
         vec.addLocal(0, -0.02f + Gripper.FINGER_SIZE.z / 2 / SCALE, 0);
-        node = attachSpatialCenter(name + " gripper", node, 
+        node = attachSpatialCenter(name + " gripper", node,
                 vec.x, vec.y, vec.z,
                 FastMath.HALF_PI, -FastMath.HALF_PI, 0);
         
         return node;
     }
     
-    private Node attachSpatialCenter(String name, Node parentNode, 
+    private Node attachSpatialCenter(String name, Node parentNode,
             float xOffset, float yOffset, float zOffset,
             float xAngle, float yAngle, float zAngle) {
         Node mount = new Node(name + " center");
@@ -332,7 +338,7 @@ public class Robot implements AnalogListener, ActionListener {
         return mount;
     }
     
-    private Node attachLink(String name, Node parentNode, RobotJointState js, 
+    private Node attachLink(String name, Node parentNode, RobotJointState js,
             String spatialModelName) {
         Spatial spatialModel = assetManager.loadModel(
                 "Models/baxter/" + spatialModelName + ".j3o");
@@ -350,7 +356,7 @@ public class Robot implements AnalogListener, ActionListener {
         return node;
     }
     
-    private void addLinkPhysics(String name, Node parentNode, 
+    private void addLinkPhysics(String name, Node parentNode,
             float mass, float radius, float height,
             float xOffset, float yOffset, float zOffset) {
         Node node = new Node(name + " collision center");
@@ -358,7 +364,7 @@ public class Robot implements AnalogListener, ActionListener {
         parentNode.attachChild(node);
         // make an upright cylinder
         vec.set(radius * SCALE, height / 2 * SCALE, radius * SCALE);
-        CylinderCollisionShape cs = new CylinderCollisionShape(vec, 1);        
+        CylinderCollisionShape cs = new CylinderCollisionShape(vec, 1);
         MyRigidBodyControl rbc = new MyRigidBodyControl(cs, mass * SCALE);
         node.addControl(rbc);
         physicsSpace.add(rbc);
@@ -400,6 +406,7 @@ public class Robot implements AnalogListener, ActionListener {
         inputManager.addMapping(name + "Visibility", new KeyTrigger(KeyInput.KEY_R));
         inputManager.addMapping(name + "HeadView", new KeyTrigger(KeyInput.KEY_1));
         inputManager.addMapping(name + "TakePic", new KeyTrigger(KeyInput.KEY_2));
+        inputManager.addMapping(name + "RageClear", new KeyTrigger(KeyInput.KEY_C));
 
         inputManager.addListener(this, "shiftKey");
         
@@ -427,6 +434,7 @@ public class Robot implements AnalogListener, ActionListener {
         inputManager.addListener(this, name + "Visibility");
         inputManager.addListener(this, name + "HeadView");
         inputManager.addListener(this, name + "TakePic");
+        inputManager.addListener(this, name + "RageClear");
     }
     
     public void onAnalog(String name, float value, float tpf) {
@@ -486,13 +494,18 @@ public class Robot implements AnalogListener, ActionListener {
 			if (!pressed) {
 				toggleHeadCameraView();
 			}
-        } else if (name.matches(this.name + "TakePic")) {            
-            BufferedImage img = getVisualImage();            
+        } else if (name.matches(this.name + "TakePic")) {
+            BufferedImage img = getVisualImage();
             try {
                 String fname = "headcam" + (new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())) + ".png";
                 ImageIO.write(img, "png", new File(fname));
             } catch (IOException ex) {
                 Logger.getLogger(Robot.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (name.matches(this.name + "RageClear")) {
+            if (!pressed && shiftKey) {
+                rageClear = true;
+                rageClearElapsed = 0;
             }
         }
     }
@@ -502,7 +515,9 @@ public class Robot implements AnalogListener, ActionListener {
     		return;
     	}
     	
-        if (matlabAgent.isAlive()) {
+        if (rageClear) {
+            performRageClear(tpf);
+        } else if (matlabAgent.isAlive()) {
             timeSinceLastHeadVision += tpf;
             BufferedImage img = null;
             if (timeSinceLastHeadVision > HEAD_CAM_INTV) {
@@ -534,6 +549,58 @@ public class Robot implements AnalogListener, ActionListener {
         
 //        rightEndEffector.localToWorld(Vector3f.ZERO, vec);
 //        System.err.println(vec);
+    }
+    
+    public void performRageClear(float tpf) {
+        if (rageClearElapsed == 0) {
+            rageClearBeforeIsHidden = isHidden;
+            if (isHidden) {
+                toggleHide();
+            }
+            for (int i = 0; i < 7; ++i) {
+                rageClearBeforeLeftAngles[i] = leftJointStates[i].getAngle();
+                leftJointStates[i].setAngle(0);
+            }
+            leftJointStates[1].setAngle(-1.047f);
+            for (int i = 0; i < 7; ++i) {
+                rageClearBeforeRightAngles[i] = rightJointStates[i].getAngle();
+                rightJointStates[i].setAngle(0);
+            }
+            rightJointStates[1].setAngle(1.047f);
+            showFacialExpression("rage.jpg");
+        }
+        if ((int) (rageClearElapsed / 0.5) % 2 == 0) {
+            leftJointStates[1].setVelocity(3f, false);
+            leftJointStates[3].setVelocity(3f, false);
+            rightJointStates[1].setVelocity(-3f, false);
+            rightJointStates[3].setVelocity(-4f, false);
+        } else {
+            leftJointStates[1].setVelocity(-3f, false);
+            leftJointStates[3].setVelocity(-3f, false);
+            rightJointStates[1].setVelocity(3f, false);
+            rightJointStates[3].setVelocity(3f, false);
+        }
+        if (rageClearElapsed < 4) {
+            leftJointStates[0].setVelocity(-0.25f, false);
+            rightJointStates[0].setVelocity(0.25f, false);
+        } else {
+            leftJointStates[0].setVelocity(0.25f, false);
+            rightJointStates[0].setVelocity(-0.25f, false);
+        }
+        if (rageClearElapsed >= 10) {
+            if (rageClearBeforeIsHidden) {
+                toggleHide();
+            }
+            for (int i = 0; i < 7; ++i) {
+                leftJointStates[i].setAngle(rageClearBeforeLeftAngles[i]);
+            }
+            for (int i = 0; i < 7; ++i) {
+                rightJointStates[i].setAngle(rageClearBeforeRightAngles[i]);
+            }
+            showFacialExpression(FACE_PIC_NAMES[screenPicIndex]);
+            rageClear = false;
+        }
+        rageClearElapsed += tpf;
     }
 
     public void setJointVelocity(Limb limb, String jName, float velocity, boolean isManual) {
@@ -594,12 +661,12 @@ public class Robot implements AnalogListener, ActionListener {
             float vpXMin = 0.6f;
             float vpXMax = 1;
             float vpYMin = 0;
-            float vpYMax = vpYMin + (vpXMax - vpXMin) 
+            float vpYMax = vpYMin + (vpXMax - vpXMin)
                     * ((float)HEAD_CAM_RES_HEIGHT / (float)HEAD_CAM_RES_WIDTH)
                     / ((float)headCam.getHeight() / (float)headCam.getWidth());
             
             headCam.setViewPort(vpXMin, vpXMax, vpYMin, vpYMax);
-            headCam.setFrustumPerspective(HEAD_CAM_FOV, 
+            headCam.setFrustumPerspective(HEAD_CAM_FOV,
                 HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
             updateHeadCam();
             ViewPort vp = renderManager.createMainView("robot head camera", headCam);
@@ -620,6 +687,10 @@ public class Robot implements AnalogListener, ActionListener {
         ++screenPicIndex;
         screenPicIndex %= FACE_PIC_NAMES.length;
         String picName = FACE_PIC_NAMES[screenPicIndex];
+        showFacialExpression(picName);
+    }
+    
+    private void showFacialExpression(String picName) {
         if (picName == null) {
             screen.setMaterial(screenDefault);
         } else {
