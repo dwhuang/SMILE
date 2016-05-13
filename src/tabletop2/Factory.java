@@ -6,10 +6,12 @@ package tabletop2;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
-import javax.swing.JOptionPane;
+import java.util.logging.Logger;
 
 import org.j3d.loaders.stl.STLFileReader;
+
+import tabletop2.gui.LogMessage;
+
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
@@ -34,18 +36,19 @@ import com.jme3.util.BufferUtils;
  * @author dwhuang
  */
 public class Factory {
+    private Logger logger = Logger.getLogger(Factory.class.getName());
     private AssetManager assetManager;
     
     public Factory(AssetManager assetManager) {
         this.assetManager = assetManager;
     }
     
-    public Geometry makeBlock(String name, float w, float h, float d, 
+    public Geometry makeBlock(String name, float w, float h, float d,
             ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Ambient", color.mult(0.8f));      
+        mat.setColor("Ambient", color.mult(0.8f));
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
@@ -55,65 +58,65 @@ public class Factory {
         return block;
     }
     
-    public Node makeCustom(String name, String file_name, ColorRGBA color, float scale) {
+    public Node makeCustom(String name, String fname, ColorRGBA color, float scale) {
     	double normal[], vertex[][];
     	Vector3f[] normals;
         Vector3f[] vertices;
         int indices[], i, num_facets[];
-		File file = new File(file_name);
         
 		normal = new double[3];
 		vertex = new double[3][3];
 		
-        //Begin parsing STL file	
 		try {
-			STLFileReader reader = new STLFileReader(file);
+			STLFileReader reader = new STLFileReader(new File(fname));
 			num_facets = reader.getNumOfFacets();
+			if (num_facets.length == 0) {
+	            LogMessage.warn("STL file contains no objects: " + fname, logger);
+	            return null;
+			}
 
-			//Gets number of "objects" in STL file. Can be adapted so several "objects" in the STL file are rendered
+	        // read the first object only
 			vertices = new Vector3f[num_facets[0] * 3];
 			indices = new int[num_facets[0] * 3];
 			normals = new Vector3f[num_facets[0] * 3];
-			i = 0;
-			
-			// assume only 1 object in STL (will read the first one if STL contains multiple objects)
-			
-			//Process vertices for that object
-			while (reader.getNextFacet(normal, vertex)) {				
-				//add that vector to what we print
+            i = 0;
+			while (reader.getNextFacet(normal, vertex) && i < indices.length) {
 				for (int k = 0 ; k < vertex.length ; k++) {
 					vertices[i] = new Vector3f((float) vertex[k][0], (float) vertex[k][1], (float) vertex[k][2]);
 					indices[i] = i;
 					normals[i] = new Vector3f((float) normal[0], (float) normal[1], (float) normal[2]);
 					i++;
 				}
-			}			
+			}
+			if (i != num_facets[0] * 3) {
+                LogMessage.warn("STL file may be corrupted (not enough vertices): " + fname, logger);
+                return null;
+			}
 		} catch (FileNotFoundException ex) {
-			JOptionPane.showMessageDialog(null, file_name + " is not a valid path");
+			LogMessage.warn("STL file not found: " + fname, logger, ex);
 			return null;
 		} catch (Exception ex) {
-			//TODO Need better exception handling
-			ex.printStackTrace();
+            LogMessage.warn("Cannot parse STL file: " + fname, logger, ex);
 			return null;
 		}
 		
-        Mesh mesh = new Mesh();                
+        Mesh mesh = new Mesh();
         mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
         mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indices));
-        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));         
+        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
         mesh.updateBound();
         
 		//Create the material
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Ambient", color.mult(0.8f));      
+        mat.setColor("Ambient", color.mult(0.8f));
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
         //mat.setBoolean("HighQuality", false);
                 
         Geometry custom = new Geometry(name + "-geometry", mesh);
-        custom.setMaterial(mat);  
+        custom.setMaterial(mat);
         custom.setLocalScale(scale);
 
         // for "hiding" local scale
@@ -123,7 +126,7 @@ public class Factory {
     	return customNode;
     }
     
-    public Node makeBigBlock(String name, float w, float h, float d, 
+    public Node makeBigBlock(String name, float w, float h, float d,
             ColorRGBA color, float unitBlockSize) {
         int wCount = (int) FastMath.ceil(w / unitBlockSize);
         int hCount = (int) FastMath.ceil(h / unitBlockSize);
@@ -151,7 +154,7 @@ public class Factory {
                 c.z = zMin;
                 for (int k = 0; k < dCount; ++k) {
                     Spatial unitBlock = makeBlock(
-                            name + "(" + i + ", " + j + ")", 
+                            name + "(" + i + ", " + j + ")",
                             unitBlockSize, unitBlockSize, unitBlockSize, color);
                     unitBlock.setLocalTranslation(c);
                     bigBlock.attachChild(unitBlock);
@@ -167,19 +170,19 @@ public class Factory {
         bigBlock.setUserData("obj_height", h);
         bigBlock.setUserData("obj_depth", d);
         bigBlock.setUserData("obj_color", color);
-        bigBlock.setUserData("obj_unitBlockSize", unitBlockSize); 
+        bigBlock.setUserData("obj_unitBlockSize", unitBlockSize);
         
 //        return GeometryBatchFactory.optimize(bigBlock);
         return bigBlock;
     }
     
-    public Node makeBoxContainer(String name, float w, float h, float d, 
-            float thickness, ColorRGBA color) {        
+    public Node makeBoxContainer(String name, float w, float h, float d,
+            float thickness, ColorRGBA color) {
         return makeBoxContainer(name, w, h, d, thickness, thickness, thickness, color);
     }
     
-    public Node makeBoxContainer(String name, float w, float h, float d, 
-            float xThickness, float yThickness, float zThickness, ColorRGBA color) {        
+    public Node makeBoxContainer(String name, float w, float h, float d,
+            float xThickness, float yThickness, float zThickness, ColorRGBA color) {
         Node boxContainer = new Node(name);
         float halfW = w / 2;
         float halfH = h / 2;
@@ -211,26 +214,26 @@ public class Factory {
         return boxContainer;
     }
     
-    public Geometry makeCylinder(String name, float radius, float height, 
+    public Geometry makeCylinder(String name, float radius, float height,
             ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Ambient", color.mult(0.8f));      
+        mat.setColor("Ambient", color.mult(0.8f));
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
         Geometry cylinder = new Geometry(name, new Cylinder(32, 32, radius, height, true));
         cylinder.setMaterial(mat);
 
-        return cylinder;        
+        return cylinder;
     }
 
     public Geometry makeSphere(String name, float radius, ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
         mat.setBoolean("UseMaterialColors", true);
-        mat.setColor("Ambient", color.mult(0.8f));      
+        mat.setColor("Ambient", color.mult(0.8f));
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
@@ -243,9 +246,9 @@ public class Factory {
     }
 
     public Geometry makeUnshadedPlane(String name, float width, float height, ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", color);      
+        mat.setColor("Color", color);
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
 //        mat.setBoolean("UseAlpha", true);
 //        mat.setBoolean("HighQuality", false);
@@ -261,9 +264,9 @@ public class Factory {
     }
     
     public Geometry makeUnshadedLine(String name, Vector3f start, Vector3f end, ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", color);      
+        mat.setColor("Color", color);
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Geometry line = new Geometry(name, new Line(start, end));
         line.setMaterial(mat);
@@ -277,9 +280,9 @@ public class Factory {
     }
 
     public Geometry makeUnshadedArrow(String name, Vector3f extend, float lineWidth, ColorRGBA color) {
-        Material mat = new Material(assetManager, 
+        Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", color);      
+        mat.setColor("Color", color);
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Arrow arrow = new Arrow(extend);
         arrow.setLineWidth(lineWidth);

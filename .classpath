@@ -36,6 +36,6 @@
 	<classpathentry kind="lib" path="lib/jme3.0/lib/vecmath.jar" sourcepath="lib/jme3.0/src.zip"/>
 	<classpathentry kind="lib" path="lib/jme3.0/lib/xmlpull-xpp3.jar" sourcepath="lib/jme3.0/src.zip"/>
 	<classpathentry kind="lib" path="lib/matlabcontrol/matlabcontrol-4.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/j3d-org-code-1/jars/j3d-org-all_1.1.0.jar"/>
+    <classpathentry kind="lib" path="lib/j3d-org-code-1/jars/j3d-org-all_1.1.0.jar" sourcepath="lib/j3d-org-code-1/j3d-org-src-1.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -962,24 +962,28 @@ public class Table implements ActionListener {
 		        continue;
 		    }
 			Element childElm = (Element) child;
+			Spatial s = null;
 			if (childElm.getNodeName().equals("block")) {
-				node.attachChild(processBlockElement(childElm, false));
+				s = processBlockElement(childElm, false);
 			} else if (childElm.getNodeName().equals("cylinder")) {
-				node.attachChild(processCylinderElement(childElm, false));
+				s = processCylinderElement(childElm, false);
 			} else if (childElm.getNodeName().equals("sphere")) {
-				node.attachChild(processSphereElement(childElm, false));
+				s = processSphereElement(childElm, false);
 			} else if (childElm.getNodeName().equals("box")) {
-				node.attachChild(processBoxElement(childElm, false));
+				s = processBoxElement(childElm, false);
 			} else if (childElm.getNodeName().equals("custom")) {
-				node.attachChild(processCustomElement(childElm, false));
+				s = processCustomElement(childElm, false);
 			} else if (childElm.getNodeName().equals("composite")) {
-				node.attachChild(processCompositeElement(childElm, false));
+				s = processCompositeElement(childElm, false);
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
-				node.attachChild(processToggleSwitchElement(childElm, false));
+				s = processToggleSwitchElement(childElm, false);
 			} else if (childElm.getNodeName().equals("indicatorSet")) {
-				node.attachChild(processIndicatorSetElement(childElm, false));
+				s = processIndicatorSetElement(childElm, false);
 			} else {
 				logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
+			}
+			if (s != null) {
+			    node.attachChild(s);
 			}
 		}
 
