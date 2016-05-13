@@ -250,7 +250,8 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
     public void demoPointTo(HandId handId, Spatial s) {
         if (isRecording) {
             saveToHistory();
-            currSegSymbWritter.print(frameId + ",pointTo," + handId.toString() + "," + s.getName() + "\n");
+            currSegSymbWritter.print(frameId + ",pointTo," + handId.toString() + "," + s.getName() + ","
+                    + inventory.getItem(s).getName() + "\n");
         }
     }
     
@@ -271,7 +272,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	@Override
 	public void objectControlTriggered(Spatial obj, StateControl c) {
     	if (isRecording) {
-			currSegSymbWritter.print(frameId + ",controlStateChanged," + obj.getName() + ","
+			currSegSymbWritter.print(frameId + ",changeControlState," + obj.getName() + ","
 			        + c.getVisibleStateString() + "\n");
 			saveRobotVision();
 		}
@@ -280,7 +281,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
     @Override
     public void objectControlInitialized(Spatial obj, StateControl c) {
         if (isRecording) {
-            currSegSymbWritter.print(frameId + ",controlInitialized," + obj.getName() + "," + c.getType()
+            currSegSymbWritter.print(frameId + ",initializeControl," + obj.getName() + "," + c.getType()
                     + "," + inventory.getItem(obj).getName() + "," + c.getVisibleStateString() + "\n");
             saveRobotVision();
         }

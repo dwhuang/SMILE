@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
@@ -665,9 +664,8 @@ public class Table implements ActionListener {
 	}
 	
 	private void processDescriptionElements(Element root, Spatial s, String defaultShape) {
-	    LinkedHashMap<String, String> d = new LinkedHashMap<>();
 	    if (defaultShape != null) {
-	        d.put("shape", defaultShape);
+	        putDescriptionToSpatial(s, "shape", defaultShape);
 	    }
 	    for (org.w3c.dom.Node child = root.getFirstChild(); child != null; ) {
 	        org.w3c.dom.Node nextChild = child.getNextSibling();
@@ -926,9 +924,10 @@ public class Table implements ActionListener {
 			float mass = Float.parseFloat(elm.getAttribute("mass"));
 			inventory.addItem(s, mass);
 			
-			String shapeName = new File(file).getName().split(".")[0];
-			if (shapeName == null || shapeName.length() == 0) {
-			    shapeName = "custom";
+			String[] toks = new File(file).getName().split("\\.");
+			String shapeName = "custom";
+			if (toks.length > 0) {
+			    shapeName = toks[0];
 			}
 			processDescriptionElements(elm, s, shapeName);
 		}

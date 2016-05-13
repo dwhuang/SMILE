@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
-    <block id="GreenBlock" xspan="2" yspan="2" zspan="2" location="(8, 0, 1)" rotation="(0, 0, -15)" color="green" mass="1"/>
-    <custom id="rocket" location="(2, 0, 1)" color="green" scale="5" mass="1" file="tablesetup/stl/TrainCube.stl"/> 
+    <custom location="(2, 0, 1)" color="green" scale="5" mass="1" file="tablesetup/stl/TrainCube.stl"/> 
     <composite id="c" location="(0, 0, 3)" rotation="(0, 0, 0)" mass=".1">
         <custom color="green" scale=".05" location="(0, 0, 0)" rotation="(-90, 0, 0)" file="tablesetup/stl/Teapot_ascii.stl" />
         <block xspan="2" yspan="2" zspan="2" location="(0, 0, -1)" rotation="(0, 0, 0)" color="red"/>
