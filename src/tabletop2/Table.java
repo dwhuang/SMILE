@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -145,7 +146,8 @@ public class Table implements ActionListener {
 		    try {
     			processIncludeElements(doc);
     			processDefElements(doc);
-    			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>());
+    			processInstanceElements(doc, doc.getDocumentElement(), new HashMap<String, String>(),
+    			        new Stack<String>());
                 writeXmlToFile(doc, "tablesetup/debug.xml");
     	        doc = validateXmlTree(doc, true);
     			processXmlTree(doc);
@@ -349,11 +351,12 @@ public class Table implements ActionListener {
 	 * @param root
 	 * @param vars
 	 */
-    private void processInstanceElements(Document doc, Element root, Map<String, String> vars) {
+    private void processInstanceElements(Document doc, Element root, Map<String, String> vars,
+            Stack<String> defCallStack) {
         // substitute variable values
         performVariableSubst(root, vars);
         if (root.getNodeName().equals("instance")) {
-            performInstanceExpansion(doc, root, vars);
+            performInstanceExpansion(doc, root, vars, defCallStack);
         } else if (root.getNodeName().equals("def")) {
             LogMessage.warn("Element &lt;def&gt; is not allowed here (removed)", logger);
             org.w3c.dom.Node parent = root.getParentNode();
@@ -364,81 +367,95 @@ public class Table implements ActionListener {
             for (org.w3c.dom.Node child = root.getFirstChild(); child != null;) {
                 org.w3c.dom.Node nextChild = child.getNextSibling();
                 if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    processInstanceElements(doc, (Element) child, vars);
+                    processInstanceElements(doc, (Element) child, vars, defCallStack);
                 }
                 child = nextChild;
             }
         }
     }
     
-    private void performInstanceExpansion(Document doc, Element elm, Map<String, String> vars) {
+    private void performInstanceExpansion(Document doc, Element elm, Map<String, String> vars,
+            Stack<String> defCallStack) {
         // look up def
         String defName = elm.getAttribute("def");
-        DocumentFragment frag = doc.createDocumentFragment();
         if (!defs.containsKey(defName)) {
             LogMessage.warn("Definition not found: " + defName + " (ignored)", logger);
-        } else {
-            // make a copy of variables
-            vars = new HashMap<>(vars);
-            // make a copy of def
-            Element def = defs.get(defName);
-            for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
-                    defChild = defChild.getNextSibling()) {
-                frag.appendChild(defChild.cloneNode(true));
-            }
-            // get <var> elements under <instance>
-            HashMap<String, String> myVars = new HashMap<>();
-            HashMap<String, Boolean> myVarIsDerived = new HashMap<>();
-            for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
-                if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
-                        && child.getNodeName().equals("var")) {
-                    Element e = (Element) child;
-                    if (Boolean.parseBoolean(e.getAttribute("derived"))) {
-                        myVars.put(e.getAttribute("name"), e.getAttribute("value"));
-                        myVarIsDerived.put(e.getAttribute("name"), true);
-                    } else {
-                        myVars.put(e.getAttribute("name"), performVariableSubst(e.getAttribute("value"), vars));
-                        myVarIsDerived.put(e.getAttribute("name"), false);
-                    }
-                }
-            }
-            // merge <var> elements under <instance> and <def>. Variables under <instance> take priority.
-            Map<String, String> defv = defVars.get(defName);
-            Map<String, Boolean> defvd = defVarIsDerived.get(defName);
-            for (String k : defv.keySet()) {
-                if (!myVars.containsKey(k)) {
-                    myVars.put(k, defv.get(k));
-                    myVarIsDerived.put(k, defvd.get(k));
-                }
-            }
-            // merge non-derived variables with the enclosing scope
-            for (String k : myVars.keySet()) {
-                if (!myVarIsDerived.get(k)) {
-                    vars.put(k, myVars.get(k));
-                }
-            }
-            // process derived variables
-            for (String k : myVars.keySet()) {
-                if (myVarIsDerived.containsKey(k)) {
-                    myVars.put(k, performVariableSubst(myVars.get(k), vars));
-                }
-            }
-            // merge derived variables with the enclosing scope
-            for (String k : myVars.keySet()) {
-                if (myVarIsDerived.containsKey(k)) {
-                    vars.put(k, myVars.get(k));
-                }
-            }
-            // recursively process those new cloned nodes in frag
-            for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;
-                    dfChild = dfChild.getNextSibling()) {
-                if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    processInstanceElements(doc, (Element) dfChild, vars);
+            elm.getParentNode().removeChild(elm);
+            return;
+        }
+        if (defCallStack.contains(defName)) {
+            LogMessage.warn("Recursive definition detected in: " + defName + " (recursive instance ignored)",
+                    logger);
+            elm.getParentNode().removeChild(elm);
+            return;
+        }
+        defCallStack.push(defName);
+        
+        DocumentFragment frag = doc.createDocumentFragment();
+        // make a copy of variables
+        vars = new HashMap<>(vars);
+        // make a copy of def
+        Element def = defs.get(defName);
+        for (org.w3c.dom.Node defChild = def.getFirstChild(); defChild != null;
+                defChild = defChild.getNextSibling()) {
+            frag.appendChild(defChild.cloneNode(true));
+        }
+        // get <var> elements under <instance>
+        HashMap<String, String> myVars = new HashMap<>();
+        HashMap<String, Boolean> myVarIsDerived = new HashMap<>();
+        for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                    && child.getNodeName().equals("var")) {
+                Element e = (Element) child;
+                if (Boolean.parseBoolean(e.getAttribute("derived"))) {
+                    myVars.put(e.getAttribute("name"), e.getAttribute("value"));
+                    myVarIsDerived.put(e.getAttribute("name"), true);
+                } else {
+                    myVars.put(e.getAttribute("name"), performVariableSubst(e.getAttribute("value"), vars));
+                    myVarIsDerived.put(e.getAttribute("name"), false);
                 }
             }
         }
+        // merge <var> elements under <instance> and <def>. Variables under <instance> take priority.
+        Map<String, String> defv = defVars.get(defName);
+        Map<String, Boolean> defvd = defVarIsDerived.get(defName);
+        for (String k : defv.keySet()) {
+            if (!myVars.containsKey(k)) {
+                myVars.put(k, defv.get(k));
+                myVarIsDerived.put(k, defvd.get(k));
+            }
+        }
+        // merge non-derived variables with the enclosing scope
+        for (String k : myVars.keySet()) {
+            if (!myVarIsDerived.get(k)) {
+                vars.put(k, myVars.get(k));
+            }
+        }
+        // process derived variables
+        for (String k : myVars.keySet()) {
+            if (myVarIsDerived.containsKey(k)) {
+                myVars.put(k, performVariableSubst(myVars.get(k), vars));
+            }
+        }
+        // merge derived variables with the enclosing scope
+        for (String k : myVars.keySet()) {
+            if (myVarIsDerived.containsKey(k)) {
+                vars.put(k, myVars.get(k));
+            }
+        }
+        // recursively process those new cloned nodes in frag
+        for (org.w3c.dom.Node dfChild = frag.getFirstChild(); dfChild != null;) {
+            org.w3c.dom.Node dfNextChild = dfChild.getNextSibling();
+            if (dfChild.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                processInstanceElements(doc, (Element) dfChild, vars, defCallStack);
+            }
+            dfChild = dfNextChild;
+        }
+        
         elm.getParentNode().insertBefore(frag, elm);
         elm.getParentNode().removeChild(elm);
+        
+        defCallStack.pop();
     }
     
     private String performVariableSubst(String str, Map<String, String> vars) {

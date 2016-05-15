@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+  <def name="block">
+    <block id="$id$" location="($x$,$y$,$z$)"/>
+  </def>
+  <def name="pileOfTwo">
+    <instance def="block">
+      <var name="z" value="0.5"/>
+      <var name="id" value="$id$Bottom"/>
+    </instance>
+    <instance def="block">
+      <var name="z" value="1.5"/>
+      <var name="id" value="$id$Top"/>
+    </instance>
+  </def>
+  <instance def="pileOfTwo">
+    <var name="x" value="3"/>
+    <var name="y" value="2"/>
+    <var name="z" value="10"/>
+    <var name="id" value="pile"/>
+  </instance>
+</tabletop>

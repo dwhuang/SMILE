@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+  <include file="tablesetup/def-cube.xml"/>
+  <instance def="cube">
+    <var name="size" value="5"/>
+    <var name="id" value="c0"/>
+    <var name="y" value="-1"/>
+  </instance>
+</tabletop>
