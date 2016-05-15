@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <block id="RedBlock" location="(2, 0, 0.5)" color="red"/>
+    <block id="GreenBlock" location="(-2, 0, 0.5)" color="green"/>
+</tabletop>

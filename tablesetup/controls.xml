@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <composite location="(-2,0,1)">
+        <block xspan="2" yspan="2" zspan="2" location="(0,0,0)"/>
+        <toggleSwitch id="S1" xspan="1.7" yspan="1" zspan="0.5" location="(0,0,0.55)" angle="20" leftPressed="false" numStates="3">
+            <downstream id="L1"/>
+        </toggleSwitch>
+    </composite>
+    <composite location="(2,0,0.5)" rotation="(0,0,90)">
+        <block xspan="5" yspan="2" location="(0,0,0)"/>
+        <indicatorLights id="L1" xspan="4.5" location="(0,0,0.5)" numLights="3" lightRadius="0.7">
+            <downstream id="L2"/>
+            <state descriptionName="stop">
+                <light id="0" color="red"/>
+            </state>
+            <state descriptionName="caution">
+                <light id="1" color="yellow"/>
+            </state>
+            <state descriptionName="go">
+                <light id="2" color="green"/>
+            </state>
+        </indicatorLights>
+    </composite>
+    <composite location="(5,0,0.5)" rotation="(90,0,0)">
+        <block xspan="1" yspan="1" location="(0,0,0)"/>
+        <indicatorLights id="L2" xspan="0.4" location="(0,0,0.5)" numLights="1" lightRadius="0.4">
+            <state descriptionName="red">
+                <light id="0" color="red"/>
+            </state>
+            <state descriptionName="dark">
+                <light id="0" color="black"/>
+            </state>
+        </indicatorLights>
+    </composite>
+</tabletop>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <include file="tablesetup/include2.xml"/>
+    <block id="BlueBlock" location="(0, -3, 0.5)" color="blue" />
+</tabletop>
+

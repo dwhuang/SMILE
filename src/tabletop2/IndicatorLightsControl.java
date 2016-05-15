@@ -9,12 +9,12 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 
-public class IndicatorSetControl extends StateControl {
+public class IndicatorLightsControl extends StateControl {
 	List<Geometry> lights = new ArrayList<>();
 	List<ColorRGBA[]> lightStates;
 	List<String> lightStateNames;
 	
-	public IndicatorSetControl(Inventory inv, Spatial s, int initState, List<ColorRGBA[]> lightStates,
+	public IndicatorLightsControl(Inventory inv, Spatial s, int initState, List<ColorRGBA[]> lightStates,
 	        List<String> lightStateNames) {
 		super(inv, s);
 		// get all lights (Geometry)
@@ -80,6 +80,6 @@ public class IndicatorSetControl extends StateControl {
 
     @Override
     public String getType() {
-        return "indicatorSet";
+        return "indicatorLights";
     }
 }

@@ -194,7 +194,7 @@
             </composite>
             <composite location="($xspan / 2 - indicatorRadius$, 0, 0)">
                 <cylinder id="$id$IndicatorBase" radius="$indicatorRadius$" yspan="$zspan$" color="white" rotation="(90, 0, 0)" location="(0, 0, 0)"/>
-                <indicatorSet id="$id$Indicator" xspan="$indicatorRadius * 1.5$" numLights="2" location="(0, 0, $zspan / 2$)">
+                <indicatorLights id="$id$Indicator" xspan="$indicatorRadius * 1.5$" numLights="2" location="(0, 0, $zspan / 2$)">
                     <state descriptionName="green">
                         <light id="1" color="green"/>
                     </state>
@@ -205,7 +205,7 @@
                     </state>
                     <state descriptionName="off">
                     </state>
-                </indicatorSet>
+                </indicatorLights>
             </composite>
         </composite>
     </def>

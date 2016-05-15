@@ -621,8 +621,8 @@ public class Table implements ActionListener {
 				processCompositeElement(elm, true);
             } else if (elm.getNodeName().equals("toggleSwitch")) {
                 processToggleSwitchElement(elm, true);
-            } else if (elm.getNodeName().equals("indicatorSet")) {
-                processIndicatorSetElement(elm, true);
+            } else if (elm.getNodeName().equals("indicatorLights")) {
+                processIndicatorLightsElement(elm, true);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
@@ -715,8 +715,8 @@ public class Table implements ActionListener {
 				obj = processCompositeElement(childElm, true);
             } else if (childElm.getNodeName().equals("toggleSwitch")) {
                 obj = processToggleSwitchElement(childElm, true);
-            } else if (childElm.getNodeName().equals("indicatorSet")) {
-                obj = processIndicatorSetElement(childElm, true);
+            } else if (childElm.getNodeName().equals("indicatorLights")) {
+                obj = processIndicatorLightsElement(childElm, true);
 			}
 			if (obj != null) {
 				if (k >= 2) {
@@ -977,8 +977,8 @@ public class Table implements ActionListener {
 				s = processCompositeElement(childElm, false);
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
 				s = processToggleSwitchElement(childElm, false);
-			} else if (childElm.getNodeName().equals("indicatorSet")) {
-				s = processIndicatorSetElement(childElm, false);
+			} else if (childElm.getNodeName().equals("indicatorLights")) {
+				s = processIndicatorLightsElement(childElm, false);
 			} else {
 				logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
 			}
@@ -1062,7 +1062,7 @@ public class Table implements ActionListener {
 		return s;
 	}
 
-	private Spatial processIndicatorSetElement(Element elm, boolean isWhole) {
+	private Spatial processIndicatorLightsElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
         boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
 		Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -1130,7 +1130,7 @@ public class Table implements ActionListener {
 			}
 		}
 
-		IndicatorSetControl c = new IndicatorSetControl(inventory, s, initState, lightStates, lightStateNames);
+		IndicatorLightsControl c = new IndicatorLightsControl(inventory, s, initState, lightStates, lightStateNames);
 
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
@@ -1140,7 +1140,7 @@ public class Table implements ActionListener {
         if (isWhole) {
             float mass = Float.parseFloat(elm.getAttribute("mass"));
             inventory.addItem(s, mass);
-            processDescriptionElements(elm, s, "indicatorSet");
+            processDescriptionElements(elm, s, "indicatorLights");
         }
         if (pointable) {
             s.setUserData("pointable", "" + pointable);

@@ -178,7 +178,7 @@
                         <element name="custom" type="tt:customType"/>
                         <element name="composite" type="tt:compositeType"/>            
                         <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
-                        <element name="indicatorSet" type="tt:indicatorSetType"/>            
+                        <element name="indicatorLights" type="tt:indicatorLightsType"/>            
                     </choice>
                 </sequence>
             </extension>
@@ -236,7 +236,7 @@
         </complexContent>
     </complexType>
     
-    <complexType name="indicatorSetType">
+    <complexType name="indicatorLightsType">
         <complexContent>
             <extension base="tt:controlType">
                 <annotation>
@@ -279,9 +279,9 @@
             </extension>
         </complexContent>
     </complexType>    
-    <complexType name="indicatorSetObjectType">
+    <complexType name="indicatorLightsObjectType">
         <complexContent>
-            <extension base="tt:indicatorSetType">
+            <extension base="tt:indicatorLightsType">
                 <attributeGroup ref="tt:objectAttrs"/>
             </extension>
         </complexContent>
@@ -296,7 +296,7 @@
             <element name="custom" type="tt:customObjectType"/>
             <element name="composite" type="tt:compositeObjectType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchObjectType"/>            
-            <element name="indicatorSet" type="tt:indicatorSetObjectType"/>            
+            <element name="indicatorLights" type="tt:indicatorLightsObjectType"/>            
         </choice>
     </group>
     
