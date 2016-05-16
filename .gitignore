@@ -1,8 +1,8 @@
 bin
 export
+dist
 demo
 demo-*
-tabletop-*
 .settings
 tags
 *.dylib
