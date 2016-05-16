@@ -3,7 +3,7 @@
     <useStyles filename="nifty-default-styles.xml" />
     <useControls filename="nifty-default-controls.xml" />        
 
-    <popup id="puPause" childLayout="center" backgroundColor="#000a" inputMapping="tabletop2.gui.GuiController">
+    <popup id="puPause" childLayout="center" backgroundColor="#000a" inputMapping="edu.umd.smile.gui.GuiController">
         <panel childLayout="vertical">
 	        <control name="label" font="Fonts/Helvetica-36.fnt" text="Simulation Paused" height="40"/>
             <control name="label" font="Fonts/Helvetica-36.fnt" text="" height="40"/>
@@ -12,14 +12,14 @@
         </panel>
     </popup>
     
-    <popup id="puMessage" childLayout="center" inputMapping="tabletop2.gui.GuiController">
+    <popup id="puMessage" childLayout="center" inputMapping="edu.umd.smile.gui.GuiController">
         <panel childLayout="horizontal">
             <control name="label" id="lbMessage" font="Fonts/Helvetica-36.fnt" text="msg" height="40"
                 width="100%" backgroundColor="#000a"/>
         </panel>
     </popup>
 
-    <screen id="guiView" controller="tabletop2.gui.GuiController">
+    <screen id="guiView" controller="edu.umd.smile.gui.GuiController">
         <layer childLayout="horizontal">
             <panel childLayout="center" valign="bottom" width="27px" height="23px">
                 <control name="button" id="btShowAll" label="" valign="bottom" width="100%" focusable="false" 
