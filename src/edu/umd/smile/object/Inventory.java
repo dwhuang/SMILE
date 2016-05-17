@@ -41,6 +41,8 @@ public class Inventory {
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
 
+    private Set<AbstractControl> controlStateChanged = new HashSet<>();
+
     
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
@@ -120,9 +122,8 @@ public class Inventory {
         Spatial cs = s;
     	while (cs != null) {
     	    AbstractControl c = controls.get(cs);
-    		if (c != null) {
-    		    c.trigger(s, true);
-    			return c;
+    		if (c != null && c.trigger(s, true)) {
+    		    return c;
     		}
     		cs = cs.getParent();
     	}
@@ -133,10 +134,17 @@ public class Inventory {
         return controls.get(s);
     }
     
-    public void notifyStateChanged(AbstractControl c) {
-    	for (InventoryListener l : listeners) {
-    		l.objectControlTriggered(c.getSpatial(), c);
-    	}
+    public void markControlStateChanged(AbstractControl c) {
+        controlStateChanged.add(c);
+    }
+    
+    public void notifyAllControlStateChanged() {
+        for (AbstractControl c : controlStateChanged) {
+            for (InventoryListener l : listeners) {
+                l.objectControlTriggered(c.getSpatial(), c);
+            }
+        }
+        controlStateChanged.clear();
     }
     
 //    public String getAssemblyName(Node node) {

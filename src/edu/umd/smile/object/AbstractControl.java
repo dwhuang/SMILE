@@ -14,6 +14,7 @@ public abstract class AbstractControl {
 	private Inventory inventory;
 	protected Spatial spatial;
 	private int state;
+	private String prevStateName;
 	protected LinkedList<AbstractControl> downstreams = new LinkedList<>();
 	protected LinkedList<String> downstreamIds = new LinkedList<>();
 	
@@ -21,6 +22,7 @@ public abstract class AbstractControl {
 		inventory = inv;
 		spatial = s;
 		state = -1;
+		prevStateName = "";
 	}
 	
 	public void addDownstreamId(String id) {
@@ -46,7 +48,7 @@ public abstract class AbstractControl {
 	}
 	
 	protected void announceStateChanged() {
-		inventory.notifyStateChanged(this);
+        inventory.markControlStateChanged(this);
 	}
 	
 	public Spatial getSpatial() {
@@ -74,7 +76,11 @@ public abstract class AbstractControl {
 	protected boolean setState(int s, boolean announce) {
 	    if (state != s && stateIsValid(s)) {
 	        state = s;
-	        announceStateChanged();
+            String currStateName = getStateName();
+	        if (!currStateName.equals(prevStateName)) {
+	            prevStateName = currStateName;
+	            announceStateChanged();
+	        }
 	        return true;
 	    }
 	    return false;

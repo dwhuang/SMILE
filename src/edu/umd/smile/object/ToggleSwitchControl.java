@@ -43,6 +43,11 @@ public class ToggleSwitchControl extends AbstractControl {
     public String getName() {
         return "toggleSwitch";
     }
+    
+    @Override
+    public String getStateName() {
+        return "" + vstate;
+    }
 
 	@Override
 	public boolean trigger(Object o, boolean announce) {

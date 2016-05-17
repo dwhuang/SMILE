@@ -713,6 +713,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             for (DemoActionListener l : demoActionListeners) {
                 l.demoTrigger(currHand.id, c.getSpatial());
             }
+            inventory.notifyAllControlStateChanged();
     	} else {
     	    Spatial s = inventory.getPointable(r.getGeometry());
     	    if (s != null) {

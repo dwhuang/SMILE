@@ -81,7 +81,10 @@ public class IndicatorLightsControl extends AbstractControl {
 
     @Override
     public String getStateName() {
-        return states.get(getState()).name;
+        if (stateIsValid(getState())) {
+            return states.get(getState()).name;
+        }
+        return "";
     }
 
     @Override
