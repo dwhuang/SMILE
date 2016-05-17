@@ -44,7 +44,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     public static final String DEFAULT_TABLESETUP_FNAME = "tablesetup/default.xml";
     public static final String DEMO_RECORDING_DIRNAME = "demo";
     
-    private BulletAppState bulletAppState = new BulletAppState();    
+    private BulletAppState bulletAppState = new BulletAppState();
     private Factory factory;
     private Inventory inventory;
     private Table table;
@@ -75,13 +75,13 @@ public class MainApp extends SimpleApplication implements ActionListener {
 
                 
         AppSettings settings = new AppSettings(false);
-        settings.load("tabletop2");
-        settings.setTitle("tabletop2");
+        settings.load("SMILE");
+        settings.setTitle("SMILE");
         settings.setSettingsDialogImage("Interface/line500px.png");
         settings.setFrameRate(60);
         settings.setSamples(2);
         settings.putBoolean("DisableJoysticks", false);
-        settings.save("tabletop2");
+        settings.save("SMILE");
 
         //        settings.setVSync(true);
 //        settings.setResolution(800, 600);
@@ -93,7 +93,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
 //            System.err.println(modes[i].getWidth() + "x" + modes[i].getHeight() + " " + modes[i].getRefreshRate()
 //                    + " " + modes[i].getBitDepth());
 //        }
-//        
+//
 //        int i = 10; // note: there are usually several, let's pick the first
 //        settings.setResolution(modes[i].getWidth(), modes[i].getHeight());
 //        settings.setFrequency(modes[i].getRefreshRate());
@@ -101,7 +101,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
 ////        settings.setFullscreen(device.isFullScreenSupported());
         
         app.setSettings(settings);
-        app.setShowSettings(true);        
+        app.setShowSettings(true);
         
         app.start(); // restart the context to apply changes
     }
@@ -192,7 +192,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
 //        dw.getSolverInfo().splitImpulse = true;
     }
     
-    private void initLighting() {        
+    private void initLighting() {
         // lights
         AmbientLight ambientLight = new AmbientLight();
         //ambientLight.setColor(ColorRGBA.White.mult(1f));
@@ -202,7 +202,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
         light.setColor(ColorRGBA.White);
         light.setPosition(new Vector3f(0f, 10f, 0f));
         light.setRadius(50f);
-        rootNode.addLight(light);        
+        rootNode.addLight(light);
     }
     
     private void initCamera() {
@@ -220,7 +220,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
         Node node = new Node();
         gripperNode.attachChild(node);
         node.setLocalTranslation(0, -1, -3);
-        gripper = new Gripper("baxter right-gripper", node, 
+        gripper = new Gripper("baxter right-gripper", node,
                 bulletAppState.getPhysicsSpace(), factory);
     }
     
@@ -261,7 +261,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     }
     
     @Override
-    public void simpleUpdate(float tpf) {    	
+    public void simpleUpdate(float tpf) {
     	if (!isRunning) {
     		return;
     	}
@@ -269,7 +269,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
         timeAccumulator += tpf;
         
         if (!hasDeletedMouseTrigger) {
-            // TODO this is a quick fix to disable mouse-controlled camera 
+            // TODO this is a quick fix to disable mouse-controlled camera
             // rotation;
             inputManager.deleteTrigger("FLYCAM_Left", new MouseAxisTrigger(MouseInput.AXIS_X, true));
             inputManager.deleteTrigger("FLYCAM_Right", new MouseAxisTrigger(MouseInput.AXIS_X, false));
@@ -300,7 +300,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
                 	inventory.removeItem(item);
                 }
             }
-        }        
+        }
     }
     
     @Override
@@ -335,9 +335,9 @@ public class MainApp extends SimpleApplication implements ActionListener {
         } else if (name.equals("escapeKey")) {
         	stop();
         }
-    }    
+    }
     
     public void showMessage(String str) {
     	guiController.showMessagePopup(str, 1);
-    }    
+    }
 }

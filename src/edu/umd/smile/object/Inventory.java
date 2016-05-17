@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import com.bulletphysics.collision.dispatch.CollisionObject;
@@ -37,7 +38,7 @@ public class Inventory {
 	
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
-    private HashMap<Spatial, StateControl> stateControls = new HashMap<>();
+    private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
 
     
@@ -46,12 +47,12 @@ public class Inventory {
     	bulletAppState = app.getBulletAppState();
     }
     
-    public HashSet<Spatial> allItems() {
+    public Set<Spatial> allItems() {
     	return new HashSet<Spatial>(items);
     }
     
-    public HashMap<Spatial, StateControl> allStateControls() {
-        return new HashMap<Spatial, StateControl>(stateControls);
+    public Set<Spatial> allControlSpatials() {
+        return new HashSet<>(controls.keySet());
     }
     
     public MyRigidBodyControl addItem(Spatial item, float mass) {
@@ -78,59 +79,61 @@ public class Inventory {
     	return rbc;
     }
 
-    public void registerStateControl(Spatial s, StateControl c) {
-    	stateControls.put(s, c);
+    public void registerControl(Spatial s, AbstractControl c) {
+    	controls.put(s, c);
     }
 
     /**
-     * First call registerStateControl to add all state-controlled object, and then
+     * First call registerControl to add all state-controlled object, and then
      * call this function to initialize all the added objects.
      */
-    public void initStateControls() {
-        HashMap<Spatial, StateControl> stateControlsClone = new HashMap<>(stateControls);
+    public void initControls() {
+        HashMap<Spatial, AbstractControl> controlsClone = new HashMap<>(controls);
         HashMap<String, Spatial> idMap = new HashMap<>();
-        stateControls.clear();
-        for (Spatial s : stateControlsClone.keySet()) {
+        controls.clear();
+        for (Spatial s : controlsClone.keySet()) {
             // check that each spatial belongs to an item
             Spatial item = getItem(s);
             if (item == null) {
                 LogMessage.warn("State-controlled spatial " + s + " is not a part of any known item (removed)", logger);
                 continue;
             }
-            stateControls.put(s, stateControlsClone.get(s));
+            controls.put(s, controlsClone.get(s));
             // collect all state control ids
             idMap.put(s.getName(), s);
         }
         
-        for (StateControl c : stateControls.values()) {
+        for (AbstractControl c : controls.values()) {
             c.resolveDownstreamIds(idMap);
             c.triggerDownstreams(false);
         }
         
         // control init events
-        for (Map.Entry<Spatial, StateControl> entry : stateControls.entrySet()) {
+        for (Map.Entry<Spatial, AbstractControl> entry : controls.entrySet()) {
             for (InventoryListener l : listeners) {
                 l.objectControlInitialized(entry.getKey(), entry.getValue());
             }
         }
     }
 
-    public StateControl getDeepestStateControlForManualTrigger(Spatial s) {
-    	while (s != null) {
-    	    StateControl c = stateControls.get(s);
-    		if (c != null && c.allowManualTrigger()) {
+    public AbstractControl triggerDeepestControlForSpatial(Spatial s) {
+        Spatial cs = s;
+    	while (cs != null) {
+    	    AbstractControl c = controls.get(cs);
+    		if (c != null) {
+    		    c.trigger(s, true);
     			return c;
     		}
-    		s = s.getParent();
+    		cs = cs.getParent();
     	}
     	return null;
     }
     
-    public StateControl getStateControl(Spatial s) {
-        return stateControls.get(s);
+    public AbstractControl getControl(Spatial s) {
+        return controls.get(s);
     }
     
-    public void notifyStateChanged(StateControl c) {
+    public void notifyStateChanged(AbstractControl c) {
     	for (InventoryListener l : listeners) {
     		l.objectControlTriggered(c.getSpatial(), c);
     	}
@@ -263,7 +266,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
-    		removeItemStateControls(item);
+    		removeItemControls(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
     		items.remove(item);
@@ -346,12 +349,12 @@ public class Inventory {
         }
     }
     
-    private void removeItemStateControls(Spatial item) {
+    private void removeItemControls(Spatial item) {
     	item.depthFirstTraversal(new SceneGraphVisitor() {
 			@Override
 			public void visit(Spatial s) {
-				if (stateControls.containsKey(s)) {
-					stateControls.remove(s);
+				if (controls.containsKey(s)) {
+					controls.remove(s);
 				}
 			}
     	});
@@ -454,17 +457,16 @@ public class Inventory {
 		HashMap<String, Object> param = new HashMap<String, Object>();
     }
 	
-	private class StateControlInfo {
+	private class ControlInfo {
 		Spatial s;
-		StateControl control;
-		int state;
-		int visibleState;
+		AbstractControl control;
+		HashMap<String, Object> states= new HashMap<>();
 	}
 	
     public class Memento {
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
-    	private HashSet<StateControlInfo> stateControlInfoSet = new HashSet<>();
+    	private HashSet<ControlInfo> controlInfoSet = new HashSet<>();
 //    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials
 //    			= new HashMap<PhysicsJoint, ArrayList<Spatial>>();
     	
@@ -503,13 +505,12 @@ public class Inventory {
 			m.jointInfoSet.add(info);
     	}
     	
-    	for (Spatial s : stateControls.keySet()) {
-    		StateControlInfo info = new StateControlInfo();
+    	for (Spatial s : controls.keySet()) {
+    		ControlInfo info = new ControlInfo();
     		info.s = s;
-    		info.control = stateControls.get(s);
-    		info.state = info.control.getState();
-    		info.visibleState = info.control.getVisibleState();
-    		m.stateControlInfoSet.add(info);
+    		info.control = controls.get(s);
+    		info.control.saveStates(info.states);
+    		m.controlInfoSet.add(info);
     	}
 
     	return m;
@@ -534,9 +535,9 @@ public class Inventory {
     			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);
     		}
     	}
-    	for (StateControlInfo info : m.stateControlInfoSet) {
-    		registerStateControl(info.s, info.control);
-    		info.control.restoreStates(info.state, info.visibleState);
+    	for (ControlInfo info : m.controlInfoSet) {
+    		registerControl(info.s, info.control);
+    		info.control.restoreStates(info.states);
     	}
     }
 }

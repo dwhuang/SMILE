@@ -649,7 +649,7 @@ public class Table implements ActionListener {
 				logger.log(Level.WARNING, "skipping unknown element " + elm.getNodeName());
 			}
 		}
-		inventory.initStateControls();
+		inventory.initControls();
 	}
 
 	private void makeTable() {
@@ -1030,6 +1030,11 @@ public class Table implements ActionListener {
 		boolean leftPressed = Boolean.parseBoolean(elm.getAttribute("leftPressed"));
 		int numStates = Integer.parseInt(elm.getAttribute("numStates"));
 		int initState = Integer.parseInt(elm.getAttribute("initState"));
+		if (initState < 0) {
+		    initState = 0;
+		} else if (initState >= numStates) {
+		    initState = numStates - 1;
+		}
 
 		float btxspan = xspan / (1.0f + FastMath.cos(angle));
 
@@ -1066,7 +1071,7 @@ public class Table implements ActionListener {
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-		inventory.registerStateControl(s, c);
+		inventory.registerControl(s, c);
 		
 		if (isWhole) {
 		    float mass = Float.parseFloat(elm.getAttribute("mass"));
@@ -1153,7 +1158,7 @@ public class Table implements ActionListener {
 		for (String dsId : dsIds) {
 			c.addDownstreamId(dsId);
 		}
-        inventory.registerStateControl(s, c);
+        inventory.registerControl(s, c);
         
         if (isWhole) {
             float mass = Float.parseFloat(elm.getAttribute("mass"));

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,9 +21,9 @@ import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
 import edu.umd.smile.demonstration.Demonstrator.HandId;
+import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Inventory;
 import edu.umd.smile.object.InventoryListener;
-import edu.umd.smile.object.StateControl;
 import edu.umd.smile.robot.Robot;
 import edu.umd.smile.util.FileUtils;
 import edu.umd.smile.util.MyRigidBodyControl;
@@ -139,8 +138,8 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 			for (Spatial item : inventory.allItems()) {
 				printObjectCreateSymbols(item);
 			}
-			for (Map.Entry<Spatial, StateControl> entry : inventory.allStateControls().entrySet()) {
-			    objectControlInitialized(entry.getKey(), entry.getValue());
+			for (Spatial s : inventory.allControlSpatials()) {
+			    objectControlInitialized(s, inventory.getControl(s));
 			}
 		}
 	}
@@ -219,14 +218,6 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	}
 
 	@Override
-	public void demoPreTrigger(HandId handId, Spatial s) {
-		if (isRecording) {
-			saveToHistory();
-			currSegSymbWritter.print(frameId + ",trigger," + handId.toString() + "," + s.getName() + "\n");
-		}
-	}
-	
-	@Override
 	public void demoGrasp(HandId handId, Spatial s, Vector3f pos, Quaternion rot) {
 		if (isRecording) {
 			currSegSymbWritter.print(frameId + ",grasp," + handId.toString() + "," + s.getName() + "\n");
@@ -249,6 +240,10 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 
 	@Override
 	public void demoTrigger(HandId handId, Spatial s) {
+        if (isRecording) {
+            saveToHistory();
+            currSegSymbWritter.print(frameId + ",trigger," + handId.toString() + "," + s.getName() + "\n");
+        }
 	}
 	
     @Override
@@ -275,19 +270,19 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 	}
 
 	@Override
-	public void objectControlTriggered(Spatial obj, StateControl c) {
+	public void objectControlTriggered(Spatial obj, AbstractControl c) {
     	if (isRecording) {
 			currSegSymbWritter.print(frameId + ",changeControlState," + obj.getName() + ","
-			        + c.getVisibleStateString() + "\n");
+			        + c.getStateName() + "\n");
 			saveRobotVision();
 		}
 	}
 
     @Override
-    public void objectControlInitialized(Spatial obj, StateControl c) {
+    public void objectControlInitialized(Spatial obj, AbstractControl c) {
         if (isRecording) {
-            currSegSymbWritter.print(frameId + ",initializeControl," + obj.getName() + "," + c.getType()
-                    + "," + inventory.getItem(obj).getName() + "," + c.getVisibleStateString() + "\n");
+            currSegSymbWritter.print(frameId + ",initializeControl," + obj.getName() + "," + c.getName()
+                    + "," + inventory.getItem(obj).getName() + "," + c.getStateName() + "\n");
             saveRobotVision();
         }
     }

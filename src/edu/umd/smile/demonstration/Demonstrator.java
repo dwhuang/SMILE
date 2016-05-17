@@ -30,9 +30,9 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
+import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Factory;
 import edu.umd.smile.object.Inventory;
-import edu.umd.smile.object.StateControl;
 import edu.umd.smile.object.Table;
 import edu.umd.smile.util.MyRigidBodyControl;
 
@@ -707,13 +707,9 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (r == null) {
     		return;
     	}
-    	StateControl c = inventory.getDeepestStateControlForManualTrigger(r.getGeometry());
+    	AbstractControl c = inventory.triggerDeepestControlForSpatial(r.getGeometry());
     	if (c != null) {
         	// notify listeners
-            for (DemoPreActionListener l : demoPreActionListeners) {
-                l.demoPreTrigger(currHand.id, c.getSpatial());
-            }
-            c.trigger(r.getGeometry(), true);
             for (DemoActionListener l : demoActionListeners) {
                 l.demoTrigger(currHand.id, c.getSpatial());
             }
