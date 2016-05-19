@@ -91,9 +91,10 @@ public class IndicatorLightsControl extends AbstractControl {
     public boolean trigger(Object o, boolean announce) {
         if (o instanceof AbstractControl) {
             AbstractControl c = (AbstractControl) o;
-            setState(c.getState(), announce);
-            triggerDownstreams(announce);
-            return true;
+            if (setState(c.getState(), announce)) {
+                triggerDownstreams(announce);
+                return true;
+            }
         }
         return false;
     }

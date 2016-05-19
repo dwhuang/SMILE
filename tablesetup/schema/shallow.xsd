@@ -28,7 +28,8 @@
             <element name="cartridge"/>
             <element name="composite"/>            
             <element name="toggleSwitch"/>            
-            <element name="indicatorLights"/>            
+            <element name="indicatorLights"/>
+            <element name="customControl"/>            
             <element name="downstream"/>            
             <element name="state"/>            
             <element name="light"/>            

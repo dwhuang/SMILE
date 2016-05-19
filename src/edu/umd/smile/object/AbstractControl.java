@@ -11,12 +11,12 @@ import com.jme3.scene.Spatial;
 public abstract class AbstractControl {
 	private static final Logger logger = Logger.getLogger(AbstractControl.class.getName());
 
-	private Inventory inventory;
+	protected Inventory inventory;
 	protected Spatial spatial;
 	private int state;
 	private String prevStateName;
-	protected LinkedList<AbstractControl> downstreams = new LinkedList<>();
-	protected LinkedList<String> downstreamIds = new LinkedList<>();
+	private LinkedList<AbstractControl> downstreams = new LinkedList<>();
+	private LinkedList<String> downstreamIds = new LinkedList<>();
 	
 	public AbstractControl(Inventory inv, Spatial s) {
 		inventory = inv;
@@ -47,7 +47,7 @@ public abstract class AbstractControl {
 		}
 	}
 	
-	protected void announceStateChanged() {
+	private void announceStateChanged() {
         inventory.markControlStateChanged(this);
 	}
 	
@@ -77,7 +77,7 @@ public abstract class AbstractControl {
 	    if (state != s && stateIsValid(s)) {
 	        state = s;
             String currStateName = getStateName();
-	        if (!currStateName.equals(prevStateName)) {
+	        if (announce && !currStateName.equals(prevStateName)) {
 	            prevStateName = currStateName;
 	            announceStateChanged();
 	        }

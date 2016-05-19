@@ -42,6 +42,11 @@
             <minInclusive value="0" />
         </restriction>
     </simpleType>
+    <simpleType name="nextStateType">
+        <restriction base="int">
+            <minInclusive value="-1" />
+        </restriction>
+    </simpleType>
     <simpleType name="fileType">
     	<restriction base="string">
     	</restriction>
@@ -59,14 +64,6 @@
 	</simpleType>
     
     <complexType name="shapeType">
-        <sequence minOccurs="0" maxOccurs="unbounded">
-            <element name="description">
-                <complexType>
-                    <attribute name="name" type="tt:idType" use="required"/>
-                    <attribute name="value" type="string" use="required"/>
-                </complexType>
-            </element>
-        </sequence>
 		<attribute name="id" type="tt:idType" use="optional"/>
 		<attribute name="location" type="tt:vector3Type" use="required" />
 		<attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)">
@@ -77,212 +74,370 @@
 		</attribute>
         <attribute name="pointable" type="boolean" use="optional" default="false"/>
     </complexType>
-    <attributeGroup name="objectAttrs">
-        <attribute name="mass" type="tt:massType" use="optional" default="1"/>
-    </attributeGroup>
-    
+    <complexType name="objectType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <element name="description">
+                        <complexType>
+                            <attribute name="name" type="tt:idType" use="required"/>
+                            <attribute name="value" type="string" use="required"/>
+                        </complexType>
+                    </element>
+                </sequence>
+                <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerableType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attribute name="nextStateWhenTriggered" type="tt:nextStateType" use="optional" default="-1"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
     <attributeGroup name="blockAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+        <attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
+        <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+        <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
     </attributeGroup>
     <complexType name="blockType">
         <complexContent>
             <extension base="tt:shapeType">
-                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-                <attribute name="xspan" type="tt:spanType" use="optional" default="1"/>
-                <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
-                <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+                <attributeGroup ref="tt:blockAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     <complexType name="blockObjectType">
         <complexContent>
-            <extension base="tt:blockType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:blockAttrs"/>
             </extension>
         </complexContent>
     </complexType>
-    
+    <complexType name="triggerableBlockType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:blockAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <attributeGroup name="cylinderAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+        <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+        <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+    </attributeGroup>    
     <complexType name="cylinderType">
         <complexContent>
             <extension base="tt:shapeType">
-                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-                <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
-                <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+                <attributeGroup ref="tt:cylinderAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     <complexType name="cylinderObjectType">
         <complexContent>
-            <extension base="tt:cylinderType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:cylinderAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerableCylinderType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:cylinderAttrs"/>
             </extension>
         </complexContent>
     </complexType>
 
+    <attributeGroup name="sphereAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+        <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+    </attributeGroup>
     <complexType name="sphereType">
         <complexContent>
             <extension base="tt:shapeType">
-                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-                <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
+                <attributeGroup ref="tt:sphereAttrs"/>
             </extension>
         </complexContent>
     </complexType>    
     <complexType name="sphereObjectType">
         <complexContent>
-            <extension base="tt:sphereType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:sphereAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerableSphereType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:sphereAttrs"/>
             </extension>
         </complexContent>
     </complexType>
 
+    <attributeGroup name="boxAttrs">
+        <attributeGroup ref="tt:blockAttrs"/>
+        <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
+    </attributeGroup>
     <complexType name="boxType">
         <complexContent>
-            <extension base="tt:blockType">
-                <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
+            <extension base="tt:shapeType">
+                <attributeGroup ref="tt:boxAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     <complexType name="boxObjectType">
         <complexContent>
-            <extension base="tt:boxType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:boxAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerableBoxType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:boxAttrs"/>
             </extension>
         </complexContent>
     </complexType>
 
+    <attributeGroup name="customAttrs">
+        <attribute name="file" type="tt:fileType" use="required" />
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+        <attribute name="scale" type="tt:spanType" use="optional" default="1"/>
+    </attributeGroup>
 	<complexType name="customType">
         <complexContent>
             <extension base="tt:shapeType">
-                <attribute name="file" type="tt:fileType" use="required" />
-                <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-                <attribute name="scale" type="tt:spanType" use="optional" default="1"/>
+                <attributeGroup ref="tt:customAttrs"/>
             </extension>
         </complexContent>
 	</complexType>
     <complexType name="customObjectType">
         <complexContent>
-            <extension base="tt:customType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:customAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerableCustomType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:customAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     
+    <group name="compositeGroup">
+        <choice>
+            <element name="block" type="tt:blockType"/>
+            <element name="cylinder" type="tt:cylinderType"/>
+            <element name="sphere" type="tt:sphereType"/>
+            <element name="box" type="tt:boxType"/>
+            <element name="custom" type="tt:customType"/>
+            <element name="composite" type="tt:compositeType"/>            
+            <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
+            <element name="indicatorLights" type="tt:indicatorLightsType"/>            
+            <element name="customControl" type="tt:customControlType"/>            
+        </choice>
+    </group>
+    <group name="triggerableCompositeGroup">
+        <choice>
+            <element name="block" type="tt:triggerableBlockType"/>
+            <element name="cylinder" type="tt:triggerableCylinderType"/>
+            <element name="sphere" type="tt:triggerableSphereType"/>
+            <element name="box" type="tt:triggerableBoxType"/>
+            <element name="custom" type="tt:triggerableCustomType"/>
+            <element name="composite" type="tt:triggerableCompositeType"/>            
+        </choice>
+    </group>
     <complexType name="compositeType">
         <complexContent>
             <extension base="tt:shapeType">
                 <sequence minOccurs="0" maxOccurs="unbounded">
-                    <choice>
-                        <element name="block" type="tt:blockType"/>
-                        <element name="cylinder" type="tt:cylinderType"/>
-                        <element name="sphere" type="tt:sphereType"/>
-                        <element name="box" type="tt:boxType"/>
-                        <element name="custom" type="tt:customType"/>
-                        <element name="composite" type="tt:compositeType"/>            
-                        <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
-                        <element name="indicatorLights" type="tt:indicatorLightsType"/>            
-                    </choice>
+                    <group ref="tt:compositeGroup"/>
                 </sequence>
             </extension>
         </complexContent>
     </complexType>
     <complexType name="compositeObjectType">
         <complexContent>
-            <extension base="tt:compositeType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:objectType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <group ref="tt:compositeGroup"/>
+                </sequence>
             </extension>
         </complexContent>
     </complexType>
-    
-    <complexType name="controlType">
+    <complexType name="triggerableCompositeType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <group ref="tt:triggerableCompositeGroup"/>
+                </sequence>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <group name="downstreamGroup">
+        <sequence>
+            <element name="downstream">
+                <complexType>
+                    <attribute name="id" type="tt:idType" use="required"/>
+                </complexType>
+            </element>
+        </sequence>
+    </group>    
+    <attributeGroup name="abstractControlAttrs">
+        <attribute name="initState" type="tt:countType" use="optional" default="0"/>
+    </attributeGroup>
+    <complexType name="abstractControlType">
         <complexContent>
             <extension base="tt:shapeType">
                 <sequence minOccurs="0" maxOccurs="unbounded">
-                    <element name="downstream">
-                        <complexType>
-                            <attribute name="id" type="tt:idType" use="required"/>
-                        </complexType>
-                    </element>
+                    <group ref="tt:downstreamGroup"/>
                 </sequence>
-                <attribute name="initState" type="tt:countType" use="optional" default="0"/>
+                <attributeGroup ref="tt:abstractControlAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="abstractControlObjectType">
+        <complexContent>
+            <extension base="tt:objectType">
+                <sequence minOccurs="0" maxOccurs="unbounded">
+                    <group ref="tt:downstreamGroup"/>
+                </sequence>
+                <attributeGroup ref="tt:abstractControlAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     
+    <attributeGroup name="toggleSwitchAttrs">
+        <annotation>
+            <documentation>
+                An integer internal state [0, numState) increases every time the switch is toggled.
+                The state is reset to 0 when it exceeds the maximum value.
+                The internal state is not directly related to which side of the switch is down.
+                They can be initialized independently using initState and leftPressed, respectively.  
+            </documentation>
+        </annotation>
+        <attribute name="xspan" type="tt:spanType" use="optional" default="0.6"/>
+        <attribute name="yspan" type="tt:spanType" use="optional" default="0.3"/>
+        <attribute name="zspan" type="tt:spanType" use="optional" default="0.1"/>
+        <attribute name="angle" type="float" use="optional" default="6"/>
+        <attribute name="color" type="tt:colorType" use="optional" default="darkgray"/>
+        <attribute name="leftPressed" type="boolean" use="optional" default="true"/>
+        <attribute name="numStates" type="tt:countType" use="optional" default="2"/>
+    </attributeGroup>
     <complexType name="toggleSwitchType">
         <complexContent>
-            <extension base="tt:controlType">
-                <annotation>
-                    <documentation>
-                        An integer internal state [0, numState) increases every time the switch is toggled.
-                        The state is reset to 0 when it exceeds the maximum value.
-                        The internal state is not directly related to which side of the switch is down.
-                        They can be initialized independently using initState and leftPressed, respectively.  
-                    </documentation>
-                </annotation>
-                <attribute name="xspan" type="tt:spanType" use="optional" default="0.6"/>
-                <attribute name="yspan" type="tt:spanType" use="optional" default="0.3"/>
-                <attribute name="zspan" type="tt:spanType" use="optional" default="0.1"/>
-                <attribute name="angle" type="float" use="optional" default="6"/>
-                <attribute name="color" type="tt:colorType" use="optional" default="darkgray"/>
-                <attribute name="leftPressed" type="boolean" use="optional" default="true"/>
-                <attribute name="numStates" type="tt:countType" use="optional" default="2"/>
+            <extension base="tt:abstractControlType">
+                <attributeGroup ref="tt:toggleSwitchAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     <complexType name="toggleSwitchObjectType">
         <complexContent>
-            <extension base="tt:toggleSwitchType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:abstractControlObjectType">
+                <attributeGroup ref="tt:toggleSwitchAttrs"/>
             </extension>
         </complexContent>
     </complexType>
     
+    <group name="indicatorLightsStateGroup">
+        <annotation>
+            <documentation>
+                The first state element represents internal state 0, the second represents state 1, etc.
+                The internal state is coupled with the visible state of the indicator lights, defined
+                in the child elements.
+            </documentation>
+        </annotation>
+        <sequence>
+            <element name="state">
+                <complexType>
+                    <sequence minOccurs="0" maxOccurs="unbounded">
+                        <annotation>
+                            <documentation>
+                                Each light element indicates that a specified light is turned on 
+                                using a certain color.
+                                The id attribute indicate which light is turned on. Possible values are 
+                                [0, numLights). Lights that do not appear here is turned off.
+                            </documentation>
+                        </annotation>
+                        <element name="light">
+                            <complexType>
+                                <attribute name="id" type="tt:countType" use="required"/>
+                                <attribute name="color" type="tt:colorType" use="optional" default="red"/>
+                            </complexType>
+                        </element>
+                    </sequence>
+                    <attribute name="descriptionName" type="tt:idType" use="optional"/>
+                </complexType>
+            </element>
+        </sequence>
+    </group>
+    <attributeGroup name="indicatorLightsAttrs">
+        <attribute name="lightRadius" type="tt:spanType" use="optional" default="0.03"/>
+        <attribute name="lightZspan" type="tt:spanType" use="optional" default="0.005"/>
+        <attribute name="numLights" type="tt:countType" use="optional" default="2"/>
+        <attribute name="xspan" type="tt:spanType" use="optional" default="0.15"/>                
+    </attributeGroup>
     <complexType name="indicatorLightsType">
         <complexContent>
-            <extension base="tt:controlType">
-                <annotation>
-                    <documentation>Max number of lights = 32</documentation>
-                </annotation>
+            <extension base="tt:abstractControlType">
                 <sequence minOccurs="1" maxOccurs="unbounded">
-                    <annotation>
-                        <documentation>
-	                        The first state element represents internal state 0, the second represents state 1, etc.
-	                        The internal state is coupled with the visible state of the indicator lights, defined
-	                        in the child elements.
-                        </documentation>
-                    </annotation>
-                    <element name="state">
-                        <complexType>
-                            <sequence minOccurs="0" maxOccurs="unbounded">
-                                <annotation>
-                                    <documentation>
-                                        Each light element indicates that a specified light is turned on 
-                                        using a certain color.
-                                        The id attribute indicate which light is turned on. Possible values are 
-                                        [0, numLights). Lights that do not appear here is turned off.
-                                    </documentation>
-                                </annotation>
-                                <element name="light">
-                                    <complexType>
-                                        <attribute name="id" type="tt:countType" use="required"/>
-                                        <attribute name="color" type="tt:colorType" use="optional" default="red"/>
-                                    </complexType>
-                                </element>
-                            </sequence>
-                            <attribute name="descriptionName" type="tt:idType" use="optional"/>
-                        </complexType>
-                    </element>
+                    <group ref="tt:indicatorLightsStateGroup"/>
                 </sequence>
-                <attribute name="lightRadius" type="tt:spanType" use="optional" default="0.03"/>
-                <attribute name="lightZspan" type="tt:spanType" use="optional" default="0.005"/>
-                <attribute name="numLights" type="tt:countType" use="optional" default="2"/>
-                <attribute name="xspan" type="tt:spanType" use="optional" default="0.15"/>                
+                <attributeGroup ref="tt:indicatorLightsAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="indicatorLightsObjectType">
+        <complexContent>
+            <extension base="tt:abstractControlObjectType">
+                <sequence minOccurs="1" maxOccurs="unbounded">
+                    <group ref="tt:indicatorLightsStateGroup"/>
+                </sequence>
+                <attributeGroup ref="tt:indicatorLightsAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <group name="customControlStateGroup">
+        <sequence>
+            <element name="state">
+                <complexType>
+                    <sequence minOccurs="0" maxOccurs="unbounded">
+                        <group ref="tt:triggerableCompositeGroup"/>
+                    </sequence>
+                    <attribute name="descriptionName" type="tt:idType" use="optional"/>
+                </complexType>
+            </element>
+        </sequence>
+    </group>
+    <attributeGroup name="customControlAttrs">
+        <attribute name="name" type="tt:idType" use="optional" default="customControl"/>
+    </attributeGroup>
+    <complexType name="customControlType">
+        <complexContent>
+            <extension base="tt:abstractControlType">
+                <sequence minOccurs="1" maxOccurs="unbounded">
+                    <group ref="tt:customControlStateGroup"/>
+                </sequence>
+                <attributeGroup ref="tt:customControlAttrs"/>
             </extension>
         </complexContent>
     </complexType>    
-    <complexType name="indicatorLightsObjectType">
+    <complexType name="customControlObjectType">
         <complexContent>
-            <extension base="tt:indicatorLightsType">
-                <attributeGroup ref="tt:objectAttrs"/>
+            <extension base="tt:abstractControlObjectType">
+                <sequence minOccurs="1" maxOccurs="unbounded">
+                    <group ref="tt:customControlStateGroup"/>
+                </sequence>
+                <attributeGroup ref="tt:customControlAttrs"/>
             </extension>
         </complexContent>
     </complexType>    
@@ -297,6 +452,7 @@
             <element name="composite" type="tt:compositeObjectType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchObjectType"/>            
             <element name="indicatorLights" type="tt:indicatorLightsObjectType"/>            
+            <element name="customControl" type="tt:customControlObjectType"/>            
         </choice>
     </group>
     

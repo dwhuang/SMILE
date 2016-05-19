@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <def name="sevenSeg">
+        <var name="seg1" value="darkgray"/>
+        <var name="seg2" value="darkgray"/>
+        <var name="seg3" value="darkgray"/>
+        <var name="seg4" value="darkgray"/>
+        <var name="seg5" value="darkgray"/>
+        <var name="seg6" value="darkgray"/>
+        <var name="seg7" value="darkgray"/>
+        <block xspan="0.6" yspan="0.2" zspan="0.01" location="(0,0.7,0.2505)" color="$seg1$"/>
+        <block xspan="0.2" yspan="0.8" zspan="0.01" location="(-0.4,0.4,0.2505)" color="$seg2$"/>
+        <block xspan="0.2" yspan="0.8" zspan="0.01" location="(0.4,0.4,0.2505)" color="$seg3$"/>
+        <block xspan="0.6" yspan="0.2" zspan="0.01" location="(0,0,0.2505)" color="$seg4$"/>
+        <block xspan="0.2" yspan="0.8" zspan="0.01" location="(-0.4,-0.4,0.2505)" color="$seg5$"/>
+        <block xspan="0.2" yspan="0.8" zspan="0.01" location="(0.4,-0.4,0.2505)" color="$seg6$"/>
+        <block xspan="0.6" yspan="0.2" zspan="0.01" location="(0,-0.7,0.2505)" color="$seg7$"/>
+    </def>
+    <composite location="(3,0,0.25)">
+        <block xspan="1.2" yspan="2.2" zspan="0.5" location="(0,0,0)" color="darkgray"/>
+        <customControl name="sevenSegDisplay" id="d1" location="(0,0,0)">
+            <state>
+                <instance def="sevenSeg">
+                    <var name="seg3" value="red"/>
+                    <var name="seg6" value="red"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="sevenSeg">
+                    <var name="seg1" value="red"/>
+                    <var name="seg3" value="red"/>
+                    <var name="seg4" value="red"/>
+                    <var name="seg5" value="red"/>
+                    <var name="seg7" value="red"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="sevenSeg">
+                    <var name="seg1" value="red"/>
+                    <var name="seg3" value="red"/>
+                    <var name="seg4" value="red"/>
+                    <var name="seg6" value="red"/>
+                    <var name="seg7" value="red"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="sevenSeg">
+                    <var name="seg2" value="red"/>
+                    <var name="seg3" value="red"/>
+                    <var name="seg4" value="red"/>
+                    <var name="seg6" value="red"/>
+                </instance>
+            </state>
+        </customControl>
+    </composite>
+    <def name="dial">
+        <var name="pos" value="0"/>
+        <block xspan="2" yspan="2" zspan="1" location="(0,0,0)"/>
+        <cylinder radius="1" yspan="1" location="(0,0.5,0.5)"/>
+        <composite location="(0,0,0.55)">
+            <composite location="(0,0,0)" rotation="(0,15,0)">
+                <block xspan="0.2" yspan="0.02" zspan="0.07" location="(-0.8,0,0)" color="blue" nextStateWhenTriggered="0"/>
+            </composite>
+            <composite location="(0,0,0)" rotation="(0,65,0)">
+                <block xspan="0.2" yspan="0.02" zspan="0.07" location="(-0.8,0,0)" color="blue" nextStateWhenTriggered="1"/>
+            </composite>
+            <composite location="(0,0,0)" rotation="(0,115,0)">
+                <block xspan="0.2" yspan="0.02" zspan="0.07" location="(-0.8,0,0)" color="blue" nextStateWhenTriggered="2"/>
+            </composite>
+            <composite location="(0,0,0)" rotation="(0,165,0)">
+                <block xspan="0.2" yspan="0.02" zspan="0.07" location="(-0.8,0,0)" color="blue" nextStateWhenTriggered="3"/>
+            </composite>
+            <composite location="(0,-0.05,0)" rotation="(0,$pos$,0)">
+                <block xspan="1.1" yspan="0.1" zspan="0.1" location="(-0.55,0,0)" color="yellow"/>
+                <cylinder yspan="0.25" radius="0.1" location="(-1.1,0,0)" color="yellow"/>
+            </composite>
+        </composite>
+    </def>
+    <composite location="(0,0,0.5)">
+        <customControl id="c1" location="(0,0,0)">
+            <downstream id="d1"/>
+            <state>
+                <instance def="dial">
+                    <var name="pos" value="15"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="dial">
+                    <var name="pos" value="65"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="dial">
+                    <var name="pos" value="115"/>
+                </instance>
+            </state>
+            <state>
+                <instance def="dial">
+                    <var name="pos" value="165"/>
+                </instance>
+            </state>
+        </customControl>
+    </composite>
+    <customControl id="s1" location="(-3,0,0)">
+        <downstream id="c1"/>
+        <state>
+            <sphere radius="0.5" location="(0,0,0.5)" color="red" nextStateWhenTriggered="1"/>
+        </state>
+        <state>
+            <sphere radius="0.8" location="(0,0,0.8)" color="orange" nextStateWhenTriggered="2"/>
+        </state>
+        <state>
+            <sphere radius="1.1" location="(0,0,1.1)" color="green" nextStateWhenTriggered="3"/>
+        </state>
+        <state>
+            <sphere radius="1.4" location="(0,0,1.4)" color="magenta" nextStateWhenTriggered="0"/>
+        </state>
+    </customControl>
+</tabletop>

@@ -2,10 +2,10 @@ package edu.umd.smile.object;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
@@ -641,6 +641,8 @@ public class Table implements ActionListener {
                 processToggleSwitchElement(elm, true);
             } else if (elm.getNodeName().equals("indicatorLights")) {
                 processIndicatorLightsElement(elm, true);
+            } else if (elm.getNodeName().equals("customControl")) {
+                processCustomControlElement(elm, true);
 			} else if (elm.getNodeName().equals("chain")) {
 				processChainElement(elm);
 			} else if (elm.getNodeName().equals("sliderJoint")) {
@@ -735,6 +737,8 @@ public class Table implements ActionListener {
                 obj = processToggleSwitchElement(childElm, true);
             } else if (childElm.getNodeName().equals("indicatorLights")) {
                 obj = processIndicatorLightsElement(childElm, true);
+            } else if (childElm.getNodeName().equals("customControl")) {
+                obj = processCustomControlElement(childElm, true);
 			}
 			if (obj != null) {
 				if (k >= 2) {
@@ -821,6 +825,10 @@ public class Table implements ActionListener {
 		if (pointable) {
 		    s.setUserData("pointable", "" + pointable);
 		}
+		String ns = elm.getAttribute("nextStateWhenTriggered");
+		if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
+		}
 
 		return s;
 	}
@@ -852,6 +860,10 @@ public class Table implements ActionListener {
 		if (pointable) {
             s.setUserData("pointable", "" + pointable);
 		}
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
+        }
 
 		return s;
 	}
@@ -881,6 +893,10 @@ public class Table implements ActionListener {
 		}
         if (pointable) {
             s.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
         }
 
 		return s;
@@ -914,6 +930,10 @@ public class Table implements ActionListener {
 		}
         if (pointable) {
             s.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
         }
 
 		return s;
@@ -951,6 +971,10 @@ public class Table implements ActionListener {
 		}
         if (pointable) {
             s.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
         }
 
 		return s;
@@ -997,6 +1021,8 @@ public class Table implements ActionListener {
 				s = processToggleSwitchElement(childElm, false);
 			} else if (childElm.getNodeName().equals("indicatorLights")) {
 				s = processIndicatorLightsElement(childElm, false);
+            } else if (childElm.getNodeName().equals("customControl")) {
+                s = processCustomControlElement(childElm, false);
 			} else {
 				logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
 			}
@@ -1012,6 +1038,10 @@ public class Table implements ActionListener {
 		}
         if (pointable) {
             node.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            node.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
         }
 
 		return node;
@@ -1121,7 +1151,7 @@ public class Table implements ActionListener {
 		// get <downstream> and <state> elements
 		LinkedList<String> dsIds = new LinkedList<>();
 		LinkedList<ColorRGBA[]> lightStates = new LinkedList<>();
-		ArrayList<String> lightStateNames = new ArrayList<>();
+		LinkedList<String> lightStateNames = new LinkedList<>();
 		for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
 		    if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
 		        continue;
@@ -1170,25 +1200,92 @@ public class Table implements ActionListener {
         }
 
 		return s;
-
-//		// button 1
-//		Spatial b1 = factory.makeBlock(id + "-b1", btxspan, yspan, zspan, color);
-//		b1.setLocalTranslation(-btxspan / 2, yspan / 2, 0);
-//		s.attachChild(b1);
-//		// button 2
-//		Spatial b2 = factory.makeBlock(id + "-b2", btxspan, yspan, zspan, color);
-//		b2.setLocalRotation(new Quaternion().fromAngles(0, 0, angle));
-//		float hypoLen = FastMath.sqr(btxspan * btxspan + yspan * yspan); // hypotenues
-//		float cosine = (btxspan / hypoLen) * FastMath.cos(angle) - (yspan / hypoLen) * FastMath.sin(angle);
-//		float sine = (yspan / hypoLen) * FastMath.cos(angle) + (btxspan / hypoLen) * FastMath.sin(angle);
-//		b2.setLocalTranslation(hypoLen / 2f * cosine, hypoLen / 2f * sine, 0);
-//		s.attachChild(b2);
-//
-//		ToggleSwitchControl c = new ToggleSwitchControl(inventory, s, angle, leftPressed, numStates, initState);
-//		stateControls.put(s, c);
-//
-//		return s;
 	}
+
+    private Spatial processCustomControlElement(Element elm, boolean isWhole) {
+        String id = getUniqueId(elm.getAttribute("id"));
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+        Vector3f location = parseVector3(elm.getAttribute("location"));
+        Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+        int initState = Integer.parseInt(elm.getAttribute("initState"));
+        String name = elm.getAttribute("name");
+
+        Node s = new Node(id);
+        s.setLocalTranslation(location);
+        s.setLocalRotation(new Quaternion().fromAngles(
+                rotation.x * FastMath.DEG_TO_RAD,
+                rotation.y * FastMath.DEG_TO_RAD,
+                rotation.z * FastMath.DEG_TO_RAD));
+
+        // get <downstream> and <state> elements
+        LinkedList<String> dsIds = new LinkedList<>();
+        LinkedList<List<Spatial>> stateSpatials = new LinkedList<>();
+        LinkedList<String> stateNames = new LinkedList<>();
+        for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+                continue;
+            }
+            if (child.getNodeName().equals("downstream")) {
+                dsIds.add(((Element) child).getAttribute("id"));
+            } else if (child.getNodeName().equals("state")) {
+                // try to get the descriptive name of the state
+                String stateName = ((Element) child).getAttribute("descriptionName");
+                if (stateName == null || stateName.length() == 0) {
+                    stateName = "" + stateNames.size();
+                }
+                stateNames.add(stateName);
+                stateSpatials.add(processCustomControlStateElement((Element) child));
+            }
+        }
+
+        CustomControl c = new CustomControl(inventory, s, initState, stateSpatials, stateNames);
+
+        for (String dsId : dsIds) {
+            c.addDownstreamId(dsId);
+        }
+        inventory.registerControl(s, c);
+        
+        if (isWhole) {
+            float mass = Float.parseFloat(elm.getAttribute("mass"));
+            inventory.addItem(s, mass);
+            processDescriptionElements(elm, s, name);
+        }
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
+
+        return s;
+    }
+    
+    private List<Spatial> processCustomControlStateElement(Element stateElm) {
+        List<Spatial> ret = new LinkedList<>();
+        for (org.w3c.dom.Node child = stateElm.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+                continue;
+            }
+            Element childElm = (Element) child;
+            Spatial s = null;
+            if (childElm.getNodeName().equals("block")) {
+                s = processBlockElement(childElm, false);
+            } else if (childElm.getNodeName().equals("cylinder")) {
+                s = processCylinderElement(childElm, false);
+            } else if (childElm.getNodeName().equals("sphere")) {
+                s = processSphereElement(childElm, false);
+            } else if (childElm.getNodeName().equals("box")) {
+                s = processBoxElement(childElm, false);
+            } else if (childElm.getNodeName().equals("custom")) {
+                s = processCustomElement(childElm, false);
+            } else if (childElm.getNodeName().equals("composite")) {
+                s = processCompositeElement(childElm, false);
+            } else {
+                logger.log(Level.WARNING, "skipping unknown triggerable element " + childElm.getNodeName());
+            }
+            if (s != null) {
+                ret.add(s);
+            }
+        }
+        return ret;
+    }
 
 	private void processChainElement(Element elm) {
 		String groupId = getUniqueId(elm.getAttribute("id"));

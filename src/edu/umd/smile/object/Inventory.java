@@ -9,12 +9,15 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import com.bulletphysics.collision.dispatch.CollisionObject;
+import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.joints.PhysicsJoint;
 import com.jme3.bullet.joints.SixDofJoint;
+import com.jme3.collision.CollisionResults;
 import com.jme3.math.Matrix3f;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
@@ -435,6 +438,27 @@ public class Inventory {
 		rbc.forceActivationState(isInsomniac ? CollisionObject.DISABLE_DEACTIVATION : CollisionObject.ACTIVE_TAG);
 		rbc.activate();
 		return isInsomniac;
+    }
+    
+    public void wakeNearbyItems(Spatial s, float boundingVolumeScale) {
+        Spatial item = getItem(s);
+        if (item == null) {
+            return;
+        }
+        BoundingVolume bv = item.getWorldBound().clone();
+        Transform trans = new Transform(Vector3f.ZERO, Quaternion.IDENTITY,
+                Vector3f.UNIT_XYZ.mult(boundingVolumeScale));
+        bv = bv.transform(trans);
+        CollisionResults res = new CollisionResults();
+        for (Spatial i : items) {
+            if (i == item) {
+                continue;
+            }
+            i.collideWith(bv, res);
+            if (res.size() > 0) {
+                i.getControl(MyRigidBodyControl.class).activate();
+            }
+        }
     }
     
     public void addListener(InventoryListener l) {

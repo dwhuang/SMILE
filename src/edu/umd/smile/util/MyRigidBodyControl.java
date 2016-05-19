@@ -61,6 +61,15 @@ public class MyRigidBodyControl extends RigidBodyControl {
     	ps.add(this);
     }
     
+    public void updateForSpatialChange() {
+        if (spatial == null) {
+            return;
+        }
+        createCollisionShape();
+        rebuildRigidBody();
+    }
+
+
 //    @Override
 //    public Control cloneForSpatial(Spatial spatial) {
 //    	// copy from super class (RigidBodyControl.java)
