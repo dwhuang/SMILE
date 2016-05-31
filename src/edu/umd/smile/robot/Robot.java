@@ -5,8 +5,11 @@
 package edu.umd.smile.robot;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -55,10 +58,10 @@ public class Robot implements AnalogListener, ActionListener {
     private static final String[] FACE_PIC_NAMES = new String[] {
         null, "neutral.jpg", "bluecartooneyes.jpg", "domoface.jpg"
     };
-    public static final int HEAD_CAM_RES_WIDTH = 800;
-    public static final int HEAD_CAM_RES_HEIGHT = 600;
-    public static final float HEAD_CAM_INTV = 0.25f; // sec
-    public static final float HEAD_CAM_FOV = 60; // was 60
+    public int headCamResWidth = 800;
+    public int headCamResHeight = 600;
+    public float headCamIntv = 0.25f; // sec
+    public float headCamFov = 60; // was 60
 
     private String name;
     private boolean enabled = true;
@@ -146,14 +149,15 @@ public class Robot implements AnalogListener, ActionListener {
         factory = app.getFactory();
         rootNode = app.getRootNode();
         this.robotLocationNode = robotLocationNode;
+        loadHeadCamParams();
         
         buildRobot(name, robotLocationNode);
 
         // the camera attached near the top of the head screen is used
         // to take pictures, which are sent to the control agent
-        headCamcorder = new Camera(HEAD_CAM_RES_WIDTH, HEAD_CAM_RES_HEIGHT);
-        headCamcorder.setFrustumPerspective(HEAD_CAM_FOV,
-                HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
+        headCamcorder = new Camera(headCamResWidth, headCamResHeight);
+        headCamcorder.setFrustumPerspective(headCamFov,
+                headCamResWidth / headCamResHeight, 0.01f, 100);
         headImageCapturer = new ImageCapturer(headCamcorder, renderManager,
                 headCamNode, this.rootNode);
         headImageCapturer.syncCamera();
@@ -163,7 +167,40 @@ public class Robot implements AnalogListener, ActionListener {
         
         // control agent
         matlabAgent = new MatlabAgent(leftJointStates, rightJointStates,
-                leftGripper, rightGripper, locTrackers, rootNode, factory);
+                leftGripper, rightGripper, locTrackers, rootNode, factory, headCamResWidth, headCamResHeight);
+    }
+    
+    private void loadHeadCamParams() {
+        try {
+            InputStream in = (InputStream) assetManager.loadAsset("Interface/headcamparams.txt");
+            
+            BufferedReader r = new BufferedReader(new InputStreamReader(in));
+            String str;
+            str = r.readLine();
+            int w = Integer.parseInt(str);
+            if (w > 0) {
+                headCamResWidth = w;
+            }
+            str = r.readLine();
+            int h = Integer.parseInt(str);
+            if (h > 0) {
+                headCamResHeight = h;
+            }
+            str = r.readLine();
+            float tpf = Float.parseFloat(str);
+            if (tpf > 0) {
+                headCamIntv = tpf;
+            }
+            str = r.readLine();
+            float fov = Float.parseFloat(str);
+            if (fov > 0 && fov < 180) {
+                headCamFov = fov;
+            }
+            r.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
     }
     
     public BufferedImage getVisualImage() {
@@ -522,7 +559,7 @@ public class Robot implements AnalogListener, ActionListener {
         } else if (matlabAgent.isAlive()) {
             timeSinceLastHeadVision += tpf;
             BufferedImage img = null;
-            if (timeSinceLastHeadVision > HEAD_CAM_INTV) {
+            if (timeSinceLastHeadVision > headCamIntv) {
                 img = headImageCapturer.takePicture();
                 timeSinceLastHeadVision = 0;
             }
@@ -664,12 +701,12 @@ public class Robot implements AnalogListener, ActionListener {
             float vpXMax = 1;
             float vpYMin = 0;
             float vpYMax = vpYMin + (vpXMax - vpXMin)
-                    * ((float)HEAD_CAM_RES_HEIGHT / (float)HEAD_CAM_RES_WIDTH)
+                    * ((float)headCamResHeight / (float)headCamResWidth)
                     / ((float)headCam.getHeight() / (float)headCam.getWidth());
             
             headCam.setViewPort(vpXMin, vpXMax, vpYMin, vpYMax);
-            headCam.setFrustumPerspective(HEAD_CAM_FOV,
-                HEAD_CAM_RES_WIDTH / HEAD_CAM_RES_HEIGHT, 0.01f, 100);
+            headCam.setFrustumPerspective(headCamFov,
+                headCamResWidth / headCamResHeight, 0.01f, 100);
             updateHeadCam();
             ViewPort vp = renderManager.createMainView("robot head camera", headCam);
             vp.setClearFlags(true, true, true);

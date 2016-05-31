@@ -44,8 +44,6 @@ public class Inventory {
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
 
-    private Set<AbstractControl> controlStateChanged = new HashSet<>();
-
     
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
@@ -137,23 +135,6 @@ public class Inventory {
         return controls.get(s);
     }
     
-    public void markControlStateChanged(AbstractControl c) {
-        controlStateChanged.add(c);
-    }
-    
-    public void notifyAllControlStateChanged() {
-        for (AbstractControl c : controlStateChanged) {
-            for (InventoryListener l : listeners) {
-                l.objectControlTriggered(c.getSpatial(), c);
-            }
-        }
-        controlStateChanged.clear();
-    }
-    
-//    public String getAssemblyName(Node node) {
-//    	return assemblyNames.get(node);
-//    }
-
 	public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
     	if (!items.contains(item1)) {
     		throw new IllegalArgumentException(item1 + " does not exist in the inventory");

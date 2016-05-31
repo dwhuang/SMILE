@@ -4,14 +4,14 @@
  */
 package edu.umd.smile.robot;
 
-import com.jme3.math.Vector3f;
-
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.Map;
 
 import matlabcontrol.MatlabInvocationException;
 import matlabcontrol.MatlabProxy;
+
+import com.jme3.math.Vector3f;
 
 /**
  *
@@ -20,18 +20,27 @@ import matlabcontrol.MatlabProxy;
 public class MatlabAgentSensorData implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private final int CAM_WIDTH;
+    private final int CAM_HEIGHT;
 
     private double timeElapsed;
     private double[][] jointAngles = new double[2][Robot.DOF];
     private double[] gripperOpening = new double[2];
     private double[][] endEffPos = new double[2][3];
-    private Map<String, Vector3f> trackerLoc; 
-    private double[] rgbVision = new double[Robot.HEAD_CAM_RES_HEIGHT * Robot.HEAD_CAM_RES_WIDTH * 3];
+    private Map<String, Vector3f> trackerLoc;
+    private double[] rgbVision;
     private boolean demoCue;
     
-    private transient int[] rgbVisionBuffer = new int[Robot.HEAD_CAM_RES_WIDTH * Robot.HEAD_CAM_RES_HEIGHT];
+    private transient int[] rgbVisionBuffer;
     private transient boolean rgbVisionReady = false;
-            
+    
+    public MatlabAgentSensorData(int camWidth, int camHeight) {
+        CAM_WIDTH = camWidth;
+        CAM_HEIGHT = camHeight;
+        rgbVision = new double[CAM_HEIGHT * CAM_WIDTH * 3];
+        rgbVisionBuffer = new int[CAM_WIDTH * CAM_HEIGHT];
+    }
+    
     public void populate(float tpf, final RobotJointState[] leftJoints, final RobotJointState[] rightJoints,
             double leftGripperOpening, double rightGripperOpening,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
@@ -39,7 +48,7 @@ public class MatlabAgentSensorData implements Serializable {
             final BufferedImage vision, boolean demoCue) {
         timeElapsed = tpf;
         if (leftJoints.length != jointAngles[0].length) {
-            throw new IllegalArgumentException("left joint counts mismatch " 
+            throw new IllegalArgumentException("left joint counts mismatch "
                     + leftJoints.length + " " + jointAngles[0].length);
         }
         for (int i = 0; i < leftJoints.length; ++i) {
@@ -69,19 +78,19 @@ public class MatlabAgentSensorData implements Serializable {
         
         // convert image to matlab rgb array
         if (vision != null) {
-            if (vision.getWidth() != Robot.HEAD_CAM_RES_WIDTH 
-                    || vision.getHeight() != Robot.HEAD_CAM_RES_HEIGHT
+            if (vision.getWidth() != CAM_WIDTH
+                    || vision.getHeight() != CAM_HEIGHT
                     || vision.getType() != ImageCapturer.IMAGE_TYPE) {
                 throw new IllegalArgumentException("vision format not supported");
             }
-            vision.getRGB(0, 0, vision.getWidth(), vision.getHeight(), 
+            vision.getRGB(0, 0, vision.getWidth(), vision.getHeight(),
                     rgbVisionBuffer, 0, vision.getWidth(null));
 
             int i = 0;
             for (int color = 0; color < 3; ++color) {
-                for (int col = 0; col < Robot.HEAD_CAM_RES_WIDTH; ++col) {
-                    for (int row = 0; row < Robot.HEAD_CAM_RES_HEIGHT; ++row) {
-                        int intensity = (rgbVisionBuffer[row * Robot.HEAD_CAM_RES_WIDTH + col] 
+                for (int col = 0; col < CAM_WIDTH; ++col) {
+                    for (int row = 0; row < CAM_HEIGHT; ++row) {
+                        int intensity = (rgbVisionBuffer[row * CAM_WIDTH + col]
                                 >> ((2 - color) * 8)) & 0xff;
                         rgbVision[i++] = intensity / 255.0;
                     }
@@ -114,7 +123,7 @@ public class MatlabAgentSensorData implements Serializable {
             }
             buf.append(";");
         }
-        buf.append("];");        
+        buf.append("];");
         matlab.eval(buf.toString());
 
         matlab.eval("sensor.gripperOpening = [" + gripperOpening[0] + ", " + gripperOpening[1] + "];");
@@ -143,8 +152,8 @@ public class MatlabAgentSensorData implements Serializable {
             Object[] ret = matlab.returningEval("genvarname('rgbVision', who)", 1);
             String varName = (String) ret[0];
             matlab.setVariable(varName, rgbVision);
-            matlab.eval("sensor.rgbVision = reshape(" + varName + ", " + Robot.HEAD_CAM_RES_HEIGHT
-                    + ", " + Robot.HEAD_CAM_RES_WIDTH + ", 3);");
+            matlab.eval("sensor.rgbVision = reshape(" + varName + ", " + CAM_HEIGHT
+                    + ", " + CAM_WIDTH + ", 3);");
             matlab.eval("clear " + varName);
         }
         

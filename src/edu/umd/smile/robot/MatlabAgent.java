@@ -4,14 +4,6 @@
  */
 package edu.umd.smile.robot;
 
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.Vector3f;
-import com.jme3.renderer.queue.RenderQueue;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
-
-import edu.umd.smile.object.Factory;
-
 import java.awt.image.BufferedImage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +16,14 @@ import matlabcontrol.MatlabProxyFactory;
 import matlabcontrol.MatlabProxyFactoryOptions;
 import matlabcontrol.extensions.MatlabNumericArray;
 import matlabcontrol.extensions.MatlabTypeConverter;
+
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
+
+import edu.umd.smile.object.Factory;
 
 /**
  *
@@ -49,14 +49,14 @@ public class MatlabAgent {
     
     private LoggingMatlabProxy matlabWithLogging = null;
     private MatlabProxy matlab = null;
-    private MatlabAgentSensorData sensorData = new MatlabAgentSensorData();
-    private MatlabAgentMotorData motorData = new MatlabAgentMotorData();
+    private MatlabAgentSensorData sensorData;
+    private MatlabAgentMotorData motorData;
     
     private MatlabTypeConverter processor;
     
-    public MatlabAgent(RobotJointState[] leftJoints, RobotJointState[] rightJoints, 
+    public MatlabAgent(RobotJointState[] leftJoints, RobotJointState[] rightJoints,
             Gripper leftGripper, Gripper rightGripper, RobotLocTracker locTracker,
-            Node rootNode, Factory factory) {
+            Node rootNode, Factory factory, int camWidth, int camHeight) {
         this.leftJoints = leftJoints;
         this.rightJoints = rightJoints;
         this.leftGripper = leftGripper;
@@ -64,9 +64,12 @@ public class MatlabAgent {
         this.locTracker = locTracker;
         this.rootNode = rootNode;
         this.factory = factory;
+        
+        this.sensorData = new MatlabAgentSensorData(camWidth, camHeight);
+        this.motorData = new MatlabAgentMotorData();
     }
 
-    public void start() {        
+    public void start() {
         MatlabProxyFactoryOptions options = new MatlabProxyFactoryOptions.Builder()
                 .setUsePreviouslyControlledSession(true).build();
         MatlabProxyFactory matlabFactory = new MatlabProxyFactory(options);
@@ -93,7 +96,7 @@ public class MatlabAgent {
 
         if (matlab != null) {
             try {
-                StringBuffer buf = new StringBuffer("aux = struct('path', 'matlab/', 'numLimbs', 2, 'numJoints', " 
+                StringBuffer buf = new StringBuffer("aux = struct('path', 'matlab/', 'numLimbs', 2, 'numJoints', "
                 		+ Robot.DOF + ", 'minJointAngles', [");
                 for (int i = 0; i < leftJoints.length; ++i) {
                 	buf.append(leftJoints[i].getMinAngle());
@@ -127,7 +130,7 @@ public class MatlabAgent {
                 matlab.eval("initFunc();");
                 
                 // draw spatial targets (markers) for arm reaching
-                rootNode.attachChild(markerNode);                
+                rootNode.attachChild(markerNode);
                 if (matlabStructVarExists("aux", "drawMarkers")) {
                     double[][] markers = matlabGetVarAsArray2D("aux.drawMarkers");
                     for (int i = 0; i < markers.length; ++i) {
@@ -156,7 +159,7 @@ public class MatlabAgent {
                     for (int i = 0; i < leftJoints.length; ++i) {
                         rightJoints[i].setAngle((float) angles[1][i]);
                     }
-                }                
+                }
 
                 motorData.sendTemplateToMatlab(matlab); // so users don't have to fill out every field
                 
@@ -167,14 +170,14 @@ public class MatlabAgent {
         }
     }
     
-    private boolean matlabStructVarExists(String structName, String varName) 
+    private boolean matlabStructVarExists(String structName, String varName)
             throws MatlabInvocationException {
         Object[] ret = matlab.returningEval("any(strcmp('" + varName + "', fieldnames(" + structName + ")))", 1);
         boolean exists = ((boolean[]) ret[0])[0];
         return exists;
     }
 
-    private double[][] matlabGetVarAsArray2D(String varName) 
+    private double[][] matlabGetVarAsArray2D(String varName)
             throws MatlabInvocationException {
         MatlabNumericArray matlabArray = processor.getNumericArray(varName);
         double[][] var = matlabArray.getRealArray2D();
@@ -195,7 +198,7 @@ public class MatlabAgent {
         return matlab != null;
     }
 
-    public void poll(float tpf, 
+    public void poll(float tpf,
             final Vector3f leftEndEffPos, final Vector3f rightEndEffPos,
             final BufferedImage vision, boolean demoCue) {
         try {
@@ -223,7 +226,7 @@ public class MatlabAgent {
     
     private void cleanup() {
         motorData.reset();
-        motorData.execute(leftJoints, rightJoints, leftGripper, rightGripper);        
+        motorData.execute(leftJoints, rightJoints, leftGripper, rightGripper);
         markerNode.detachAllChildren();
         if (markerNode.getParent() != null) {
             markerNode.getParent().detachChild(markerNode);

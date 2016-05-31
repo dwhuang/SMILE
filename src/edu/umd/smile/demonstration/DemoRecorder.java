@@ -269,15 +269,6 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		}
 	}
 
-	@Override
-	public void objectControlTriggered(Spatial obj, AbstractControl c) {
-    	if (isRecording) {
-			currSegSymbWritter.print(frameId + ",changeControlState," + obj.getName() + ","
-			        + c.getStateName() + "\n");
-			saveRobotVision();
-		}
-	}
-
     @Override
     public void objectControlInitialized(Spatial obj, AbstractControl c) {
         if (isRecording) {
@@ -337,7 +328,7 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		}
 		timeElapsed += tpf;
 		if (timeElapsed >= DEMORECORDER_TPF) {
-			if (printObjectMoveSymbols()) {
+			if (printObjectMoveSymbols() || printChangeControlStateSymbols()) {
 				saveRobotVision();
 			}
 			timeElapsed = 0;
@@ -380,6 +371,21 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 		}
 		currSegSymbWritter.print(buf);
 		return buf.length() > 0;
+	}
+	
+	private boolean printChangeControlStateSymbols() {
+	    buf.setLength(0);
+	    for (Spatial s : inventory.allControlSpatials()) {
+	        AbstractControl c = inventory.getControl(s);
+	        if (c.isStateChanged()) {
+	            buf.append(frameId + ",changeControlState," + s.getName() + ","
+	                    + c.getStateName() + "\n");
+	            c.resetStateChanged();
+	        }
+	    }
+	    
+        currSegSymbWritter.print(buf);
+        return buf.length() > 0;
 	}
 	
 	private void printObjectCreateSymbols(Spatial item) {

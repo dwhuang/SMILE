@@ -32,6 +32,7 @@ import edu.umd.smile.object.Inventory;
 import edu.umd.smile.object.Table;
 import edu.umd.smile.robot.Gripper;
 import edu.umd.smile.robot.Robot;
+import edu.umd.smile.util.TextAssetLoader;
 
 /**
  * test
@@ -141,6 +142,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     @Override
     public void simpleInitApp() {
     	initBulletAppState();
+        assetManager.registerLoader(TextAssetLoader.class, "txt");
         flyCam.setMoveSpeed(10f);
         flyCamAppState = stateManager.getState(FlyCamAppState.class);
         

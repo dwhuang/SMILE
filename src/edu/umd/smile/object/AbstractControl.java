@@ -17,6 +17,7 @@ public abstract class AbstractControl {
 	private String prevStateName;
 	private LinkedList<AbstractControl> downstreams = new LinkedList<>();
 	private LinkedList<String> downstreamIds = new LinkedList<>();
+	private Boolean stateChanged = false;
 	
 	public AbstractControl(Inventory inv, Spatial s) {
 		inventory = inv;
@@ -48,9 +49,21 @@ public abstract class AbstractControl {
 	}
 	
 	private void announceStateChanged() {
-        inventory.markControlStateChanged(this);
+	    synchronized(stateChanged) {
+	        stateChanged = true;
+	    }
 	}
 	
+    public void resetStateChanged() {
+        synchronized(stateChanged) {
+            stateChanged = false;
+        }
+    }
+    
+    public boolean isStateChanged() {
+        return stateChanged;
+    }
+    
 	public Spatial getSpatial() {
 		return spatial;
 	}
