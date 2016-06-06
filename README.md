@@ -4,6 +4,6 @@ SMILE is a simulated environment for studying robot imitation learning based on 
 
 Please refer to our [technical report](https://hdl.handle.net/1903/18066) for detailed descriptions.
 
-Go to the [download page](https://bitbucket.org/dwh/smile/downloads) to get the latest executable.
+Go to the [download page](https://bitbucket.org/dwh/smile/downloads) to get the latest executable (*.zip).
 
 ![exview.png](https://bitbucket.org/repo/jxdd7X/images/3758731750-exview.png)
