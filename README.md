@@ -12,12 +12,27 @@ Please refer to our [technical report](https://hdl.handle.net/1903/18066) for de
 
 Go to the [download page](https://bitbucket.org/dwh/smile/downloads) to get the latest executable (*.zip).
 
-## Screenshots ##
+## Videos ##
+
+###Recording demonstrations###
+[![Recording a "UM" demonstration](https://img.youtube.com/vi/0M-LACmy7Cc/0.jpg)](https://youtu.be/0M-LACmy7Cc "Recording a "UM" demonstration")
+[![Recording a disk-drive dock maintenance demonstration](https://img.youtube.com/vi/YNeTfFfvIoo/0.jpg)](https://youtu.be/YNeTfFfvIoo "Recording a disk-drive dock maintenance demonstration")
+
+###Recorded demonstration videos###
+[!["UM"](https://img.youtube.com/vi/Ia-EabIX8Sk/0.jpg)](https://youtu.be/Ia-EabIX8Sk "Recorded "UM" demonstration video")
+
+###Robot simulation###
+[!["UM"](https://img.youtube.com/vi/oRbdmR1QjPg/0.jpg)](https://youtu.be/oRbdmR1QjPg "Robot simulation")
+
+
+## More Screenshots ##
 
 ![exview.png](https://bitbucket.org/repo/jxdd7X/images/3758731750-exview.png)
 
-![exdemo.png](https://bitbucket.org/repo/jxdd7X/images/1547624060-exdemo.png)
-
-![experf.png](https://bitbucket.org/repo/jxdd7X/images/3570974785-experf.png)
-
 ![dock.png](https://bitbucket.org/repo/jxdd7X/images/1459767673-dock.png)
+
+![objlidbox-eps-converted-to.png](https://bitbucket.org/repo/jxdd7X/images/2362123164-objlidbox-eps-converted-to.png)
+
+![objcusctr-eps-converted-to.png](https://bitbucket.org/repo/jxdd7X/images/2939431961-objcusctr-eps-converted-to.png)
+
+![objcustom.png](https://bitbucket.org/repo/jxdd7X/images/2217614476-objcustom.png)
