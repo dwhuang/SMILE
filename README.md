@@ -8,11 +8,11 @@ Primary features:
 * Programming behaviors of a simulated robot in the environment via a simple Matlab API.
 * Creating various simulated objects and controls for custom task scenarios using XML.
 
-Please refer to our [technical report](https://hdl.handle.net/1903/18066) for detailed descriptions.
+Refer to this [technical report](https://hdl.handle.net/1903/18066) for detailed descriptions.
 
-See our [imitation learning project](http://www.cs.umd.edu/~reggia/onrImitLearn/index.html) that involves SMILE.
+SMILE is a part of our [imitation learning project](http://www.cs.umd.edu/~reggia/onrImitLearn/index.html).
 
-Go to the [download page](https://bitbucket.org/dwh/smile/downloads) to get the latest executable (*.zip).
+[Download the latest executable](https://github.com/dwhuang/SMILE/releases).
 
 ## Videos ##
 
