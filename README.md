@@ -56,22 +56,22 @@ A robot simulation performing a "UM" block stacking task.
 
 An overview of SMILE's 3D simulated world
 
-![showcase.png](https://bitbucket.org/repo/jxdd7X/images/3758731750-exview.png)
+![showcase.png](http://dwhuang.github.io/SMILE/screenshots/showcase.png)
 
 ---
 
 A contraption designed using SMILE's XML interface
 
-![dock.png](https://bitbucket.org/repo/jxdd7X/images/1459767673-dock.png)
+![dock.png](http://dwhuang.github.io/SMILE/screenshots/dock.png)
 
 ---
 
-Loading a custom 3D model in STL format
+Loading custom 3D models in STL format
 
-![custom.png](https://bitbucket.org/repo/jxdd7X/images/2939431961-objcusctr-eps-converted-to.png)
+![custom.png](http://dwhuang.github.io/SMILE/screenshots/custom.png)
 
 ---
 
 The four states of three mutually-connected custom controls, specified using SMILE's XML interface
 
-![custom.png](https://bitbucket.org/repo/jxdd7X/images/2217614476-objcustom.png)
+![custom.png](http://dwhuang.github.io/SMILE/screenshots/control.png)
