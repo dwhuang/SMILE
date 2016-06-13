@@ -1,0 +1,2 @@
+New BSD (3-clause) License
+See https://github.com/jMonkeyEngine/jmonkeyengine
