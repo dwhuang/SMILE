@@ -35,7 +35,7 @@ Huang, D.-W., Katz, G., Langsfeld, J., Gentili, R., and Reggia, J. (2015). [A vi
 
 ## Software License ##
 
-[MIT License](./LICENSE.txt)
+[License](./LICENSE.txt)
 
 ## Usage videos ##
 
