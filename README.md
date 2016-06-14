@@ -13,7 +13,7 @@ Refer to this [technical report](https://hdl.handle.net/1903/18066) for detailed
 
 ## Prerequisite ##
 * [Java Runtime Environment](http://java.com/en/download/) version 1.7 or above, although 1.6 or 1.5 may work too.
-* Matlab is required only if you are planning to run Matlab scripts to controll the simulated robot.
+* Matlab is required only if you are planning to run Matlab scripts to control the simulated robot.
 
 ## Getting started ##
 
@@ -32,6 +32,10 @@ Refer to this [technical report](https://hdl.handle.net/1903/18066) for how to u
 Huang, D.-W., Katz, G., Langsfeld, J., Oh, H., Gentili, R., and Reggia, J. (2015). [An object-centric paradigm for robot programming by demonstration](http://doi.org/10.1007/978-3-319-20816-9_71). In Schmorrow, D. and Fidopiastis, C., editors, Foundations of Augmented Cognition, pages 745–756. Springer.
 
 Huang, D.-W., Katz, G., Langsfeld, J., Gentili, R., and Reggia, J. (2015). [A virtual demonstrator environment for robot imitation learning](http://doi.org/10.1109/TePRA.2015.7219691). In IEEE International Conference on Technologies for Practical Robot Applications (TePRA).
+
+## Software License ##
+
+[MIT License](./LICENSE.txt)
 
 ## Usage videos ##
 
