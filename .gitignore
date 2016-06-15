@@ -1,0 +1,9 @@
+bin
+export
+demo
+demo-*
+.settings
+tags
+*.dylib
+javadoc
+tablesetup/debug.xml
