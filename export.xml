@@ -60,5 +60,7 @@
         <copy todir="export/tablesetup">
             <fileset dir="tablesetup"/>
         </copy>
+    	<copy file="LICENSE.txt" todir="export/"/>
+    	<copy file="../SMILE-release/CS-TR-5049.pdf" todir="export/"/>
     </target>
 </project>

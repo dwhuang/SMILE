@@ -1,6 +1,5 @@
 bin
 export
-dist
 demo
 demo-*
 .settings
