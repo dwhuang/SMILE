@@ -65,18 +65,18 @@ public class Gripper implements AnalogListener {
         parentNode.attachChild(base);
         
         Geometry g;
-        g = factory.makeBlock(name + " left-finger", 
+        g = factory.makeBlock(name + " left-finger",
                 FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(-MAX_OPENING / 2 - FINGER_SIZE.x / 2, 0, 0);
-        base.attachChild(g);        
+        base.attachChild(g);
 
-        g = factory.makeBlock(name + " right-finger", 
+        g = factory.makeBlock(name + " right-finger",
                 FINGER_SIZE.x, FINGER_SIZE.y, FINGER_SIZE.z, COLOR);
         g.setLocalTranslation(MAX_OPENING / 2 + FINGER_SIZE.x / 2, 0, 0);
         base.attachChild(g);
         
-        g = factory.makeCylinder(name + " platform", 
-                FINGER_SIZE.y / 2, MAX_OPENING + FINGER_SIZE.x * 2 + 0.01f, COLOR);
+        g = factory.makeCylinder(name + " platform",
+                FINGER_SIZE.y / 2, MAX_OPENING + FINGER_SIZE.x * 2 + 0.01f, 32, COLOR);
         g.setLocalRotation(new Quaternion(new float[] {0, FastMath.HALF_PI, 0}));
         g.setLocalTranslation(0, 0, FINGER_SIZE.z / 2);
         base.attachChild(g);
@@ -214,7 +214,7 @@ public class Gripper implements AnalogListener {
             return phy;
         }
 
-        // NOTE called from the rendering thread 
+        // NOTE called from the rendering thread
         // call order seems to be like: input events -> collision -> update
         public void collision(PhysicsCollisionEvent event) {
         	if (!Gripper.this.enabled) {
@@ -248,7 +248,7 @@ public class Gripper implements AnalogListener {
             }
             
             fingerPressure += event.getAppliedImpulse();
-        }        
+        }
 
         @Override
         public void update(float tpf) {

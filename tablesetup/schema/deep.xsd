@@ -129,6 +129,7 @@
         <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
         <attribute name="radius" type="tt:spanType" use="optional" default="0.5"/>
         <attribute name="yspan" type="tt:spanType" use="optional" default="1"/>
+        <attribute name="sides" type="tt:countType" use="optional" default="32"/>
     </attributeGroup>    
     <complexType name="cylinderType">
         <complexContent>
@@ -148,6 +149,35 @@
         <complexContent>
             <extension base="tt:triggerableType">
                 <attributeGroup ref="tt:cylinderAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <attributeGroup name="prismAttrs">
+        <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
+        <attribute name="radiusTop" type="tt:spanType" use="optional" default="0.5"/>
+        <attribute name="radiusBottom" type="tt:spanType" use="optional" default="0.5"/>
+        <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
+        <attribute name="sides" type="tt:countType" use="optional" default="3"/>
+    </attributeGroup>    
+    <complexType name="prismType">
+        <complexContent>
+            <extension base="tt:shapeType">
+                <attributeGroup ref="tt:prismAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="prismObjectType">
+        <complexContent>
+            <extension base="tt:objectType">
+                <attributeGroup ref="tt:prismAttrs"/>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="triggerablePrismType">
+        <complexContent>
+            <extension base="tt:triggerableType">
+                <attributeGroup ref="tt:prismAttrs"/>
             </extension>
         </complexContent>
     </complexType>
@@ -235,6 +265,7 @@
         <choice>
             <element name="block" type="tt:blockType"/>
             <element name="cylinder" type="tt:cylinderType"/>
+            <element name="prism" type="tt:prismType"/>
             <element name="sphere" type="tt:sphereType"/>
             <element name="box" type="tt:boxType"/>
             <element name="custom" type="tt:customType"/>
@@ -248,6 +279,7 @@
         <choice>
             <element name="block" type="tt:triggerableBlockType"/>
             <element name="cylinder" type="tt:triggerableCylinderType"/>
+            <element name="prism" type="tt:triggerablePrismType"/>
             <element name="sphere" type="tt:triggerableSphereType"/>
             <element name="box" type="tt:triggerableBoxType"/>
             <element name="custom" type="tt:triggerableCustomType"/>
@@ -446,6 +478,7 @@
         <choice>
             <element name="block" type="tt:blockObjectType"/>
             <element name="cylinder" type="tt:cylinderObjectType"/>
+            <element name="prism" type="tt:prismObjectType"/>
             <element name="sphere" type="tt:sphereObjectType"/>
             <element name="box" type="tt:boxObjectType"/>
             <element name="custom" type="tt:customObjectType"/>

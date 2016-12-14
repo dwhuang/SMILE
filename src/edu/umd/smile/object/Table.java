@@ -629,6 +629,8 @@ public class Table implements ActionListener {
 				processBlockElement(elm, true);
 			} else if (elm.getNodeName().equals("cylinder")) {
 				processCylinderElement(elm, true);
+            } else if (elm.getNodeName().equals("prism")) {
+                processPrismElement(elm, true);
 			} else if (elm.getNodeName().equals("sphere")) {
 				processSphereElement(elm, true);
 			} else if (elm.getNodeName().equals("box")) {
@@ -725,6 +727,8 @@ public class Table implements ActionListener {
 				obj = processBlockElement(childElm, true);
 			} else if (childElm.getNodeName().equals("cylinder")) {
 				obj = processCylinderElement(childElm, true);
+            } else if (childElm.getNodeName().equals("prism")) {
+                obj = processPrismElement(childElm, true);
 			} else if (childElm.getNodeName().equals("sphere")) {
 				obj = processSphereElement(childElm, true);
 			} else if (childElm.getNodeName().equals("box")) {
@@ -844,8 +848,9 @@ public class Table implements ActionListener {
 		ColorRGBA color = parseColor(elm.getAttribute("color"));
 		float radius = Float.parseFloat(elm.getAttribute("radius"));
 		float zspan = Float.parseFloat(elm.getAttribute("yspan"));
+		int sides = Integer.parseInt(elm.getAttribute("sides"));
 
-		Spatial s = factory.makeCylinder(id, radius, zspan, color);
+		Spatial s = factory.makeCylinder(id, radius, zspan, sides, color);
 		s.setLocalTranslation(location);
 		s.setLocalRotation(new Quaternion().fromAngles(
 				rotation.x * FastMath.DEG_TO_RAD,
@@ -867,6 +872,43 @@ public class Table implements ActionListener {
 
 		return s;
 	}
+
+    private Spatial processPrismElement(Element elm, boolean isWhole) {
+        String id = elm.getAttribute("id");
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+        if (isWhole || pointable) {
+            id = getUniqueId(id);
+        }
+        Vector3f location = parseVector3(elm.getAttribute("location"));
+        Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+        ColorRGBA color = parseColor(elm.getAttribute("color"));
+        float radiusTop = Float.parseFloat(elm.getAttribute("radiusTop"));
+        float radiusBottom = Float.parseFloat(elm.getAttribute("radiusBottom"));
+        float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+        int sides = Integer.parseInt(elm.getAttribute("sides"));
+
+        Spatial s = factory.makePrism(id, radiusTop, radiusBottom, yspan, sides, color);
+        s.setLocalTranslation(location);
+        s.setLocalRotation(new Quaternion().fromAngles(
+                rotation.x * FastMath.DEG_TO_RAD,
+                rotation.y * FastMath.DEG_TO_RAD,
+                rotation.z * FastMath.DEG_TO_RAD));
+
+        if (isWhole) {
+            float mass = Float.parseFloat(elm.getAttribute("mass"));
+            inventory.addItem(s, mass);
+            processDescriptionElements(elm, s, "prism");
+        }
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
+        }
+
+        return s;
+    }
 
 	private Spatial processSphereElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
@@ -1009,6 +1051,8 @@ public class Table implements ActionListener {
 				s = processBlockElement(childElm, false);
 			} else if (childElm.getNodeName().equals("cylinder")) {
 				s = processCylinderElement(childElm, false);
+            } else if (childElm.getNodeName().equals("prism")) {
+                s = processPrismElement(childElm, false);
 			} else if (childElm.getNodeName().equals("sphere")) {
 				s = processSphereElement(childElm, false);
 			} else if (childElm.getNodeName().equals("box")) {
@@ -1141,7 +1185,7 @@ public class Table implements ActionListener {
 			lightPos.y = lightZspan / 2;
 		}
 		for (int i = 0; i < numLights; ++i) {
-			Spatial light = factory.makeCylinder(id + "-light" + i, lightRadius, lightZspan, ColorRGBA.Black);
+			Spatial light = factory.makeCylinder(id + "-light" + i, lightRadius, lightZspan, 32, ColorRGBA.Black);
 			light.setLocalRotation(new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_X));
 			light.setLocalTranslation(lightPos);
 			lightPos.x += lightIntv;
@@ -1269,6 +1313,8 @@ public class Table implements ActionListener {
                 s = processBlockElement(childElm, false);
             } else if (childElm.getNodeName().equals("cylinder")) {
                 s = processCylinderElement(childElm, false);
+            } else if (childElm.getNodeName().equals("prism")) {
+                s = processPrismElement(childElm, false);
             } else if (childElm.getNodeName().equals("sphere")) {
                 s = processSphereElement(childElm, false);
             } else if (childElm.getNodeName().equals("box")) {

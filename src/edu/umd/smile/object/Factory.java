@@ -30,6 +30,7 @@ import com.jme3.scene.shape.Sphere;
 import com.jme3.util.BufferUtils;
 
 import edu.umd.smile.gui.LogMessage;
+import edu.umd.smile.util.Prism;
 
 /**
  *
@@ -214,7 +215,7 @@ public class Factory {
         return boxContainer;
     }
     
-    public Geometry makeCylinder(String name, float radius, float height,
+    public Geometry makeCylinder(String name, float radius, float height, int sides,
             ColorRGBA color) {
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
@@ -223,10 +224,25 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
-        Geometry cylinder = new Geometry(name, new Cylinder(32, 32, radius, height, true));
+        Geometry cylinder = new Geometry(name, new Cylinder(32, sides, radius, height, true));
         cylinder.setMaterial(mat);
 
         return cylinder;
+    }
+
+    public Geometry makePrism(String name, float radiusTop, float radiusBottom, float height, int sides,
+            ColorRGBA color) {
+        Material mat = new Material(assetManager,
+                "Common/MatDefs/Light/Lighting.j3md");
+        mat.setBoolean("UseMaterialColors", true);
+        mat.setColor("Ambient", color.mult(0.8f));
+        mat.setColor("Diffuse", color);
+        mat.setColor("Specular", ColorRGBA.White);
+//        mat.setBoolean("HighQuality", false);
+        Geometry prism = new Geometry(name, new Prism(radiusTop, radiusBottom, height / 2, sides));
+        prism.setMaterial(mat);
+
+        return prism;
     }
 
     public Geometry makeSphere(String name, float radius, ColorRGBA color) {
