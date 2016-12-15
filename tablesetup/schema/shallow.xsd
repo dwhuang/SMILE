@@ -23,6 +23,7 @@
             <element name="block"/>
             <element name="cylinder"/>
             <element name="prism"/>
+            <element name="ring"/>
             <element name="sphere"/>
             <element name="box"/>
             <element name="custom"/>

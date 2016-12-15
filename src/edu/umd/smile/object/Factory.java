@@ -31,6 +31,7 @@ import com.jme3.util.BufferUtils;
 
 import edu.umd.smile.gui.LogMessage;
 import edu.umd.smile.util.Prism;
+import edu.umd.smile.util.Ring;
 
 /**
  *
@@ -239,10 +240,25 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
-        Geometry prism = new Geometry(name, new Prism(radiusTop, radiusBottom, height / 2, sides));
+        Geometry prism = new Geometry(name, new Prism(radiusTop, radiusBottom, height, sides));
         prism.setMaterial(mat);
 
         return prism;
+    }
+
+    public Geometry makeRing(String name, float radiusOuter, float radiusInner, float height, int sides,
+            ColorRGBA color) {
+        Material mat = new Material(assetManager,
+                "Common/MatDefs/Light/Lighting.j3md");
+        mat.setBoolean("UseMaterialColors", true);
+        mat.setColor("Ambient", color.mult(0.8f));
+        mat.setColor("Diffuse", color);
+        mat.setColor("Specular", ColorRGBA.White);
+//        mat.setBoolean("HighQuality", false);
+        Geometry ring = new Geometry(name, new Ring(radiusOuter, radiusInner, height, sides));
+        ring.setMaterial(mat);
+
+        return ring;
     }
 
     public Geometry makeSphere(String name, float radius, ColorRGBA color) {

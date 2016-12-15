@@ -631,6 +631,8 @@ public class Table implements ActionListener {
 				processCylinderElement(elm, true);
             } else if (elm.getNodeName().equals("prism")) {
                 processPrismElement(elm, true);
+            } else if (elm.getNodeName().equals("ring")) {
+                processRingElement(elm, true);
 			} else if (elm.getNodeName().equals("sphere")) {
 				processSphereElement(elm, true);
 			} else if (elm.getNodeName().equals("box")) {
@@ -729,6 +731,8 @@ public class Table implements ActionListener {
 				obj = processCylinderElement(childElm, true);
             } else if (childElm.getNodeName().equals("prism")) {
                 obj = processPrismElement(childElm, true);
+            } else if (childElm.getNodeName().equals("ring")) {
+                obj = processRingElement(childElm, true);
 			} else if (childElm.getNodeName().equals("sphere")) {
 				obj = processSphereElement(childElm, true);
 			} else if (childElm.getNodeName().equals("box")) {
@@ -910,6 +914,43 @@ public class Table implements ActionListener {
         return s;
     }
 
+    private Spatial processRingElement(Element elm, boolean isWhole) {
+        String id = elm.getAttribute("id");
+        boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
+        if (isWhole || pointable) {
+            id = getUniqueId(id);
+        }
+        Vector3f location = parseVector3(elm.getAttribute("location"));
+        Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+        ColorRGBA color = parseColor(elm.getAttribute("color"));
+        float radiusOuter = Float.parseFloat(elm.getAttribute("radiusOuter"));
+        float radiusInner = Float.parseFloat(elm.getAttribute("radiusInner"));
+        float yspan = Float.parseFloat(elm.getAttribute("zspan"));
+        int sides = Integer.parseInt(elm.getAttribute("sides"));
+
+        Spatial s = factory.makeRing(id, radiusOuter, radiusInner, yspan, sides, color);
+        s.setLocalTranslation(location);
+        s.setLocalRotation(new Quaternion().fromAngles(
+                rotation.x * FastMath.DEG_TO_RAD,
+                rotation.y * FastMath.DEG_TO_RAD,
+                rotation.z * FastMath.DEG_TO_RAD));
+
+        if (isWhole) {
+            float mass = Float.parseFloat(elm.getAttribute("mass"));
+            inventory.addItem(s, mass);
+            processDescriptionElements(elm, s, "ring");
+        }
+        if (pointable) {
+            s.setUserData("pointable", "" + pointable);
+        }
+        String ns = elm.getAttribute("nextStateWhenTriggered");
+        if (ns.length() > 0) {
+            s.setUserData("nextStateWhenTriggered", Integer.parseInt(ns));
+        }
+
+        return s;
+    }
+
 	private Spatial processSphereElement(Element elm, boolean isWhole) {
 		String id = elm.getAttribute("id");
         boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
@@ -1053,6 +1094,8 @@ public class Table implements ActionListener {
 				s = processCylinderElement(childElm, false);
             } else if (childElm.getNodeName().equals("prism")) {
                 s = processPrismElement(childElm, false);
+            } else if (childElm.getNodeName().equals("ring")) {
+                s = processRingElement(childElm, false);
 			} else if (childElm.getNodeName().equals("sphere")) {
 				s = processSphereElement(childElm, false);
 			} else if (childElm.getNodeName().equals("box")) {
@@ -1315,6 +1358,8 @@ public class Table implements ActionListener {
                 s = processCylinderElement(childElm, false);
             } else if (childElm.getNodeName().equals("prism")) {
                 s = processPrismElement(childElm, false);
+            } else if (childElm.getNodeName().equals("ring")) {
+                s = processRingElement(childElm, false);
             } else if (childElm.getNodeName().equals("sphere")) {
                 s = processSphereElement(childElm, false);
             } else if (childElm.getNodeName().equals("box")) {
