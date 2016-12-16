@@ -164,7 +164,15 @@ public class Demonstrator implements ActionListener, AnalogListener {
                 } else {
                 	// right click
             		if (!isPressed) {
-                    	triggerFirstCursorSpatialFunction(rootNode);
+//                    	triggerFirstCursorSpatialFunction(rootNode);
+
+                    	CollisionResult r = getCursorClosestCollision(rootNode);
+                        if (r == null) {
+                            return;
+                        }
+                        AbstractControl triggerable = inventory.getManuallyTriggerable(r.getGeometry());
+                        Spatial pointable = inventory.getPointable(r.getGeometry());
+                        app.showContextMenu(triggerable != null, pointable != null, false, false);
                 	}
                 }
             } else if (state == HandState.Grasped) {
@@ -707,19 +715,18 @@ public class Demonstrator implements ActionListener, AnalogListener {
     	if (r == null) {
     		return;
     	}
-    	AbstractControl c = inventory.triggerDeepestControlForSpatial(r.getGeometry());
-    	if (c != null) {
+    	AbstractControl triggerable = inventory.getManuallyTriggerable(r.getGeometry());
+        Spatial pointable = inventory.getPointable(r.getGeometry());
+    	if (triggerable != null) {
+    	    triggerable.trigger(r.getGeometry(), true);
         	// notify listeners
             for (DemoActionListener l : demoActionListeners) {
-                l.demoTrigger(currHand.id, c.getSpatial());
+                l.demoTrigger(currHand.id, triggerable.getSpatial());
             }
-    	} else {
-    	    Spatial s = inventory.getPointable(r.getGeometry());
-    	    if (s != null) {
-                for (DemoActionListener l : demoActionListeners) {
-                    l.demoPointTo(currHand.id, s);
-                }
-    	    }
+    	} else if (pointable != null) {
+            for (DemoActionListener l : demoActionListeners) {
+                l.demoPointTo(currHand.id, pointable);
+            }
     	}
     }
     

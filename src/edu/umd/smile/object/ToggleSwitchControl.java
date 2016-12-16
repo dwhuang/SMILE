@@ -53,7 +53,7 @@ public class ToggleSwitchControl extends AbstractControl {
 	public boolean trigger(Object o, boolean announce) {
 		if (o instanceof Geometry) {
 			Geometry g = (Geometry) o;
-			int buttonPressed = ((Node) spatial).getChildIndex(g);
+            int buttonPressed = ((Node) spatial).getChildIndex(g);
 			if (buttonPressed != vstate) {
 			    vstate = buttonPressed;
 			    updateTogglePosition();
@@ -72,4 +72,10 @@ public class ToggleSwitchControl extends AbstractControl {
 		}
 		return false;
 	}
+
+    @Override
+    public boolean isManuallyTriggerable(Geometry g) {
+        int buttonPressed = ((Node) spatial).getChildIndex(g);
+        return buttonPressed != vstate;
+    }
 }

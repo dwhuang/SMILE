@@ -86,6 +86,13 @@
                     </element>
                 </sequence>
                 <attribute name="mass" type="tt:massType" use="optional" default="1"/>
+                <attribute name="interface" type="string" use="optional" default="">
+                    <annotation>
+                        <documentation>name of the object-assembling interface that this object supports;
+                        disabled when the value is an empty string
+                        </documentation>
+                    </annotation>
+                </attribute>
             </extension>
         </complexContent>
     </complexType>
@@ -237,6 +244,16 @@
         </complexContent>
     </complexType>
 
+    <attributeGroup name="interfaceAttrs">
+        <attribute name="type" type="string" use="required"/>
+        <attribute name="id" type="tt:idType" use="optional"/>
+        <attribute name="location" type="tt:vector3Type" use="required" />
+        <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
+    </attributeGroup>
+    <complexType name="interfaceType">
+        <attributeGroup ref="tt:interfaceAttrs"/>
+    </complexType>    
+
     <attributeGroup name="boxAttrs">
         <attributeGroup ref="tt:blockAttrs"/>
         <attribute name="thickness" type="tt:spanType" use="optional" default="0.05"/>
@@ -300,9 +317,10 @@
             <element name="box" type="tt:boxType"/>
             <element name="custom" type="tt:customType"/>
             <element name="composite" type="tt:compositeType"/>            
+            <element name="interface" type="tt:interfaceType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
             <element name="indicatorLights" type="tt:indicatorLightsType"/>            
-            <element name="customControl" type="tt:customControlType"/>            
+            <element name="customControl" type="tt:customControlType"/>
         </choice>
     </group>
     <group name="triggerableCompositeGroup">

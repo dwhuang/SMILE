@@ -27,7 +27,7 @@
             <element name="sphere"/>
             <element name="box"/>
             <element name="custom"/>
-            <element name="cartridge"/>
+            <element name="interface"/>
             <element name="composite"/>            
             <element name="toggleSwitch"/>            
             <element name="indicatorLights"/>
@@ -36,8 +36,6 @@
             <element name="state"/>            
             <element name="light"/>            
             <element name="chain"/>            
-            <element name="lidbox"/>            
-            <element name="dock"/>            
             <element name="sliderJoint"/>            
         </choice>
     </group>

@@ -99,4 +99,10 @@ public class CustomControl extends AbstractControl {
         }
         return false;
     }
+
+    @Override
+    public boolean isManuallyTriggerable(Geometry g) {
+        int ns = findNextStateForGeometry(g);
+        return canSetState(ns);
+    }
 }

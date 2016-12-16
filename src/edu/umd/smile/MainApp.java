@@ -310,29 +310,33 @@ public class MainApp extends SimpleApplication implements ActionListener {
         super.stop();
         robot.stop();
     }
+    
+    private String pauseSource = "";
+    
+    private boolean setPause(String sourceName, boolean enabled) {
+        if (!pauseSource.isEmpty() && !pauseSource.equals(sourceName)) {
+            return false;
+        }
+        bulletAppState.setEnabled(!enabled);
+        flyCamAppState.setEnabled(!enabled);
+        robot.setEnabled(!enabled);
+        table.setEnabled(!enabled);
+        demonstrator.setEnabled(!enabled);
+        setPauseOnLostFocus(enabled);
+        isRunning = !enabled;
+        if (!enabled) {
+            pauseSource = "";
+        }
+        return true;
+    }
 
     public void onAction(String name, boolean isPressed, float tpf) {
     	if (name.equals("spaceKey")) {
         	if (isPressed) {
-        		if (isRunning) {
-        			guiController.showPausePopup(true);
-        			bulletAppState.setEnabled(false);
-        			flyCamAppState.setEnabled(false);
-        			robot.setEnabled(false);
-        			table.setEnabled(false);
-        			demonstrator.setEnabled(false);
-        			setPauseOnLostFocus(true);
-        			isRunning = false;
-        		} else {
-        			guiController.showPausePopup(false);
-        			bulletAppState.setEnabled(true);
-        			flyCamAppState.setEnabled(true);
-        			robot.setEnabled(true);
-        			table.setEnabled(true);
-        			demonstrator.setEnabled(true);
-        			setPauseOnLostFocus(false);
-        			isRunning = true;
-        		}
+                if (setPause("manual", isRunning)) {
+                    // isRunning is affected
+                    guiController.showPausePopup(!isRunning);
+                }
         	}
         } else if (name.equals("escapeKey")) {
         	stop();
@@ -341,5 +345,10 @@ public class MainApp extends SimpleApplication implements ActionListener {
     
     public void showMessage(String str) {
     	guiController.showMessagePopup(str, 1);
+    }
+    
+    public void showContextMenu(boolean triggerEnabled, boolean pointToEnabled, boolean attachEnabled,
+            boolean detachEnabled) {
+        guiController.showContextMenu(triggerEnabled, pointToEnabled, attachEnabled, detachEnabled);
     }
 }

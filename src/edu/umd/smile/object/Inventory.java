@@ -20,6 +20,7 @@ import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -119,11 +120,11 @@ public class Inventory {
         }
     }
 
-    public AbstractControl triggerDeepestControlForSpatial(Spatial s) {
-        Spatial cs = s;
+    public AbstractControl getManuallyTriggerable(Geometry g) {
+        Spatial cs = g;
     	while (cs != null) {
     	    AbstractControl c = controls.get(cs);
-    		if (c != null && c.trigger(s, true)) {
+    		if (c != null && c.isManuallyTriggerable(g)) {
     		    return c;
     		}
     		cs = cs.getParent();

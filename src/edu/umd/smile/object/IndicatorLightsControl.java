@@ -99,4 +99,9 @@ public class IndicatorLightsControl extends AbstractControl {
         return false;
     }
 
+    @Override
+    public boolean isManuallyTriggerable(Geometry g) {
+        return false;
+    }
+
 }

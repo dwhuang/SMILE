@@ -20,6 +20,8 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.tools.SizeValue;
+import edu.umd.smile.util.MyMenu;
+import edu.umd.smile.util.MyMenuItemActivatedEvent;
 
 /**
  *
@@ -39,6 +41,9 @@ public class GuiController extends AbstractAppState implements ScreenController 
     private float messageDuration = 0;
     private float messageTimeElapsed;
     
+    Element puContextMenu;
+    MyMenu<String> mnContextMenu;
+        
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
@@ -65,6 +70,7 @@ public class GuiController extends AbstractAppState implements ScreenController 
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void bind(Nifty nifty, Screen screen) {
     	this.nifty = nifty;
     	this.screen = screen;
@@ -72,6 +78,12 @@ public class GuiController extends AbstractAppState implements ScreenController 
         puPause = nifty.createPopup("puPause");
         puMessage = nifty.createPopup("puMessage");
         lbMessage = puMessage.findNiftyControl("lbMessage", Label.class);
+        puContextMenu = nifty.createPopup("puContextMenu");
+        mnContextMenu = puContextMenu.findNiftyControl("mnContextMenu", MyMenu.class);
+        mnContextMenu.addMenuItem("Trigger", "Trigger");
+        mnContextMenu.addMenuItem("Point To", "Point To");
+        mnContextMenu.addMenuItem("Attach", "Trigger");
+        mnContextMenu.addMenuItem("Detach", "Point To");
         
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
@@ -114,6 +126,43 @@ public class GuiController extends AbstractAppState implements ScreenController 
     	lbMessage.setText(str);
     }
     
+    public void showContextMenu(boolean triggerEnabled, boolean pointToEnabled, boolean attachEnabled,
+            boolean detachEnabled) {
+        if (triggerEnabled) {
+            mnContextMenu.getMenuItem(0).enable();
+        } else {
+            mnContextMenu.getMenuItem(0).disable();
+        }
+        if (pointToEnabled) {
+            mnContextMenu.getMenuItem(1).enable();
+        } else {
+            mnContextMenu.getMenuItem(1).disable();
+        }
+        if (attachEnabled) {
+            mnContextMenu.getMenuItem(2).enable();
+        } else {
+            mnContextMenu.getMenuItem(2).disable();
+        }
+        if (detachEnabled) {
+            mnContextMenu.getMenuItem(3).enable();
+        } else {
+            mnContextMenu.getMenuItem(3).disable();
+        }
+        
+        if (triggerEnabled || pointToEnabled || attachEnabled || detachEnabled) {
+            nifty.showPopup(screen, puContextMenu.getId(), null);
+        }
+    }
+    
+    public void closeContextMenu() {
+        nifty.closePopup(puContextMenu.getId());
+    }
+
+    @NiftyEventSubscriber(pattern="mnContextMenu")
+    public void onMenuItem(String id, MyMenuItemActivatedEvent<String> e) {
+        System.err.println("haha " + e.getItem());
+    }
+    
     @NiftyEventSubscriber(pattern="bt.*")
     public void onWindowButton(String id, ButtonClickedEvent e) {
         String windowId = "wd" + id.substring(2);
@@ -131,7 +180,7 @@ public class GuiController extends AbstractAppState implements ScreenController 
 
                 windowElement.show();
                 for (Element elm : windowElement.getElements()) {
-                	// have to do this after markForMove(), otherwise radio button selections 
+                	// have to do this after markForMove(), otherwise radio button selections
                 	// are not displayed properly
                 	elm.show();
                 }

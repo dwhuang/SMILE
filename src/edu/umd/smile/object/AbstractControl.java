@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 
 public abstract class AbstractControl {
@@ -87,7 +88,7 @@ public abstract class AbstractControl {
 	 * @return state was changed
 	 */
 	protected boolean setState(int s, boolean announce) {
-	    if (state != s && stateIsValid(s)) {
+	    if (canSetState(s)) {
 	        state = s;
             String currStateName = getStateName();
 	        if (announce && !currStateName.equals(prevStateName)) {
@@ -97,6 +98,10 @@ public abstract class AbstractControl {
 	        return true;
 	    }
 	    return false;
+	}
+	
+	protected boolean canSetState(int s) {
+	    return state != s && stateIsValid(s);
 	}
 	
 	/**
@@ -129,4 +134,5 @@ public abstract class AbstractControl {
      */
     public abstract boolean trigger(Object o, boolean announce);
 
+    public abstract boolean isManuallyTriggerable(Geometry g);
 }
