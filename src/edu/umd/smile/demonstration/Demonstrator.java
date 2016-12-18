@@ -6,6 +6,7 @@ package edu.umd.smile.demonstration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
@@ -30,6 +31,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
+import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Factory;
 import edu.umd.smile.object.Inventory;
@@ -78,6 +80,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private Vector3f movingCursorOffset;
     
     private boolean shiftKey = false;
+    private boolean leftButtonDownForGrasping = false;
     
     private transient Ray ray = new Ray();
     private transient CollisionResults collisionResults = new CollisionResults();
@@ -88,7 +91,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private transient Transform minTransform = new Transform();
     private transient Quaternion quat = new Quaternion();
     
-    public class Hand {
+    public class Hand implements ContextMenuListener<Object> {
     	private HandId id;
     	private HandState state = HandState.Idle;
     	private Node graspNode = null;
@@ -156,10 +159,18 @@ public class Demonstrator implements ActionListener, AnalogListener {
             if (state == HandState.Idle) {
             	if (leftButton) {
             		if (!isPressed) {
-	                    Spatial cursorObj = getCursorItem(rootNode);
-	                    if (cursorObj != null) {
-	                        grasp(cursorObj);
-	                    }
+                        // When the left button is released, make sure that it was pressed
+            		    // for the intention to grasp something in the first place,
+            		    // as opposed to select a context menu item.
+            		    if (leftButtonDownForGrasping) {
+                		    leftButtonDownForGrasping = false;
+    	                    Spatial cursorObj = getCursorItem(rootNode);
+    	                    if (cursorObj != null) {
+    	                        grasp(cursorObj);
+    	                    }
+            		    }
+                	} else {
+                	    leftButtonDownForGrasping = true;
                 	}
                 } else {
                 	// right click
@@ -170,9 +181,12 @@ public class Demonstrator implements ActionListener, AnalogListener {
                         if (r == null) {
                             return;
                         }
+                        HashMap<String, Object> contextMenuInfo = new HashMap<>();
                         AbstractControl triggerable = inventory.getManuallyTriggerable(r.getGeometry());
                         Spatial pointable = inventory.getPointable(r.getGeometry());
-                        app.showContextMenu(triggerable != null, pointable != null, false, false);
+                        contextMenuInfo.put("trigger", triggerable);
+                        contextMenuInfo.put("pointTo", pointable);
+                        app.showContextMenu(contextMenuInfo, this);
                 	}
                 }
             } else if (state == HandState.Grasped) {
@@ -186,6 +200,11 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     movingEnd();
                 }
             }
+        }
+        
+        @Override
+        public void onContextMenu(String itemName, Object userObject) {
+            System.err.println(itemName);
         }
         
         private void processMouseMoveEvent() {

@@ -4,25 +4,29 @@ package edu.umd.smile.util;
 import de.lessvoid.nifty.NiftyEvent;
 
 /**
- * Nifty generates this event when a menu item has been activated. The item that was activated is being transmitted in
- * this event.
- * 
- * @author void
+ * This is a copy of MenuItemActivatedEvent, except that now it uses MyMenu instead of MenuControl.
+ * This could've been avoided if the member variables were not made private.
  */
 public class MyMenuItemActivatedEvent<T> implements NiftyEvent<T> {
-    private MyMenu<T> menu;
-    private T item;
+    protected MyMenu<T> menu;
+    protected String itemName;
+    protected T itemUserObject;
 
-    public MyMenuItemActivatedEvent(final MyMenu<T> menu, final T item) {
+    public MyMenuItemActivatedEvent(final MyMenu<T> menu, String name, T userObject) {
         this.menu = menu;
-        this.item = item;
+        this.itemName = name;
+        this.itemUserObject = userObject;
     }
 
     public MyMenu<T> getMenu() {
         return menu;
     }
 
-    public T getItem() {
-        return item;
+    public String getItemName() {
+        return itemName;
+    }
+    
+    public T getItemUserObject() {
+        return itemUserObject;
     }
 }

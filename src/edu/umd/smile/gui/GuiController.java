@@ -5,6 +5,7 @@
 package edu.umd.smile.gui;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
@@ -20,6 +21,7 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.tools.SizeValue;
+import edu.umd.smile.MainApp;
 import edu.umd.smile.util.MyMenu;
 import edu.umd.smile.util.MyMenuItemActivatedEvent;
 
@@ -28,7 +30,7 @@ import edu.umd.smile.util.MyMenuItemActivatedEvent;
  * @author dwhuang
  */
 public class GuiController extends AbstractAppState implements ScreenController {
-    
+    private MainApp app;
 	private Nifty nifty;
 	private Screen screen;
 	
@@ -42,11 +44,13 @@ public class GuiController extends AbstractAppState implements ScreenController 
     private float messageTimeElapsed;
     
     Element puContextMenu;
-    MyMenu<String> mnContextMenu;
+    MyMenu<Object> mnContextMenu;
+    ContextMenuListener<Object> contextMenuListener = null;
         
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
+        this.app = (MainApp) app;
         for (WindowController wc : windowControllers) {
             wc.init(app);
         }
@@ -80,10 +84,10 @@ public class GuiController extends AbstractAppState implements ScreenController 
         lbMessage = puMessage.findNiftyControl("lbMessage", Label.class);
         puContextMenu = nifty.createPopup("puContextMenu");
         mnContextMenu = puContextMenu.findNiftyControl("mnContextMenu", MyMenu.class);
-        mnContextMenu.addMenuItem("Trigger", "Trigger");
-        mnContextMenu.addMenuItem("Point To", "Point To");
-        mnContextMenu.addMenuItem("Attach", "Trigger");
-        mnContextMenu.addMenuItem("Detach", "Point To");
+        mnContextMenu.addMenuItem("trigger", "Trigger", null);
+        mnContextMenu.addMenuItem("pointTo", "Point To", null);
+        mnContextMenu.addMenuItem("attach", "Attach", null);
+        mnContextMenu.addMenuItem("detach", "Detach", null);
         
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
@@ -126,41 +130,32 @@ public class GuiController extends AbstractAppState implements ScreenController 
     	lbMessage.setText(str);
     }
     
-    public void showContextMenu(boolean triggerEnabled, boolean pointToEnabled, boolean attachEnabled,
-            boolean detachEnabled) {
-        if (triggerEnabled) {
-            mnContextMenu.getMenuItem(0).enable();
-        } else {
-            mnContextMenu.getMenuItem(0).disable();
+    public void showContextMenu(HashMap<String, Object> info, ContextMenuListener<Object> listener) {
+        for (String key : info.keySet()) {
+            MyMenu<Object>.Item item = mnContextMenu.getItemByName(key);
+            if (item != null) {
+                item.setUserObject(info.get(key));
+            }
         }
-        if (pointToEnabled) {
-            mnContextMenu.getMenuItem(1).enable();
-        } else {
-            mnContextMenu.getMenuItem(1).disable();
-        }
-        if (attachEnabled) {
-            mnContextMenu.getMenuItem(2).enable();
-        } else {
-            mnContextMenu.getMenuItem(2).disable();
-        }
-        if (detachEnabled) {
-            mnContextMenu.getMenuItem(3).enable();
-        } else {
-            mnContextMenu.getMenuItem(3).disable();
-        }
-        
-        if (triggerEnabled || pointToEnabled || attachEnabled || detachEnabled) {
+        if (listener != null && mnContextMenu.updateMenuItemEnabled()) {
             nifty.showPopup(screen, puContextMenu.getId(), null);
+            contextMenuListener = listener;
+            app.setPause("contextMenu", true);
         }
     }
     
     public void closeContextMenu() {
+        app.setPause("contextMenu", false);
+        contextMenuListener = null;
         nifty.closePopup(puContextMenu.getId());
     }
 
     @NiftyEventSubscriber(pattern="mnContextMenu")
     public void onMenuItem(String id, MyMenuItemActivatedEvent<String> e) {
-        System.err.println("haha " + e.getItem());
+        if (contextMenuListener != null) {
+            contextMenuListener.onContextMenu(e.getItemName(), e.getItemUserObject());
+        }
+        closeContextMenu();
     }
     
     @NiftyEventSubscriber(pattern="bt.*")

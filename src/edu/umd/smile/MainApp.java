@@ -1,5 +1,6 @@
 package edu.umd.smile;
 
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,6 +27,7 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import edu.umd.smile.demonstration.DemoRecorder;
 import edu.umd.smile.demonstration.Demonstrator;
+import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.gui.GuiController;
 import edu.umd.smile.object.Factory;
 import edu.umd.smile.object.Inventory;
@@ -313,7 +315,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     
     private String pauseSource = "";
     
-    private boolean setPause(String sourceName, boolean enabled) {
+    public boolean setPause(String sourceName, boolean enabled) {
         if (!pauseSource.isEmpty() && !pauseSource.equals(sourceName)) {
             return false;
         }
@@ -347,8 +349,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     	guiController.showMessagePopup(str, 1);
     }
     
-    public void showContextMenu(boolean triggerEnabled, boolean pointToEnabled, boolean attachEnabled,
-            boolean detachEnabled) {
-        guiController.showContextMenu(triggerEnabled, pointToEnabled, attachEnabled, detachEnabled);
+    public void showContextMenu(HashMap<String, Object> info, ContextMenuListener<Object> listener) {
+        guiController.showContextMenu(info, listener);
     }
 }

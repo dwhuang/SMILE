@@ -1,8 +1,7 @@
 package edu.umd.smile.util;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -18,6 +17,24 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.xml.xpp3.Attributes;
 
 public class MyMenu<T> implements Controller, NiftyControl {
+    public class Item {
+        String name;
+        String text;
+        Element element;
+        T userObject;
+        public Item(String name, String text, Element element, T userObject) {
+            this.name = name;
+            this.text = text;
+            this.element = element;
+            this.userObject = userObject;
+        }
+        public void setUserObject(T userObject) {
+            this.userObject = userObject;
+        }
+        public T getUserObject() {
+            return this.userObject;
+        }
+    }
     protected Nifty nifty;
     protected Screen screen;
     protected Element element;
@@ -26,8 +43,8 @@ public class MyMenu<T> implements Controller, NiftyControl {
     // This will keep a map of all items (T) added to this menu with the elementId
     // of the Nifty element as the key. We'll use this map to find the added item
     // that we'll need to return when the item with an elementId has been activated.
-    protected Map<String, T> items = new Hashtable<String, T>();
-    protected List<Element> menuItems = new ArrayList<Element>();
+    protected Map<String, Item> items = new Hashtable<>();
+    protected Map<String, Item> itemsByName = new Hashtable<>();
 
     public void bind(final Nifty niftyParam, final Screen screenParam, final Element newElement,
             final Properties properties, final Attributes controlDefinitionAttributesParam) {
@@ -56,49 +73,63 @@ public class MyMenu<T> implements Controller, NiftyControl {
     public void onFocus(final boolean getFocus) {
     }
     
-    public void addMenuItem(final String menuText, final T item) {
+    public String addMenuItem(String name, final String text, final T userObject) {
         final String id = NiftyIdCreator.generate();
-        Element menuItemElm = new ControlBuilder(id, "myNiftyMenuItem") {
+        Element elm = new ControlBuilder(id, "myNiftyMenuItem") {
             {
-                set("menuText", nifty.specialValuesReplace(menuText));
+                set("menuText", nifty.specialValuesReplace(text));
                 set("menuOnClick", "activateItem(" + id + ")");
                 set("menuIconVisible", "false");
             }
         }.build(nifty, screen, element);
+        Item item = new Item(name, text, elm, userObject);
         items.put(id, item);
-        menuItems.add(menuItemElm);
+        itemsByName.put(name,  item);
+        return id;
     }
 
-    public void addMenuItem(final String menuText, final String menuIcon, final T item) {
-        final String id = NiftyIdCreator.generate();
-        Element menuItemElm = new ControlBuilder(id, "niftyMenuItem") {
-            {
-                set("menuText", nifty.specialValuesReplace(menuText));
-                set("menuOnClick", "activateItem(" + id + ")");
-                if (menuIcon != null) {
-                    set("menuIcon", menuIcon);
-                    set("menuIconVisible", "true");
-                } else {
-                    set("menuIconVisible", "false");
-                }
+//    public void addMenuItem(String name, final String menuText, final String menuIcon, final T item) {
+//        final String id = NiftyIdCreator.generate();
+//        Element menuItemElm = new ControlBuilder(id, "niftyMenuItem") {
+//            {
+//                set("menuText", nifty.specialValuesReplace(menuText));
+//                set("menuOnClick", "activateItem(" + id + ")");
+//                if (menuIcon != null) {
+//                    set("menuIcon", menuIcon);
+//                    set("menuIconVisible", "true");
+//                } else {
+//                    set("menuIconVisible", "false");
+//                }
+//            }
+//        }.build(nifty, screen, element);
+//        items.put(id, item);
+//        menuItems.add(menuItemElm);
+//    }
+    
+    // ====================================================
+    public Item getItemByName(String name) {
+        return itemsByName.get(name);
+    }
+    
+    public Collection<Item> getAllItems() {
+        return itemsByName.values();
+    }
+    
+    // return true if at least one is enabled
+    public boolean updateMenuItemEnabled() {
+        boolean anyEnabled = false;
+        for (Item item : items.values()) {
+            if (item.userObject == null) {
+                item.element.disable();
+            } else {
+                anyEnabled = true;
+                item.element.enable();
             }
-        }.build(nifty, screen, element);
-        items.put(id, item);
-        menuItems.add(menuItemElm);
+        }
+        return anyEnabled;
     }
-    
-    /**
-     * This is new
-     * @param ind
-     * @return
-     */
-    public Element getMenuItem(int ind) {
-        return menuItems.get(ind);
-    }
-    
-    public List<Element> getMenuItems() {
-        return menuItems;
-    }
+
+    // ====================================================
 
     public void addMenuItemSeparator() {
         new ControlBuilder("niftyMenuItemSeparator").build(nifty, screen, element);
@@ -204,7 +235,9 @@ public class MyMenu<T> implements Controller, NiftyControl {
     // interact callbacks
 
     public boolean activateItem(final String menuItemId) {
-        nifty.publishEvent(element.getId(), new MyMenuItemActivatedEvent<T>(MyMenu.this, items.get(menuItemId)));
+        Item item = items.get(menuItemId);
+        nifty.publishEvent(element.getId(),
+                new MyMenuItemActivatedEvent<T>(MyMenu.this, item.name, item.userObject));
         return true;
     }
 
