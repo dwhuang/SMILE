@@ -24,11 +24,15 @@ import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
+import edu.umd.smile.demonstration.Demonstrator;
 import edu.umd.smile.gui.LogMessage;
 import edu.umd.smile.util.MyJoint;
 import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
 import edu.umd.smile.util.MySliderJoint;
+
+//TODO: check deletion for connected(Interfaces/Items)
+//TODO: undo recover interface connection states
 
 /**
  *
@@ -39,17 +43,21 @@ public class Inventory {
 
     private Node rootNode;
 	private BulletAppState bulletAppState;
+	private MainApp app;
 	
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
-    private Set<Node> interfaceHosts = new HashSet<>();
-    private HashMap<Spatial, List<Node>> interfaceGuests = new HashMap<>();
+    private Set<Node> hostInterfaces = new HashSet<>();
+    private HashMap<Spatial, List<Node>> guestInterfaces = new HashMap<>();
+    private HashMap<Node, Node> fastenedInterfaces = new HashMap<>();
+    private HashMap<Spatial, Set<Spatial>> fastenedItems = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
     
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
     	bulletAppState = app.getBulletAppState();
+    	this.app = app;
     }
     
     public Set<Spatial> allItems() {
@@ -298,10 +306,10 @@ public class Inventory {
     	if (!controls.isEmpty()) {
             throw new IllegalStateException("controls is not empty");
     	}
-        if (!interfaceHosts.isEmpty()) {
+        if (!hostInterfaces.isEmpty()) {
             throw new IllegalStateException("interfaceHosts is not empty");
         }
-        if (!interfaceGuests.isEmpty()) {
+        if (!guestInterfaces.isEmpty()) {
             throw new IllegalStateException("interfaceGuests is not empty");
         }
     }
@@ -346,12 +354,12 @@ public class Inventory {
                 if (spatial instanceof Node) {
                     String role = spatial.getUserData("interface");
                     if ("host".equals(role)) {
-                        interfaceHosts.remove((Node) spatial);
+                        hostInterfaces.remove((Node) spatial);
                     }
                 }
             }
         });
-        interfaceGuests.remove(item);
+        guestInterfaces.remove(item);
     }
     
     public Spatial getItem(Spatial g) {
@@ -451,12 +459,12 @@ public class Inventory {
                 if (spatial instanceof Node) {
                     String role = spatial.getUserData("interface");
                     if ("host".equals(role)) {
-                        interfaceHosts.add((Node) spatial);
+                        hostInterfaces.add((Node) spatial);
                     } else if ("guest".equals(role)) {
-                        if (interfaceGuests.get(item) == null) {
-                            interfaceGuests.put(item, new ArrayList<Node>());
+                        if (guestInterfaces.get(item) == null) {
+                            guestInterfaces.put(item, new ArrayList<Node>());
                         }
-                        List<Node> list = interfaceGuests.get(item);
+                        List<Node> list = guestInterfaces.get(item);
                         list.add((Node) spatial);
                     }
                 }
@@ -469,17 +477,27 @@ public class Inventory {
         public Node guest = null;
     }
     
-    public InterfaceHostGuestPair findInterfaceHostToFastenTo(Spatial guestItem, float distTolerance) {
+    public InterfaceHostGuestPair findHostInterfaceForFastening(Spatial guestItem, float distTolerance) {
         InterfaceHostGuestPair result = new InterfaceHostGuestPair();
+        List<Node> guestList = guestInterfaces.get(guestItem);
+        if (guestList == null) {
+            return result;
+        }
+
+        // exclude items that are already fastened (directly and indirectly) to guestItem
+        Set<Spatial> unavailableItems = new HashSet<>();
+        getAllConnectedItems(guestItem, unavailableItems);
+        
         float minDist = Float.MAX_VALUE;
-        for (Node guest : interfaceGuests.get(guestItem)) {
+        for (Node guest : guestList) {
             String type = guest.getUserData("interfaceType");
-            if (type == null || type.isEmpty()) {
+            if (type == null || type.isEmpty() || fastenedInterfaces.get(guest) != null) {
                 continue;
             }
             Vector3f guestLocation = guest.getWorldTranslation();
-            for (Node host : interfaceHosts) {
-                if (type.equals(host.getUserData("interfaceType"))) {
+            for (Node host : hostInterfaces) {
+                Spatial hostItem = getItem(host);
+                if (type.equals(host.getUserData("interfaceType")) && !unavailableItems.contains(hostItem)) {
                     float dist = host.getWorldTranslation().distance(guestLocation);
                     if (dist < distTolerance && dist < minDist) {
                         minDist = dist;
@@ -492,7 +510,22 @@ public class Inventory {
         return result;
     }
     
-    public void interfaceAttach(Node host, Node guest) {
+    // get all directly and indirectly fastened items
+    private void getAllConnectedItems(Spatial item, Set<Spatial> result) {
+        if (result.contains(item)) {
+            return;
+        }
+        result.add(item);
+        Set<Spatial> neighbors = fastenedItems.get(item);
+        if (neighbors == null) {
+            return;
+        }
+        for (Spatial neighbor : neighbors) {
+            getAllConnectedItems(neighbor, result);
+        }
+    }
+    
+    public void fastenInterface(Node host, Node guest) {
         Spatial hostItem = getItem(host);
         Spatial guestItem = getItem(guest);
         if (hostItem == null || guestItem == null) {
@@ -501,11 +534,47 @@ public class Inventory {
         Transform hostSubTr = getSubTransform(host, hostItem);
         Transform guestSubTr = getSubTransform(guest, guestItem);
         
-        addSixDofJoint(hostItem, guestItem, hostSubTr.getTranslation(), guestSubTr.getTranslation(),
+        // add physics joint
+        MySixDofJoint joint = addSixDofJoint(hostItem, guestItem,
+                hostSubTr.getTranslation(), guestSubTr.getTranslation(),
                 Matrix3f.IDENTITY, Matrix3f.IDENTITY, false);
-//        host.attachChild(item);
-//        item.setUserData("interfaceState", "attached");
-//        //item.setUserData("interfaceHost", "attached");
+        joint.setAngularLowerLimit(Vector3f.ZERO);
+        joint.setAngularUpperLimit(Vector3f.ZERO);
+        joint.setLinearLowerLimit(Vector3f.ZERO);
+        joint.setLinearUpperLimit(Vector3f.ZERO);
+        
+        // record the fastened interfaces & items
+        fastenedInterfaces.put(host, guest);
+        fastenedInterfaces.put(guest, host);
+        Set<Spatial> itemNeighbors = fastenedItems.get(hostItem);
+        if (itemNeighbors == null) {
+            fastenedItems.put(hostItem, new HashSet<Spatial>());
+            itemNeighbors = fastenedItems.get(hostItem);
+        }
+        itemNeighbors.add(guestItem);
+        itemNeighbors = fastenedItems.get(guestItem);
+        if (itemNeighbors == null) {
+            fastenedItems.put(guestItem, new HashSet<Spatial>());
+            itemNeighbors = fastenedItems.get(guestItem);
+        }
+        itemNeighbors.add(hostItem);
+
+        // move guest item to the host location immediately
+        Vector3f guestNewLocation = host.getWorldTranslation().clone();
+        guestNewLocation.subtractLocal(guestSubTr.getTranslation());
+        Quaternion guestNewRotation = host.getWorldRotation().clone();
+        guestNewRotation.multLocal(guestSubTr.getRotation().inverse());
+        Demonstrator.Hand hand = app.getDemonstrator().getHandGraspingItem(guestItem);
+        if (hand != null) {
+            hand.move(guestNewLocation, 0.1f);
+            hand.rotate(guestNewRotation, 0.1f);
+        } else {
+            MyRigidBodyControl guestRbc = guestItem.getControl(MyRigidBodyControl.class);
+            guestRbc.setPhysicsLocation(guestNewLocation);
+            guestRbc.setPhysicsRotation(guestNewRotation);
+        }
+        updateItemInsomnia(guestItem);
+        updateItemInsomnia(hostItem);
     }
     
     private Transform getSubTransform(Spatial sub, Spatial whole) {

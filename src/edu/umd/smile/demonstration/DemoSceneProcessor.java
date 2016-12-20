@@ -127,7 +127,7 @@ public class DemoSceneProcessor implements SceneProcessor {
                         g.setMaterial(hlMaterial);
                         hlGeos.add(g);
                     } else if (s instanceof Node) {
-                        if ("host".equals(s.getUserData("interface"))) {
+                        if (s.getUserData("interface") != null) {
                         	Geometry g = factory.makeUnshadedLine("interfaceIndicator",
                         	        Vector3f.ZERO, Vector3f.UNIT_Y, ColorRGBA.Yellow);
                         	((Node)s).attachChild(g);

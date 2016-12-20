@@ -129,7 +129,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         if (guestItem == null) {
             return null;
         }
-        InterfaceHostGuestPair result = inventory.findInterfaceHostToFastenTo(guestItem, 20);
+        InterfaceHostGuestPair result = inventory.findHostInterfaceForFastening(guestItem, 20);
         if (result.host == null || result.guest == null) {
             return null;
         } else {
@@ -251,7 +251,11 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     }
                     HashMap<String, ContextMenuParam> contextMenuInfo = new HashMap<>();
                     Geometry g = r.getGeometry();
-                    contextMenuInfo.put("attach", createContextMenuParamForFasten(g));
+                    Spatial item = inventory.getItem(g);
+                    if (item != graspedItem) {
+                        return;
+                    }
+                    contextMenuInfo.put("fasten", createContextMenuParamForFasten(g));
                     app.showContextMenu(contextMenuInfo, this);
                 }
             } else if (state == HandState.Moving) {
@@ -275,7 +279,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     l.demoPointTo(currHand.id, param.pointable);
                 }
             } else if (itemName.equals("fasten")) {
-                inventory.interfaceAttach(param.interfaceHost, param.interfaceGuest);
+                inventory.fastenInterface(param.interfaceHost, param.interfaceGuest);
             }
         }
         
@@ -409,7 +413,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             }
         }
         
-        private float move(Vector3f pos, float deltaRangePrecision) {
+        public float move(Vector3f pos, float deltaRangePrecision) {
             if (state != HandState.Grasped && state != HandState.Moving) {
                 throw new IllegalStateException("illegal operation");
             }
@@ -431,7 +435,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
             state = HandState.Grasped;
         }
         
-        private float rotate(Quaternion rot, float deltaRangePrecision) {
+        public float rotate(Quaternion rot, float deltaRangePrecision) {
             if (state != HandState.Grasped) {
                 throw new IllegalStateException("illegal operation");
             }
@@ -828,6 +832,15 @@ public class Demonstrator implements ActionListener, AnalogListener {
         } else {
             return null;
         }
+    }
+    
+    public Hand getHandGraspingItem(Spatial item) {
+        for (Hand hand : hands) {
+            if (hand.graspedItem == item) {
+                return hand;
+            }
+        }
+        return null;
     }
     
     public void addActionListener(DemoActionListener listener) {
