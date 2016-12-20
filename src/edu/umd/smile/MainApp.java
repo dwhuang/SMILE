@@ -27,6 +27,7 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import edu.umd.smile.demonstration.DemoRecorder;
 import edu.umd.smile.demonstration.Demonstrator;
+import edu.umd.smile.demonstration.Demonstrator.ContextMenuParam;
 import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.gui.GuiController;
 import edu.umd.smile.object.Factory;
@@ -120,10 +121,6 @@ public class MainApp extends SimpleApplication implements ActionListener {
     public Inventory getInventory() {
         return inventory;
     }
-    
-//    public AssemblyDetector getAssemblyDetector() {
-//    	return assemblyDetector;
-//    }
     
     public Robot getRobot() {
         return robot;
@@ -349,7 +346,7 @@ public class MainApp extends SimpleApplication implements ActionListener {
     	guiController.showMessagePopup(str, 1);
     }
     
-    public void showContextMenu(HashMap<String, Object> info, ContextMenuListener<Object> listener) {
+    public void showContextMenu(HashMap<String, ContextMenuParam> info, ContextMenuListener<ContextMenuParam> listener) {
         guiController.showContextMenu(info, listener);
     }
 }

@@ -43,13 +43,13 @@ import org.xml.sax.SAXParseException;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.BoxCollisionShape;
-import com.jme3.bullet.joints.SixDofJoint;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
@@ -936,6 +936,7 @@ public class Table implements ActionListener {
                 rotation.z * FastMath.DEG_TO_RAD));
 
         if (isWhole) {
+            // TODO: make hollow collision shape
             float mass = Float.parseFloat(elm.getAttribute("mass"));
             inventory.addItem(s, mass);
             processDescriptionElements(elm, s, "ring");
@@ -1104,6 +1105,8 @@ public class Table implements ActionListener {
 				s = processCustomElement(childElm, false);
 			} else if (childElm.getNodeName().equals("composite")) {
 				s = processCompositeElement(childElm, false);
+            } else if (childElm.getNodeName().equals("interface")) {
+                s = processInterfaceElement(childElm);
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
 				s = processToggleSwitchElement(childElm, false);
 			} else if (childElm.getNodeName().equals("indicatorLights")) {
@@ -1133,6 +1136,32 @@ public class Table implements ActionListener {
 
 		return node;
 	}
+
+    private Spatial processInterfaceElement(Element elm) {
+        String id = elm.getAttribute("id");
+        id = getUniqueId(id);
+        boolean isHost = Boolean.parseBoolean(elm.getAttribute("isHost"));
+        // Non-empty string; two parts must have the same type before they can be put together
+        String type = elm.getAttribute("type");
+        Vector3f location = parseVector3(elm.getAttribute("location"));
+        Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+        // The interface host that this object (guest) is fastened to; ignored if isHost.
+        String hostId = elm.getAttribute("hostId");
+
+        Node node = new Node(id);
+        node.setLocalTranslation(location);
+        node.setLocalRotation(new Quaternion().fromAngles(
+                rotation.x * FastMath.DEG_TO_RAD,
+                rotation.y * FastMath.DEG_TO_RAD,
+                rotation.z * FastMath.DEG_TO_RAD));
+        node.setUserData("interface", isHost ? "host" : "guest");
+        node.setUserData("interfaceType", type);
+        if (!isHost) {
+            // TODO: fasten to host
+        }
+        
+        return node;
+    }
 
 	private Spatial processToggleSwitchElement(Element elm, boolean isWhole) {
 		String id = getUniqueId(elm.getAttribute("id"));
@@ -1471,16 +1500,16 @@ public class Table implements ActionListener {
             link.setUserData("description4Value", color);
 
 			// connect the link using a joint (or constraint)
-			SixDofJoint joint = inventory.addSixDofJoint(prevSpatial, link,
-					prevJointPt, new Vector3f(0, 0, linkZspan / 2));
-			joint.setCollisionBetweenLinkedBodys(false);
+			inventory.addSixDofJoint(prevSpatial, link, prevJointPt, new Vector3f(0, 0, linkZspan / 2),
+			        Matrix3f.IDENTITY, Matrix3f.IDENTITY, false);
 
 			prevSpatial = link;
 			prevJointPt = new Vector3f(0, 0, -linkZspan / 2);
 		}
 		// connect the last link to the end node
 		vec.set(0, 0, endNodesSize.z);
-		inventory.addSixDofJoint(prevSpatial, endNode, prevJointPt, vec);
+		inventory.addSixDofJoint(prevSpatial, endNode, prevJointPt, vec,
+		        Matrix3f.IDENTITY, Matrix3f.IDENTITY, false);
 	}
 
 	private Vector3f parseVector3(String str) {

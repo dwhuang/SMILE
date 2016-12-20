@@ -7,13 +7,19 @@ import com.jme3.bullet.objects.PhysicsRigidBody;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Vector3f;
 
-public class MySliderJoint extends SliderJoint {
+public class MySliderJoint extends SliderJoint implements MyJoint {
 	public MySliderJoint(PhysicsRigidBody nodeA, PhysicsRigidBody nodeB, Vector3f pivotA, Vector3f pivotB, Matrix3f rotA, Matrix3f rotB, boolean useLinearReferenceFrameA) {
 		super(nodeA, nodeB, pivotA, pivotB, rotA, rotB, useLinearReferenceFrameA);
 	}
+	
+	public Type getType() {
+	    return Type.Slider;
+	}
+	
 	public Matrix3f getRotA() {
 		return rotA;
 	}
+	
 	public Matrix3f getRotB() {
 		return rotB;
 	}

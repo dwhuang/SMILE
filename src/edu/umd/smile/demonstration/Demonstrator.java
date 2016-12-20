@@ -35,6 +35,7 @@ import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Factory;
 import edu.umd.smile.object.Inventory;
+import edu.umd.smile.object.Inventory.InterfaceHostGuestPair;
 import edu.umd.smile.object.Table;
 import edu.umd.smile.util.MyRigidBodyControl;
 
@@ -91,7 +92,56 @@ public class Demonstrator implements ActionListener, AnalogListener {
     private transient Transform minTransform = new Transform();
     private transient Quaternion quat = new Quaternion();
     
-    public class Hand implements ContextMenuListener<Object> {
+    public class ContextMenuParam {
+        Geometry g; // geometry that is clicked on
+        AbstractControl triggerable;
+        Spatial pointable;
+        Node interfaceHost;
+        Node interfaceGuest;
+    }
+    
+    public ContextMenuParam createContextMenuParamForTrigger(Geometry g) {
+        AbstractControl triggerable = inventory.getManuallyTriggerable(g);
+        if (triggerable == null) {
+            return null;
+        } else {
+            ContextMenuParam param = new ContextMenuParam();
+            param.g = g;
+            param.triggerable = triggerable;
+            return param;
+        }
+    }
+    
+    public ContextMenuParam createContextMenuParamForPointTo(Geometry g) {
+        Spatial pointable = inventory.getPointable(g);
+        if (pointable == null) {
+            return null;
+        } else {
+            ContextMenuParam param = new ContextMenuParam();
+            param.g = g;
+            param.pointable = pointable;
+            return param;
+        }
+    }
+    
+    public ContextMenuParam createContextMenuParamForFasten(Geometry g) {
+        Spatial guestItem = inventory.getItem(g);
+        if (guestItem == null) {
+            return null;
+        }
+        InterfaceHostGuestPair result = inventory.findInterfaceHostToFastenTo(guestItem, 20);
+        if (result.host == null || result.guest == null) {
+            return null;
+        } else {
+            ContextMenuParam param = new ContextMenuParam();
+            param.g = g;
+            param.interfaceGuest = result.guest;
+            param.interfaceHost = result.host;
+            return param;
+        }
+    }
+    
+    public class Hand implements ContextMenuListener<ContextMenuParam> {
     	private HandId id;
     	private HandState state = HandState.Idle;
     	private Node graspNode = null;
@@ -181,11 +231,11 @@ public class Demonstrator implements ActionListener, AnalogListener {
                         if (r == null) {
                             return;
                         }
-                        HashMap<String, Object> contextMenuInfo = new HashMap<>();
-                        AbstractControl triggerable = inventory.getManuallyTriggerable(r.getGeometry());
-                        Spatial pointable = inventory.getPointable(r.getGeometry());
-                        contextMenuInfo.put("trigger", triggerable);
-                        contextMenuInfo.put("pointTo", pointable);
+                        HashMap<String, ContextMenuParam> contextMenuInfo = new HashMap<>();
+                        Geometry g = r.getGeometry();
+                        contextMenuInfo.put("trigger", createContextMenuParamForTrigger(g));
+                        contextMenuInfo.put("pointTo", createContextMenuParamForPointTo(g));
+                        contextMenuInfo.put("fasten", createContextMenuParamForFasten(g));
                         app.showContextMenu(contextMenuInfo, this);
                 	}
                 }
@@ -194,6 +244,15 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     if (!movingStart()) {
                         release();
                     }
+                } else if (!leftButton && !isPressed) {
+                    CollisionResult r = getCursorClosestCollision(rootNode);
+                    if (r == null) {
+                        return;
+                    }
+                    HashMap<String, ContextMenuParam> contextMenuInfo = new HashMap<>();
+                    Geometry g = r.getGeometry();
+                    contextMenuInfo.put("attach", createContextMenuParamForFasten(g));
+                    app.showContextMenu(contextMenuInfo, this);
                 }
             } else if (state == HandState.Moving) {
                 if (leftButton && !isPressed) {
@@ -203,8 +262,21 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
         
         @Override
-        public void onContextMenu(String itemName, Object userObject) {
+        public void onContextMenu(String itemName, ContextMenuParam param) {
             System.err.println(itemName);
+            if (itemName.equals("trigger")) {
+                param.triggerable.trigger(param.g, true);
+                // notify listeners
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoTrigger(currHand.id, param.triggerable.getSpatial());
+                }
+            } else if (itemName.equals("pointTo")) {
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoPointTo(currHand.id, param.pointable);
+                }
+            } else if (itemName.equals("fasten")) {
+                inventory.interfaceAttach(param.interfaceHost, param.interfaceGuest);
+            }
         }
         
         private void processMouseMoveEvent() {
@@ -728,27 +800,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         Spatial item = inventory.getItem(r.getGeometry());
         return item;
     }
-    
-    private void triggerFirstCursorSpatialFunction(Node rootNode) {
-    	CollisionResult r = getCursorClosestCollision(rootNode);
-    	if (r == null) {
-    		return;
-    	}
-    	AbstractControl triggerable = inventory.getManuallyTriggerable(r.getGeometry());
-        Spatial pointable = inventory.getPointable(r.getGeometry());
-    	if (triggerable != null) {
-    	    triggerable.trigger(r.getGeometry(), true);
-        	// notify listeners
-            for (DemoActionListener l : demoActionListeners) {
-                l.demoTrigger(currHand.id, triggerable.getSpatial());
-            }
-    	} else if (pointable != null) {
-            for (DemoActionListener l : demoActionListeners) {
-                l.demoPointTo(currHand.id, pointable);
-            }
-    	}
-    }
-    
+        
     private Vector3f getCursorRayDirection() {
         Vector2f screenCoords = inputManager.getCursorPosition();
         Vector3f dir = cam.getWorldCoordinates(screenCoords, 1).subtractLocal(

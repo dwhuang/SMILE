@@ -22,6 +22,7 @@ import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.tools.SizeValue;
 import edu.umd.smile.MainApp;
+import edu.umd.smile.demonstration.Demonstrator.ContextMenuParam;
 import edu.umd.smile.util.MyMenu;
 import edu.umd.smile.util.MyMenuItemActivatedEvent;
 
@@ -44,8 +45,8 @@ public class GuiController extends AbstractAppState implements ScreenController 
     private float messageTimeElapsed;
     
     Element puContextMenu;
-    MyMenu<Object> mnContextMenu;
-    ContextMenuListener<Object> contextMenuListener = null;
+    MyMenu<ContextMenuParam> mnContextMenu;
+    ContextMenuListener<ContextMenuParam> contextMenuListener = null;
         
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
@@ -86,8 +87,8 @@ public class GuiController extends AbstractAppState implements ScreenController 
         mnContextMenu = puContextMenu.findNiftyControl("mnContextMenu", MyMenu.class);
         mnContextMenu.addMenuItem("trigger", "Trigger", null);
         mnContextMenu.addMenuItem("pointTo", "Point To", null);
-        mnContextMenu.addMenuItem("attach", "Attach", null);
-        mnContextMenu.addMenuItem("detach", "Detach", null);
+        mnContextMenu.addMenuItem("fasten", "Fasten", null);
+        mnContextMenu.addMenuItem("loosen", "Loosen", null);
         
         windowControllers.add(new StatusWindowController());
         windowControllers.add(new CamNavWindowController());
@@ -130,9 +131,12 @@ public class GuiController extends AbstractAppState implements ScreenController 
     	lbMessage.setText(str);
     }
     
-    public void showContextMenu(HashMap<String, Object> info, ContextMenuListener<Object> listener) {
+    public void showContextMenu(HashMap<String, ContextMenuParam> info, ContextMenuListener<ContextMenuParam> listener) {
+        for (MyMenu<ContextMenuParam>.Item item : mnContextMenu.getAllItems()) {
+            item.setUserObject(null);
+        }
         for (String key : info.keySet()) {
-            MyMenu<Object>.Item item = mnContextMenu.getItemByName(key);
+            MyMenu<ContextMenuParam>.Item item = mnContextMenu.getItemByName(key);
             if (item != null) {
                 item.setUserObject(info.get(key));
             }
@@ -151,7 +155,7 @@ public class GuiController extends AbstractAppState implements ScreenController 
     }
 
     @NiftyEventSubscriber(pattern="mnContextMenu")
-    public void onMenuItem(String id, MyMenuItemActivatedEvent<String> e) {
+    public void onMenuItem(String id, MyMenuItemActivatedEvent<ContextMenuParam> e) {
         if (contextMenuListener != null) {
             contextMenuListener.onContextMenu(e.getItemName(), e.getItemUserObject());
         }

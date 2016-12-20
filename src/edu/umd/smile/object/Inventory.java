@@ -12,9 +12,7 @@ import com.bulletphysics.collision.dispatch.CollisionObject;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
-import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.joints.PhysicsJoint;
-import com.jme3.bullet.joints.SixDofJoint;
 import com.jme3.collision.CollisionResults;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
@@ -27,7 +25,9 @@ import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
 import edu.umd.smile.gui.LogMessage;
+import edu.umd.smile.util.MyJoint;
 import edu.umd.smile.util.MyRigidBodyControl;
+import edu.umd.smile.util.MySixDofJoint;
 import edu.umd.smile.util.MySliderJoint;
 
 /**
@@ -43,8 +43,9 @@ public class Inventory {
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
+    private Set<Node> interfaceHosts = new HashSet<>();
+    private HashMap<Spatial, List<Node>> interfaceGuests = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
-
     
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
@@ -75,6 +76,8 @@ public class Inventory {
 		rbc.setDamping(0.2f, 0.2f);
     	rootNode.attachChild(item);
     	items.add(item);
+    	
+    	registerItemInterfaces(item);
     	
     	for (InventoryListener l : listeners) {
     		l.objectCreated(item);
@@ -136,7 +139,8 @@ public class Inventory {
         return controls.get(s);
     }
     
-	public SixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2) {
+	public MySixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2,
+	        Matrix3f rot1, Matrix3f rot2, boolean collision) {
     	if (!items.contains(item1)) {
     		throw new IllegalArgumentException(item1 + " does not exist in the inventory");
     	}
@@ -146,8 +150,8 @@ public class Inventory {
     	MyRigidBodyControl c1 = item1.getControl(MyRigidBodyControl.class);
     	MyRigidBodyControl c2 = item2.getControl(MyRigidBodyControl.class);
     	
-    	SixDofJoint joint = new SixDofJoint(c1, c2, refPt1, refPt2, false);
-    	joint.setCollisionBetweenLinkedBodys(false);
+    	MySixDofJoint joint = new MySixDofJoint(c1, c2, refPt1, refPt2, rot1, rot2, false);
+    	joint.setCollisionBetweenLinkedBodys(collision);
         joints.add(joint);
         bulletAppState.getPhysicsSpace().add(joint);
     	return joint;
@@ -259,6 +263,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
+    	    removeItemInterfaces(item);
     		removeItemControls(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
@@ -290,6 +295,15 @@ public class Inventory {
     	if (!joints.isEmpty()) {
     		throw new IllegalStateException("joints is not empty");
     	}
+    	if (!controls.isEmpty()) {
+            throw new IllegalStateException("controls is not empty");
+    	}
+        if (!interfaceHosts.isEmpty()) {
+            throw new IllegalStateException("interfaceHosts is not empty");
+        }
+        if (!interfaceGuests.isEmpty()) {
+            throw new IllegalStateException("interfaceGuests is not empty");
+        }
     }
     
     private void removeItemPhysics(Spatial item) {
@@ -305,34 +319,6 @@ public class Inventory {
                 joint.destroy();
         	}
         }
-//        // remove functional joint records and ghost controls
-//        if (functionalJoints.get(item) != null) {
-//	        HashSet<FunctionalJoint> funcJoints = new HashSet<>(functionalJoints.get(item).values());
-//	        for (FunctionalJoint fj : funcJoints) {
-//	        	removeFunctionalJoint(fj.node1, fj.node2);
-//	        	GhostControl gc = item.getControl(GhostControl.class);
-//	        	if (gc != null) {
-//	        		bulletAppState.getPhysicsSpace().remove(gc);
-//	        		item.removeControl(gc);
-//	        	}
-//	        }
-//        }
-        
-        // remove ghost controls
-        item.depthFirstTraversal(new SceneGraphVisitor() {
-			@Override
-			public void visit(Spatial s) {
-				if (!(s instanceof Node) || s.getUserData("assembly") == null) {
-					return;
-				}
-				GhostControl gc = s.getControl(GhostControl.class);
-				if (gc != null) {
-					bulletAppState.getPhysicsSpace().remove(gc);
-					s.removeControl(gc);
-				}
-//				assemblyNames.remove((Node) s);
-			}
-        });
         
         // remove physics control from the item
         MyRigidBodyControl rbc = item.getControl(MyRigidBodyControl.class);
@@ -351,6 +337,21 @@ public class Inventory {
 				}
 			}
     	});
+    }
+    
+    private void removeItemInterfaces(Spatial item) {
+        item.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Node) {
+                    String role = spatial.getUserData("interface");
+                    if ("host".equals(role)) {
+                        interfaceHosts.remove((Node) spatial);
+                    }
+                }
+            }
+        });
+        interfaceGuests.remove(item);
     }
     
     public Spatial getItem(Spatial g) {
@@ -443,6 +444,83 @@ public class Inventory {
         }
     }
     
+    private void registerItemInterfaces(final Spatial item) {
+        item.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Node) {
+                    String role = spatial.getUserData("interface");
+                    if ("host".equals(role)) {
+                        interfaceHosts.add((Node) spatial);
+                    } else if ("guest".equals(role)) {
+                        if (interfaceGuests.get(item) == null) {
+                            interfaceGuests.put(item, new ArrayList<Node>());
+                        }
+                        List<Node> list = interfaceGuests.get(item);
+                        list.add((Node) spatial);
+                    }
+                }
+            }
+        });
+    }
+    
+    public class InterfaceHostGuestPair {
+        public Node host = null;
+        public Node guest = null;
+    }
+    
+    public InterfaceHostGuestPair findInterfaceHostToFastenTo(Spatial guestItem, float distTolerance) {
+        InterfaceHostGuestPair result = new InterfaceHostGuestPair();
+        float minDist = Float.MAX_VALUE;
+        for (Node guest : interfaceGuests.get(guestItem)) {
+            String type = guest.getUserData("interfaceType");
+            if (type == null || type.isEmpty()) {
+                continue;
+            }
+            Vector3f guestLocation = guest.getWorldTranslation();
+            for (Node host : interfaceHosts) {
+                if (type.equals(host.getUserData("interfaceType"))) {
+                    float dist = host.getWorldTranslation().distance(guestLocation);
+                    if (dist < distTolerance && dist < minDist) {
+                        minDist = dist;
+                        result.host = host;
+                        result.guest = guest;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+    
+    public void interfaceAttach(Node host, Node guest) {
+        Spatial hostItem = getItem(host);
+        Spatial guestItem = getItem(guest);
+        if (hostItem == null || guestItem == null) {
+            return;
+        }
+        Transform hostSubTr = getSubTransform(host, hostItem);
+        Transform guestSubTr = getSubTransform(guest, guestItem);
+        
+        addSixDofJoint(hostItem, guestItem, hostSubTr.getTranslation(), guestSubTr.getTranslation(),
+                Matrix3f.IDENTITY, Matrix3f.IDENTITY, false);
+//        host.attachChild(item);
+//        item.setUserData("interfaceState", "attached");
+//        //item.setUserData("interfaceHost", "attached");
+    }
+    
+    private Transform getSubTransform(Spatial sub, Spatial whole) {
+        Transform tr = new Transform();
+        Spatial s = sub;
+        while (s != null) {
+            if (s == whole) {
+                return tr;
+            }
+            tr.combineWithParent(s.getLocalTransform());
+            s = s.getParent();
+        }
+        throw new IllegalArgumentException("'sub' is not a part of 'whole'");
+    }
+    
     public void addListener(InventoryListener l) {
     	listeners.add(l);
     }
@@ -458,16 +536,14 @@ public class Inventory {
     	public boolean isKinematic;
     }
     
-	public enum JointType {
-		Slider, SixDof
-	}
-
 	private class JointInfo {
-		JointType type;
+		MyJoint.Type type;
 		Spatial item1;
 		Spatial item2;
 		Vector3f pivot1;
 		Vector3f pivot2;
+		Matrix3f rot1;
+		Matrix3f rot2;
 		HashMap<String, Object> param = new HashMap<String, Object>();
     }
 	
@@ -504,18 +580,14 @@ public class Inventory {
 			Spatial item1 = ((MyRigidBodyControl)joint.getBodyA()).getSpatial();
 			Spatial item2 = ((MyRigidBodyControl)joint.getBodyB()).getSpatial();
 			JointInfo info = new JointInfo();
-			if (joint instanceof MySliderJoint) {
-				info.type = JointType.Slider;
-				info.param.put("rotA", ((MySliderJoint) joint).getRotA());
-				info.param.put("rotB", ((MySliderJoint) joint).getRotB());
-				((MySliderJoint) joint).saveParam(info.param);
-			} else if (joint instanceof SixDofJoint) {
-				info.type = JointType.SixDof;
-			}
+			info.type = ((MyJoint)joint).getType();
+			((MyJoint) joint).saveParam(info.param);
 			info.item1 = item1;
 			info.item2 = item2;
 			info.pivot1 = new Vector3f(joint.getPivotA());
 			info.pivot2 = new Vector3f(joint.getPivotB());
+            info.rot1 = new Matrix3f(((MyJoint) joint).getRotA());
+            info.rot2 = new Matrix3f(((MyJoint) joint).getRotB());
 			m.jointInfoSet.add(info);
     	}
     	
@@ -539,14 +611,16 @@ public class Inventory {
         	rbc.setKinematic(info.isKinematic);
     	}
     	for (JointInfo info : m.jointInfoSet) {
-    		if (info.type == JointType.Slider) {
-    			Matrix3f rotA = (Matrix3f) info.param.get("rotA");
-    			Matrix3f rotB = (Matrix3f) info.param.get("rotB");
-        		MySliderJoint joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2,
-        				rotA, rotB, 0, 0, false);
-        		joint.loadParam(info.param);
-    		} else {
-    			addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2);
+    	    MyJoint joint = null;
+    		if (info.type == MyJoint.Type.Slider) {
+        		joint = addSliderJoint(info.item1, info.item2, info.pivot1, info.pivot2,
+        				info.rot1, info.rot2, 0, 0, false);
+    		} else if (info.type == MyJoint.Type.SixDof) {
+    			joint = addSixDofJoint(info.item1, info.item2, info.pivot1, info.pivot2,
+    			        info.rot1, info.rot2, false);
+    		}
+    		if (joint != null) {
+    		    joint.loadParam(info.param);
     		}
     	}
     	for (ControlInfo info : m.controlInfoSet) {

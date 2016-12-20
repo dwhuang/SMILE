@@ -56,6 +56,11 @@
 			<pattern value="[_a-zA-Z0-9]*" />
 		</restriction>
 	</simpleType>
+    <simpleType name="nonEmptyStringType">
+        <restriction base="token">
+            <minLength value="1"/>
+        </restriction>
+    </simpleType>    
 	<simpleType name="vector3Type">
 		<restriction base="string">
 			<pattern
@@ -86,13 +91,6 @@
                     </element>
                 </sequence>
                 <attribute name="mass" type="tt:massType" use="optional" default="1"/>
-                <attribute name="interface" type="string" use="optional" default="">
-                    <annotation>
-                        <documentation>name of the object-assembling interface that this object supports;
-                        disabled when the value is an empty string
-                        </documentation>
-                    </annotation>
-                </attribute>
             </extension>
         </complexContent>
     </complexType>
@@ -245,10 +243,12 @@
     </complexType>
 
     <attributeGroup name="interfaceAttrs">
-        <attribute name="type" type="string" use="required"/>
         <attribute name="id" type="tt:idType" use="optional"/>
+        <attribute name="isHost" type="boolean" use="optional" default="false"/>
+        <attribute name="type" type="tt:nonEmptyStringType" use="required"/>
         <attribute name="location" type="tt:vector3Type" use="required" />
         <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
+        <attribute name="hostId" type="tt:idType" use="optional"/>
     </attributeGroup>
     <complexType name="interfaceType">
         <attributeGroup ref="tt:interfaceAttrs"/>
