@@ -28,6 +28,7 @@ import edu.umd.smile.demonstration.DemoActionListener;
 import edu.umd.smile.demonstration.DemoRecorder;
 import edu.umd.smile.demonstration.Demonstrator;
 import edu.umd.smile.demonstration.Demonstrator.HandId;
+import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 
 /**
  *
@@ -121,7 +122,17 @@ public class DemoWindowController implements WindowController, DemoActionListene
         updateRecInfo();
     }
     
-	private void updateRbHand() {
+	@Override
+    public void demoFasten(HandId handId, InterfaceConnection conn) {
+        updateRecInfo();
+    }
+
+    @Override
+    public void demoLoosen(HandId handId, InterfaceConnection conn) {
+        updateRecInfo();
+    }
+
+    private void updateRbHand() {
 		Demonstrator.Hand hand = demonstrator.getCurrHand();
 		rbHand[hand.getId().getValue()].select();
 	}

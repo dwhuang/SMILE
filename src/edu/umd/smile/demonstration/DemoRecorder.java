@@ -22,6 +22,7 @@ import com.jme3.scene.Spatial;
 import edu.umd.smile.MainApp;
 import edu.umd.smile.demonstration.Demonstrator.HandId;
 import edu.umd.smile.object.AbstractControl;
+import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 import edu.umd.smile.object.Inventory;
 import edu.umd.smile.object.InventoryListener;
 import edu.umd.smile.robot.Robot;
@@ -216,8 +217,22 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
 			saveToHistory();
 		}
 	}
-
+	
 	@Override
+    public void demoPreFasten(HandId handId) {
+        if (isRecording) {
+            saveToHistory();
+        }
+    }
+
+    @Override
+    public void demoPreLoosen(HandId handId) {
+        if (isRecording) {
+            saveToHistory();
+        }
+    }
+
+    @Override
 	public void demoGrasp(HandId handId, Spatial s, Vector3f pos, Quaternion rot) {
 		if (isRecording) {
 			currSegSymbWritter.print(frameId + ",grasp," + handId.toString() + "," + s.getName() + "\n");
@@ -256,6 +271,30 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
     }
     
 	@Override
+    public void demoFasten(HandId handId, InterfaceConnection conn) {
+        if (isRecording) {
+            currSegSymbWritter.print(frameId + ",fasten," + handId.toString() + ","
+                    + conn.getHostInterface().getName() + ","
+                    + conn.getHostItem().getName() + ","
+                    + conn.getGuestInterface().getName() + ","
+                    + conn.getGuestItem().getName() + ","
+                    + conn.getTightness() + "\n");
+        }
+    }
+
+    @Override
+    public void demoLoosen(HandId handId, InterfaceConnection conn) {
+        if (isRecording) {
+            currSegSymbWritter.print(frameId + ",loosen," + handId.toString() + ","
+                    + conn.getHostInterface().getName() + ","
+                    + conn.getHostItem().getName() + ","
+                    + conn.getGuestInterface().getName() + ","
+                    + conn.getGuestItem().getName() + ","
+                    + conn.getTightness() + "\n");
+        }
+    }
+
+    @Override
 	public void objectCreated(Spatial obj) {
 		if (isRecording) {
 			printObjectCreateSymbols(obj);
@@ -277,8 +316,8 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
             saveRobotVision();
         }
     }
-
-	private boolean startNewSegment() {
+    
+    private boolean startNewSegment() {
 		if (currSegSymbWritter != null) {
 			currSegSymbWritter.close();
 			currSegSymbWritter = null;

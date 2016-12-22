@@ -244,13 +244,23 @@
 
     <attributeGroup name="interfaceAttrs">
         <attribute name="id" type="tt:idType" use="optional"/>
-        <attribute name="isHost" type="boolean" use="optional" default="false"/>
         <attribute name="type" type="tt:nonEmptyStringType" use="required"/>
-        <attribute name="location" type="tt:vector3Type" use="required" />
+        <attribute name="location" type="tt:vector3Type" use="optional" default="(0,0,0)" />
         <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
-        <attribute name="hostId" type="tt:idType" use="optional"/>
     </attributeGroup>
-    <complexType name="interfaceType">
+    <complexType name="guestInterfaceType">
+        <attributeGroup ref="tt:interfaceAttrs"/>
+        <attribute name="hostId" type="tt:idType" use="optional"/>
+    </complexType>    
+    <complexType name="hostInterfaceType">
+        <sequence minOccurs="1" maxOccurs="unbounded">
+            <element name="tightness">
+                <complexType>
+                    <attribute name="location" type="tt:vector3Type" use="optional" default="(0,0,0)" />
+                    <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
+                </complexType>
+            </element>
+        </sequence>
         <attributeGroup ref="tt:interfaceAttrs"/>
     </complexType>    
 
@@ -317,7 +327,8 @@
             <element name="box" type="tt:boxType"/>
             <element name="custom" type="tt:customType"/>
             <element name="composite" type="tt:compositeType"/>            
-            <element name="interface" type="tt:interfaceType"/>            
+            <element name="guestInterface" type="tt:guestInterfaceType"/>            
+            <element name="hostInterface" type="tt:hostInterfaceType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
             <element name="indicatorLights" type="tt:indicatorLightsType"/>            
             <element name="customControl" type="tt:customControlType"/>

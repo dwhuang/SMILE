@@ -9,6 +9,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 
 import edu.umd.smile.demonstration.Demonstrator.HandId;
+import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 
 /**
  *
@@ -20,4 +21,6 @@ public interface DemoActionListener {
     public void demoDestroy(HandId handId);
 	public void demoTrigger(HandId handId, Spatial s);
 	public void demoPointTo(HandId handId, Spatial s);
+	public void demoFasten(HandId handId, InterfaceConnection conn);
+	public void demoLoosen(HandId handId, InterfaceConnection conn);
 }

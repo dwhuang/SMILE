@@ -24,15 +24,13 @@ import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
-import edu.umd.smile.demonstration.Demonstrator;
 import edu.umd.smile.gui.LogMessage;
+import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
+import edu.umd.smile.object.InterfaceTracker.InterfaceMemento;
 import edu.umd.smile.util.MyJoint;
 import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
 import edu.umd.smile.util.MySliderJoint;
-
-//TODO: check deletion for connected(Interfaces/Items)
-//TODO: undo recover interface connection states
 
 /**
  *
@@ -43,21 +41,17 @@ public class Inventory {
 
     private Node rootNode;
 	private BulletAppState bulletAppState;
-	private MainApp app;
 	
     private HashSet<Spatial> items = new HashSet<Spatial>();
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
-    private Set<Node> hostInterfaces = new HashSet<>();
-    private HashMap<Spatial, List<Node>> guestInterfaces = new HashMap<>();
-    private HashMap<Node, Node> fastenedInterfaces = new HashMap<>();
-    private HashMap<Spatial, Set<Spatial>> fastenedItems = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
-    
+    private InterfaceTracker interfaceTracker;
+
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
     	bulletAppState = app.getBulletAppState();
-    	this.app = app;
+    	interfaceTracker = new InterfaceTracker(app, this);
     }
     
     public Set<Spatial> allItems() {
@@ -85,7 +79,7 @@ public class Inventory {
     	rootNode.attachChild(item);
     	items.add(item);
     	
-    	registerItemInterfaces(item);
+    	interfaceTracker.addItemInterfaces(item);
     	
     	for (InventoryListener l : listeners) {
     		l.objectCreated(item);
@@ -271,7 +265,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
-    	    removeItemInterfaces(item);
+    	    interfaceTracker.removeItemInterfaces(item);
     		removeItemControls(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
@@ -306,11 +300,8 @@ public class Inventory {
     	if (!controls.isEmpty()) {
             throw new IllegalStateException("controls is not empty");
     	}
-        if (!hostInterfaces.isEmpty()) {
-            throw new IllegalStateException("interfaceHosts is not empty");
-        }
-        if (!guestInterfaces.isEmpty()) {
-            throw new IllegalStateException("interfaceGuests is not empty");
+        if (interfaceTracker.getNumInterfaces() > 0) {
+            throw new IllegalStateException("interfaceManager is not empty");
         }
     }
     
@@ -320,11 +311,7 @@ public class Inventory {
         		item.getControl(MyRigidBodyControl.class).getJoints());
         if (jointList != null) {
         	for (PhysicsJoint joint : jointList) {
-        		joint.getBodyA().removeJoint(joint);
-        		joint.getBodyB().removeJoint(joint);
-                bulletAppState.getPhysicsSpace().remove(joint);
-                joints.remove(joint);
-                joint.destroy();
+        	    removeJoint(joint);
         	}
         }
         
@@ -336,6 +323,31 @@ public class Inventory {
         }
     }
     
+    public void removeJoint(Spatial item1, Spatial item2, Class<? extends PhysicsJoint> jointClass) {
+        MyRigidBodyControl rbc1 = item1.getControl(MyRigidBodyControl.class);
+        MyRigidBodyControl rbc2 = item2.getControl(MyRigidBodyControl.class);
+        for (PhysicsJoint joint : rbc1.getJoints()) {
+            if (!jointClass.isInstance(joint)) {
+                continue;
+            }
+            if (joint.getBodyA() == rbc1 && joint.getBodyB() == rbc2
+                    || joint.getBodyA() == rbc2 && joint.getBodyB() == rbc1) {
+                removeJoint(joint);
+                return;
+            }
+        }
+        throw new IllegalArgumentException("cannot find a joint between " + item1 + " and " + item2
+                + " of type " + jointClass);
+    }
+
+    private void removeJoint(PhysicsJoint joint) {
+        joint.getBodyA().removeJoint(joint);
+        joint.getBodyB().removeJoint(joint);
+        bulletAppState.getPhysicsSpace().remove(joint);
+        joints.remove(joint);
+        joint.destroy();
+    }
+    
     private void removeItemControls(Spatial item) {
     	item.depthFirstTraversal(new SceneGraphVisitor() {
 			@Override
@@ -345,21 +357,6 @@ public class Inventory {
 				}
 			}
     	});
-    }
-    
-    private void removeItemInterfaces(Spatial item) {
-        item.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Node) {
-                    String role = spatial.getUserData("interface");
-                    if ("host".equals(role)) {
-                        hostInterfaces.remove((Node) spatial);
-                    }
-                }
-            }
-        });
-        guestInterfaces.remove(item);
     }
     
     public Spatial getItem(Spatial g) {
@@ -452,144 +449,14 @@ public class Inventory {
         }
     }
     
-    private void registerItemInterfaces(final Spatial item) {
-        item.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (spatial instanceof Node) {
-                    String role = spatial.getUserData("interface");
-                    if ("host".equals(role)) {
-                        hostInterfaces.add((Node) spatial);
-                    } else if ("guest".equals(role)) {
-                        if (guestInterfaces.get(item) == null) {
-                            guestInterfaces.put(item, new ArrayList<Node>());
-                        }
-                        List<Node> list = guestInterfaces.get(item);
-                        list.add((Node) spatial);
-                    }
-                }
-            }
-        });
+    public InterfaceConnection findFastenable(Spatial guestItem, Vector3f clickedLocation, float distTolerance) {
+        return interfaceTracker.findFastenable(guestItem, clickedLocation, distTolerance);
     }
     
-    public class InterfaceHostGuestPair {
-        public Node host = null;
-        public Node guest = null;
+    public InterfaceConnection findLoosenable(Spatial guestItem, Vector3f clickedLocation) {
+        return interfaceTracker.findLoosenable(guestItem, clickedLocation);
     }
-    
-    public InterfaceHostGuestPair findHostInterfaceForFastening(Spatial guestItem, float distTolerance) {
-        InterfaceHostGuestPair result = new InterfaceHostGuestPair();
-        List<Node> guestList = guestInterfaces.get(guestItem);
-        if (guestList == null) {
-            return result;
-        }
-
-        // exclude items that are already fastened (directly and indirectly) to guestItem
-        Set<Spatial> unavailableItems = new HashSet<>();
-        getAllConnectedItems(guestItem, unavailableItems);
-        
-        float minDist = Float.MAX_VALUE;
-        for (Node guest : guestList) {
-            String type = guest.getUserData("interfaceType");
-            if (type == null || type.isEmpty() || fastenedInterfaces.get(guest) != null) {
-                continue;
-            }
-            Vector3f guestLocation = guest.getWorldTranslation();
-            for (Node host : hostInterfaces) {
-                Spatial hostItem = getItem(host);
-                if (type.equals(host.getUserData("interfaceType")) && !unavailableItems.contains(hostItem)) {
-                    float dist = host.getWorldTranslation().distance(guestLocation);
-                    if (dist < distTolerance && dist < minDist) {
-                        minDist = dist;
-                        result.host = host;
-                        result.guest = guest;
-                    }
-                }
-            }
-        }
-        return result;
-    }
-    
-    // get all directly and indirectly fastened items
-    private void getAllConnectedItems(Spatial item, Set<Spatial> result) {
-        if (result.contains(item)) {
-            return;
-        }
-        result.add(item);
-        Set<Spatial> neighbors = fastenedItems.get(item);
-        if (neighbors == null) {
-            return;
-        }
-        for (Spatial neighbor : neighbors) {
-            getAllConnectedItems(neighbor, result);
-        }
-    }
-    
-    public void fastenInterface(Node host, Node guest) {
-        Spatial hostItem = getItem(host);
-        Spatial guestItem = getItem(guest);
-        if (hostItem == null || guestItem == null) {
-            return;
-        }
-        Transform hostSubTr = getSubTransform(host, hostItem);
-        Transform guestSubTr = getSubTransform(guest, guestItem);
-        
-        // add physics joint
-        MySixDofJoint joint = addSixDofJoint(hostItem, guestItem,
-                hostSubTr.getTranslation(), guestSubTr.getTranslation(),
-                Matrix3f.IDENTITY, Matrix3f.IDENTITY, false);
-        joint.setAngularLowerLimit(Vector3f.ZERO);
-        joint.setAngularUpperLimit(Vector3f.ZERO);
-        joint.setLinearLowerLimit(Vector3f.ZERO);
-        joint.setLinearUpperLimit(Vector3f.ZERO);
-        
-        // record the fastened interfaces & items
-        fastenedInterfaces.put(host, guest);
-        fastenedInterfaces.put(guest, host);
-        Set<Spatial> itemNeighbors = fastenedItems.get(hostItem);
-        if (itemNeighbors == null) {
-            fastenedItems.put(hostItem, new HashSet<Spatial>());
-            itemNeighbors = fastenedItems.get(hostItem);
-        }
-        itemNeighbors.add(guestItem);
-        itemNeighbors = fastenedItems.get(guestItem);
-        if (itemNeighbors == null) {
-            fastenedItems.put(guestItem, new HashSet<Spatial>());
-            itemNeighbors = fastenedItems.get(guestItem);
-        }
-        itemNeighbors.add(hostItem);
-
-        // move guest item to the host location immediately
-        Vector3f guestNewLocation = host.getWorldTranslation().clone();
-        guestNewLocation.subtractLocal(guestSubTr.getTranslation());
-        Quaternion guestNewRotation = host.getWorldRotation().clone();
-        guestNewRotation.multLocal(guestSubTr.getRotation().inverse());
-        Demonstrator.Hand hand = app.getDemonstrator().getHandGraspingItem(guestItem);
-        if (hand != null) {
-            hand.move(guestNewLocation, 0.1f);
-            hand.rotate(guestNewRotation, 0.1f);
-        } else {
-            MyRigidBodyControl guestRbc = guestItem.getControl(MyRigidBodyControl.class);
-            guestRbc.setPhysicsLocation(guestNewLocation);
-            guestRbc.setPhysicsRotation(guestNewRotation);
-        }
-        updateItemInsomnia(guestItem);
-        updateItemInsomnia(hostItem);
-    }
-    
-    private Transform getSubTransform(Spatial sub, Spatial whole) {
-        Transform tr = new Transform();
-        Spatial s = sub;
-        while (s != null) {
-            if (s == whole) {
-                return tr;
-            }
-            tr.combineWithParent(s.getLocalTransform());
-            s = s.getParent();
-        }
-        throw new IllegalArgumentException("'sub' is not a part of 'whole'");
-    }
-    
+            
     public void addListener(InventoryListener l) {
     	listeners.add(l);
     }
@@ -626,8 +493,7 @@ public class Inventory {
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
     	private HashSet<ControlInfo> controlInfoSet = new HashSet<>();
-//    	private HashMap<PhysicsJoint, ArrayList<Spatial>> jointSpatials
-//    			= new HashMap<PhysicsJoint, ArrayList<Spatial>>();
+    	private InterfaceMemento interfaceInfo;
     	
     	private Memento() {
     	}
@@ -667,6 +533,8 @@ public class Inventory {
     		info.control.saveStates(info.states);
     		m.controlInfoSet.add(info);
     	}
+    	
+    	m.interfaceInfo = interfaceTracker.saveToMemento();
 
     	return m;
     }
@@ -690,11 +558,14 @@ public class Inventory {
     		}
     		if (joint != null) {
     		    joint.loadParam(info.param);
+    		    updateItemInsomnia(info.item1);
+    		    updateItemInsomnia(info.item2);
     		}
     	}
     	for (ControlInfo info : m.controlInfoSet) {
     		registerControl(info.s, info.control);
     		info.control.restoreStates(info.states);
     	}
+    	interfaceTracker.restoreFromMemento(m.interfaceInfo);
     }
 }

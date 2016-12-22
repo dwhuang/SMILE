@@ -1105,8 +1105,10 @@ public class Table implements ActionListener {
 				s = processCustomElement(childElm, false);
 			} else if (childElm.getNodeName().equals("composite")) {
 				s = processCompositeElement(childElm, false);
-            } else if (childElm.getNodeName().equals("interface")) {
-                s = processInterfaceElement(childElm);
+            } else if (childElm.getNodeName().equals("guestInterface")) {
+                s = processGuestInterfaceElement(childElm);
+            } else if (childElm.getNodeName().equals("hostInterface")) {
+                s = processHostInterfaceElement(childElm);
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
 				s = processToggleSwitchElement(childElm, false);
 			} else if (childElm.getNodeName().equals("indicatorLights")) {
@@ -1137,10 +1139,9 @@ public class Table implements ActionListener {
 		return node;
 	}
 
-    private Spatial processInterfaceElement(Element elm) {
+    private Spatial processGuestInterfaceElement(Element elm) {
         String id = elm.getAttribute("id");
         id = getUniqueId(id);
-        boolean isHost = Boolean.parseBoolean(elm.getAttribute("isHost"));
         // Non-empty string; two parts must have the same type before they can be put together
         String type = elm.getAttribute("type");
         Vector3f location = parseVector3(elm.getAttribute("location"));
@@ -1154,10 +1155,51 @@ public class Table implements ActionListener {
                 rotation.x * FastMath.DEG_TO_RAD,
                 rotation.y * FastMath.DEG_TO_RAD,
                 rotation.z * FastMath.DEG_TO_RAD));
-        node.setUserData("interface", isHost ? "host" : "guest");
+        node.setUserData("interface", "guest");
         node.setUserData("interfaceType", type);
-        if (!isHost) {
-            // TODO: fasten to host
+        if (!hostId.isEmpty()) {
+            // TODO: add interface connection at init
+        }
+        
+        return node;
+    }
+
+    private Spatial processHostInterfaceElement(Element elm) {
+        String id = elm.getAttribute("id");
+        id = getUniqueId(id);
+        // Non-empty string; two parts must have the same type before they can be put together
+        String type = elm.getAttribute("type");
+        Vector3f location = parseVector3(elm.getAttribute("location"));
+        Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
+
+        Node node = new Node(id);
+        node.setLocalTranslation(location);
+        node.setLocalRotation(new Quaternion().fromAngles(
+                rotation.x * FastMath.DEG_TO_RAD,
+                rotation.y * FastMath.DEG_TO_RAD,
+                rotation.z * FastMath.DEG_TO_RAD));
+        node.setUserData("interface", "host");
+        node.setUserData("interfaceType", type);
+        
+        int k = 0;
+        for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE) {
+                continue;
+            }
+            Element childElm = (Element) child;
+            if (childElm.getNodeName().equals("tightness")) {
+                Vector3f loc = parseVector3(childElm.getAttribute("location"));
+                Vector3f rot = parseVector3(childElm.getAttribute("rotation"));
+                Node n = new Node(id + "-tightness" + (++k));
+                n.setLocalTranslation(loc);
+                n.setLocalRotation(new Quaternion().fromAngles(
+                        rot.x * FastMath.DEG_TO_RAD,
+                        rot.y * FastMath.DEG_TO_RAD,
+                        rot.z * FastMath.DEG_TO_RAD));
+                node.attachChild(n);
+            } else {
+                logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());
+            }
         }
         
         return node;

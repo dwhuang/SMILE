@@ -34,8 +34,9 @@ import edu.umd.smile.MainApp;
 import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Factory;
+import edu.umd.smile.object.InterfaceTracker;
+import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 import edu.umd.smile.object.Inventory;
-import edu.umd.smile.object.Inventory.InterfaceHostGuestPair;
 import edu.umd.smile.object.Table;
 import edu.umd.smile.util.MyRigidBodyControl;
 
@@ -96,8 +97,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
         Geometry g; // geometry that is clicked on
         AbstractControl triggerable;
         Spatial pointable;
-        Node interfaceHost;
-        Node interfaceGuest;
+        InterfaceConnection fastenable;
+        InterfaceConnection loosenable;
     }
     
     public ContextMenuParam createContextMenuParamForTrigger(Geometry g) {
@@ -124,19 +125,34 @@ public class Demonstrator implements ActionListener, AnalogListener {
         }
     }
     
-    public ContextMenuParam createContextMenuParamForFasten(Geometry g) {
+    public ContextMenuParam createContextMenuParamForFasten(Geometry g, Vector3f clickedLocation) {
         Spatial guestItem = inventory.getItem(g);
         if (guestItem == null) {
             return null;
         }
-        InterfaceHostGuestPair result = inventory.findHostInterfaceForFastening(guestItem, 20);
-        if (result.host == null || result.guest == null) {
+        InterfaceTracker.InterfaceConnection fastenable = inventory.findFastenable(guestItem, clickedLocation, 2);
+        if (fastenable == null) {
             return null;
         } else {
             ContextMenuParam param = new ContextMenuParam();
             param.g = g;
-            param.interfaceGuest = result.guest;
-            param.interfaceHost = result.host;
+            param.fastenable = fastenable;
+            return param;
+        }
+    }
+    
+    public ContextMenuParam createContextMenuParamForLoosen(Geometry g, Vector3f clickedLocation) {
+        Spatial guestItem = inventory.getItem(g);
+        if (guestItem == null) {
+            return null;
+        }
+        InterfaceConnection loosenable = inventory.findLoosenable(guestItem, clickedLocation);
+        if (loosenable == null) {
+            return null;
+        } else {
+            ContextMenuParam param = new ContextMenuParam();
+            param.g = g;
+            param.loosenable = loosenable;
             return param;
         }
     }
@@ -153,6 +169,37 @@ public class Demonstrator implements ActionListener, AnalogListener {
         	this.id = id;
         	graspNode = new Node(name);
         	rootNode.attachChild(graspNode);
+        }
+        
+        @Override
+        public void onContextMenu(String menuItemName, ContextMenuParam param) {
+            if (menuItemName.equals("trigger")) {
+                param.triggerable.trigger(param.g, true);
+                // notify listeners
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoTrigger(currHand.id, param.triggerable.getSpatial());
+                }
+            } else if (menuItemName.equals("pointTo")) {
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoPointTo(currHand.id, param.pointable);
+                }
+            } else if (menuItemName.equals("fasten")) {
+                for (DemoPreActionListener l : demoPreActionListeners) {
+                    l.demoPreFasten(currHand.id);
+                }
+                param.fastenable.fasten();
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoFasten(currHand.id, param.fastenable);
+                }
+            } else if (menuItemName.equals("loosen")) {
+                for (DemoPreActionListener l : demoPreActionListeners) {
+                    l.demoPreLoosen(currHand.id);
+                }
+                param.loosenable.loosen();
+                for (DemoActionListener l : demoActionListeners) {
+                    l.demoLoosen(currHand.id, param.loosenable);
+                }
+            }
         }
         
         private Hand() {}
@@ -235,7 +282,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
                         Geometry g = r.getGeometry();
                         contextMenuInfo.put("trigger", createContextMenuParamForTrigger(g));
                         contextMenuInfo.put("pointTo", createContextMenuParamForPointTo(g));
-                        contextMenuInfo.put("fasten", createContextMenuParamForFasten(g));
+                        contextMenuInfo.put("fasten", createContextMenuParamForFasten(g, r.getContactPoint()));
+                        contextMenuInfo.put("loosen", createContextMenuParamForLoosen(g, r.getContactPoint()));
                         app.showContextMenu(contextMenuInfo, this);
                 	}
                 }
@@ -255,31 +303,14 @@ public class Demonstrator implements ActionListener, AnalogListener {
                     if (item != graspedItem) {
                         return;
                     }
-                    contextMenuInfo.put("fasten", createContextMenuParamForFasten(g));
+                    contextMenuInfo.put("fasten", createContextMenuParamForFasten(g, r.getContactPoint()));
+                    contextMenuInfo.put("loosen", createContextMenuParamForLoosen(g, r.getContactPoint()));
                     app.showContextMenu(contextMenuInfo, this);
                 }
             } else if (state == HandState.Moving) {
                 if (leftButton && !isPressed) {
                     movingEnd();
                 }
-            }
-        }
-        
-        @Override
-        public void onContextMenu(String itemName, ContextMenuParam param) {
-            System.err.println(itemName);
-            if (itemName.equals("trigger")) {
-                param.triggerable.trigger(param.g, true);
-                // notify listeners
-                for (DemoActionListener l : demoActionListeners) {
-                    l.demoTrigger(currHand.id, param.triggerable.getSpatial());
-                }
-            } else if (itemName.equals("pointTo")) {
-                for (DemoActionListener l : demoActionListeners) {
-                    l.demoPointTo(currHand.id, param.pointable);
-                }
-            } else if (itemName.equals("fasten")) {
-                inventory.fastenInterface(param.interfaceHost, param.interfaceGuest);
             }
         }
         
@@ -415,7 +446,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         
         public float move(Vector3f pos, float deltaRangePrecision) {
             if (state != HandState.Grasped && state != HandState.Moving) {
-                throw new IllegalStateException("illegal operation");
+                throw new IllegalStateException("illegal operation at hand state " + state);
             }
             
             if (pos == null) {
