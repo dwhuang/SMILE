@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <include file="tablesetup/def-screw.xml"/>
+    <instance def="nut">
+    </instance>
+    <instance def="screw">
+        <var name="location" value="(0, 0, 2.1)"/>
+    </instance>
+</tabletop>

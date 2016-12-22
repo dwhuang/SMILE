@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml">
+    <def name="screwTip">
+        <var name="id" value="screwTip"/>
+        <var name="location" value="(0, 0, 0)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="length" value="1"/>
+        <var name="radius" value="0.5"/>
+        <var name="hostId" value=""/>
+        <composite id="$id$" location="$location$" rotation="$rotation$">
+            <cylinder yspan="$length*3/4$" radius="$radius$" color="$color$" location="(0, 0, $-length*3/4/2$)" rotation="(90, 0, 0)" sides="16"/>
+            <prism zspan="$length/4$" radiusTop="$radius$" radiusBottom="0.05" color="$color$" location="(0, 0, $-length*3/4-length/4/2$)" sides="16"/>
+            <guestInterface id="screwM" type="ScrewType" location="(0, 0, $-length$)" rotation="(180, 0, 0)" hostId="$hostId$"/>
+        </composite>
+    </def>
+    <def name="screw">
+        <var name="id" value="screw"/>
+        <var name="location" value="(0, 0, $tipLength$)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="0.5"/>
+        <var name="tipLength" value="1"/>
+        <var name="tipRadius" value="0.5"/>
+        <var name="color" value="darkgray"/>
+        <var name="hostId" value=""/>
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <prism zspan="$tipLength/2$" radiusTop="$tipRadius*1.6$" radiusBottom="$tipRadius*1.6$" color="$color$" location="(0, 0, $tipLength/2/2$)" sides="6"/>
+            <instance def="screwTip">
+                <var name="length" value="$tipLength$"/>
+                <var name="radius" value="$tipRadius$"/>
+            </instance>
+        </composite>
+    </def>
+    <def name="nut">
+        <var name="id" value="nut"/>
+        <var name="location" value="(0, 0, $height/2$)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="height" value="1.1"/>
+        <var name="depth" value="1"/>
+        <var name="innerRadius" value="0.5"/>
+        <var name="outerRadius" value="1"/>
+        <var name="color" value="gray"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$">
+            <ring zspan="$height$" radiusOuter="$outerRadius$" radiusInner="$innerRadius$" color="$color$" location="(0, 0, 0)" sides="32"/>
+            <hostInterface id="screwF" type="ScrewType" location="(0, 0, $height/2$)" rotation="(0, 0, 0)">
+                <tightness location="(0, 0, -$depth/3$)" rotation="(0, 0, 45)"/>
+                <tightness location="(0, 0, -$depth*2/3$)" rotation="(0, 0, 90)"/>
+                <tightness location="(0, 0, -$depth$)" rotation="(0, 0, 135)"/>
+            </hostInterface>
+        </composite>
+    </def>
+    <def name="hole">
+        <var name="id" value="hole"/>
+        <var name="location" value="(0, 0, 0.01)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="depth" value="1"/>
+        <var name="radius" value="0.2"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$">
+            <prism zspan="0.02" radiusTop="$radius$" radiusBottom="$radius$" color="black" location="(0, 0, 0)" sides="32"/>
+            <hostInterface id="screwF" type="ScrewType" location="(0, 0, 0.01)" rotation="(0, 0, 0)">
+                <tightness location="(0, 0, -$depth/3$)" rotation="(0, 0, 60)"/>
+                <tightness location="(0, 0, -$depth*2/3$)" rotation="(0, 0, 120)"/>
+                <tightness location="(0, 0, -$depth$)" rotation="(0, 0, 180)"/>
+            </hostInterface>
+        </composite>
+    </def>
+    <def name="screwConnector">
+        <var name="id" value="connector"/>
+        <var name="location" value="(0, 0, 0.51)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="color" value="gray"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$">
+            <block color="$color$" location="(0, 0, 0)"/> 
+            <instance def="screwTip">
+                <var name="location" value="(-0.5, 0, 0)"/>
+                <var name="rotation" value="(0, 90, 0)"/>
+                <var name="radius" value="0.1"/>
+                <var name="length" value="0.3"/>
+            </instance>
+            <instance def="screwTip">
+                <var name="location" value="(0.5, 0, 0)"/>
+                <var name="rotation" value="(0, -90, 0)"/>
+                <var name="radius" value="0.1"/>
+                <var name="length" value="0.3"/>
+            </instance>
+            <instance def="hole">
+                <var name="location" value="(0, -0.5, 0)"/>
+                <var name="rotation" value="(90, 0, 0)"/>
+                <var name="depth" value="0.31"/>
+                <var name="radius" value="0.1"/>
+            </instance>
+            <instance def="hole">
+                <var name="location" value="(0, 0, 0.5)"/>
+                <var name="rotation" value="(0, 0, 0)"/>
+                <var name="depth" value="0.31"/>
+                <var name="radius" value="0.1"/>
+            </instance>
+        </composite>
+    </def>
+</tabletop>
