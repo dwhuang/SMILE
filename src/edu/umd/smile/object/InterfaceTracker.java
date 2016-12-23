@@ -19,6 +19,7 @@ import edu.umd.smile.MainApp;
 import edu.umd.smile.demonstration.Demonstrator;
 import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
+import edu.umd.smile.util.TransformUtils;
 
 public class InterfaceTracker {
     public class InterfaceConnection {
@@ -152,21 +153,18 @@ public class InterfaceTracker {
                             
             // snap guest item to the right location (according to host tightness location)
             //
-            Vector3f loc = hostItem.getWorldTranslation();
-            loc.addLocal(hostRelTr.getTranslation());
-            loc.subtractLocal(guestRelTr.getTranslation());
-            Quaternion rot = hostItem.getWorldRotation();
-            rot.multLocal(hostRelTr.getRotation());
-            rot.multLocal(guestRelTr.getRotation().inverse());
+            Transform tr = TransformUtils.invertTransform(guestRelTr, null);
+            tr.combineWithParent(hostRelTr);
+            tr.combineWithParent(hostItem.getWorldTransform());
             
             Demonstrator.Hand hand = app.getDemonstrator().getHandGraspingItem(guestItem);
             if (hand != null) {
-                hand.move(loc, 0.1f);
-                hand.rotate(rot, 0.1f);
+                hand.move(tr.getTranslation(), 0.1f);
+                hand.rotate(tr.getRotation(), 0.1f);
             } else {
                 MyRigidBodyControl guestRbc = guestItem.getControl(MyRigidBodyControl.class);
-                guestRbc.setPhysicsLocation(loc);
-                guestRbc.setPhysicsRotation(rot);
+                guestRbc.setPhysicsLocation(tr.getTranslation());
+                guestRbc.setPhysicsRotation(tr.getRotation());
             }
             inventory.updateItemInsomnia(guestItem);
             inventory.updateItemInsomnia(hostItem);
