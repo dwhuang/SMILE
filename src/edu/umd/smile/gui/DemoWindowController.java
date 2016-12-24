@@ -28,7 +28,7 @@ import edu.umd.smile.demonstration.DemoActionListener;
 import edu.umd.smile.demonstration.DemoRecorder;
 import edu.umd.smile.demonstration.Demonstrator;
 import edu.umd.smile.demonstration.Demonstrator.HandId;
-import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
+import edu.umd.smile.object.ObjectBondTracker.ObjectBond;
 
 /**
  *
@@ -123,12 +123,12 @@ public class DemoWindowController implements WindowController, DemoActionListene
     }
     
 	@Override
-    public void demoFasten(HandId handId, InterfaceConnection conn) {
+    public void demoFasten(HandId handId, ObjectBond bond) {
         updateRecInfo();
     }
 
     @Override
-    public void demoLoosen(HandId handId, InterfaceConnection conn) {
+    public void demoLoosen(HandId handId, ObjectBond bond) {
         updateRecInfo();
     }
 

@@ -22,9 +22,9 @@ import com.jme3.scene.Spatial;
 import edu.umd.smile.MainApp;
 import edu.umd.smile.demonstration.Demonstrator.HandId;
 import edu.umd.smile.object.AbstractControl;
-import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 import edu.umd.smile.object.Inventory;
 import edu.umd.smile.object.InventoryListener;
+import edu.umd.smile.object.ObjectBondTracker.ObjectBond;
 import edu.umd.smile.robot.Robot;
 import edu.umd.smile.util.FileUtils;
 import edu.umd.smile.util.MyRigidBodyControl;
@@ -271,26 +271,26 @@ public class DemoRecorder implements DemoPreActionListener, DemoActionListener, 
     }
     
 	@Override
-    public void demoFasten(HandId handId, InterfaceConnection conn) {
+    public void demoFasten(HandId handId, ObjectBond bond) {
         if (isRecording) {
             currSegSymbWritter.print(frameId + ",fasten," + handId.toString() + ","
-                    + conn.getHostInterface().getName() + ","
-                    + conn.getHostItem().getName() + ","
-                    + conn.getGuestInterface().getName() + ","
-                    + conn.getGuestItem().getName() + ","
-                    + conn.getTightness() + "\n");
+                    + bond.getHostBondPoint().getName() + ","
+                    + bond.getHostItem().getName() + ","
+                    + bond.getGuestBondPoint().getName() + ","
+                    + bond.getGuestItem().getName() + ","
+                    + bond.getTightness() + "\n");
         }
     }
 
     @Override
-    public void demoLoosen(HandId handId, InterfaceConnection conn) {
+    public void demoLoosen(HandId handId, ObjectBond bond) {
         if (isRecording) {
             currSegSymbWritter.print(frameId + ",loosen," + handId.toString() + ","
-                    + conn.getHostInterface().getName() + ","
-                    + conn.getHostItem().getName() + ","
-                    + conn.getGuestInterface().getName() + ","
-                    + conn.getGuestItem().getName() + ","
-                    + conn.getTightness() + "\n");
+                    + bond.getHostBondPoint().getName() + ","
+                    + bond.getHostItem().getName() + ","
+                    + bond.getGuestBondPoint().getName() + ","
+                    + bond.getGuestItem().getName() + ","
+                    + bond.getTightness() + "\n");
         }
     }
 

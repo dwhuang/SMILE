@@ -21,24 +21,24 @@ import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
 import edu.umd.smile.util.TransformUtils;
 
-public class InterfaceTracker {
-    public class InterfaceConnection {
+public class ObjectBondTracker {
+    public class ObjectBond {
         protected Node host;
         protected Node guest;
         protected Spatial hostItem;
         protected Spatial guestItem;
-        protected List<Transform> hostRelTrs = new ArrayList<>(); // interface transform relative to the item
+        protected List<Transform> hostRelTrs = new ArrayList<>(); // bond point transform relative to the item
         protected Transform guestRelTr;
         protected int tightness = 0;
         protected int maxTightness;
 
-        public InterfaceConnection(Node host, Node guest) {
+        public ObjectBond(Node host, Node guest) {
             this.host = host;
             this.guest = guest;
             init();
         }
         
-        protected InterfaceConnection(Node host, Node guest, int tightness) {
+        protected ObjectBond(Node host, Node guest, int tightness) {
             this(host, guest);
             this.tightness = tightness;
         }
@@ -61,9 +61,9 @@ public class InterfaceTracker {
             }
         }
         
-        private Transform getRelativeTransform(Node intf, Spatial whole, Transform extra) {
+        private Transform getRelativeTransform(Node bondPoint, Spatial whole, Transform extra) {
             Transform tr = extra;
-            Spatial s = intf;
+            Spatial s = bondPoint;
             while (s != null) {
                 if (s == whole) {
                     return tr;
@@ -71,14 +71,14 @@ public class InterfaceTracker {
                 tr.combineWithParent(s.getLocalTransform());
                 s = s.getParent();
             }
-            throw new IllegalArgumentException("'intf' is not a part of 'whole'");
+            throw new IllegalArgumentException("'bondPoint' is not a part of 'whole'");
         }
         
         public Spatial getHostItem() {
             return hostItem;
         }
         
-        public Node getHostInterface() {
+        public Node getHostBondPoint() {
             return host;
         }
         
@@ -86,7 +86,7 @@ public class InterfaceTracker {
             return guestItem;
         }
         
-        public Node getGuestInterface() {
+        public Node getGuestBondPoint() {
             return guest;
         }
         
@@ -96,23 +96,23 @@ public class InterfaceTracker {
         
         public void fasten() {
             if (!isFastenable()) {
-                throw new IllegalStateException("Connection between '"
+                throw new IllegalStateException("Object bond between '"
                         + host + "' and '" + guest + "' cannot be fastened");
             }
             if (tightness == 0) {
-                addConnection(this);
+                addBond(this);
             }
             setTightness(tightness + 1);
         }
         
         public void loosen() {
             if (!isLoosenable()) {
-                throw new IllegalStateException("Connection between '"
+                throw new IllegalStateException("Object bond between '"
                         + host + "' and '" + guest + "' cannot be loosened");
             }
             setTightness(tightness - 1);
             if (tightness == 0) {
-                removeConnection(this);
+                removeBond(this);
             }
         }
         
@@ -176,143 +176,143 @@ public class InterfaceTracker {
     protected Inventory inventory;
     protected MainApp app;
     // main storage
-    protected Set<Node> hostInterfaces = new HashSet<>();
-    protected Set<Node> guestInterfaces = new HashSet<>();
-    protected Set<InterfaceConnection> conns = new HashSet<>();
+    protected Set<Node> hostBondPoints = new HashSet<>();
+    protected Set<Node> guestBondPoints = new HashSet<>();
+    protected Set<ObjectBond> bonds = new HashSet<>();
     // derived
-    protected Map<Spatial, Set<Node>> guestInterfacesByItem = new HashMap<>();
-    protected Map<Node, InterfaceConnection> connsByInterface = new HashMap<>();
+    protected Map<Spatial, Set<Node>> guestBondPointsByItem = new HashMap<>();
+    protected Map<Node, ObjectBond> bondForPoint = new HashMap<>();
     protected Map<Spatial, Set<Spatial>> itemAdjacency = new HashMap<>();
     
-    public InterfaceTracker(MainApp app, Inventory inv) {
+    public ObjectBondTracker(MainApp app, Inventory inv) {
         this.app = app;
         inventory = inv;
     }
     
-    protected void addItemInterfaces(final Spatial item) {
+    protected void addBondPointsForItem(final Spatial item) {
         item.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
                 if (spatial instanceof Node) {
-                    String role = spatial.getUserData("interface");
-                    Node intf = (Node) spatial;
+                    String role = spatial.getUserData("bondPoint");
+                    Node bondPoint = (Node) spatial;
                     if ("host".equals(role)) {
-                        hostInterfaces.add(intf);
+                        hostBondPoints.add(bondPoint);
                     } else if ("guest".equals(role)) {
-                        guestInterfaces.add(intf);
-                        Set<Node> set = guestInterfacesByItem.get(item);
+                        guestBondPoints.add(bondPoint);
+                        Set<Node> set = guestBondPointsByItem.get(item);
                         if (set == null) {
                             set = new HashSet<>();
-                            guestInterfacesByItem.put(item, set);
+                            guestBondPointsByItem.put(item, set);
                         }
-                        set.add(intf);
+                        set.add(bondPoint);
                     }
                 }
             }
         });
     }
 
-    protected void removeItemInterfaces(Spatial item) {
+    protected void removeBondPointsForItem(Spatial item) {
         item.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
                 if (spatial instanceof Node) {
-                    Node intf = (Node) spatial;
-                    InterfaceConnection conn = connsByInterface.get(intf);
-                    if (conn != null) {
-                        inventory.removeJoint(conn.hostItem, conn.guestItem, MySixDofJoint.class);
-                        removeConnection(conn);
+                    Node bondPoint = (Node) spatial;
+                    ObjectBond bond = bondForPoint.get(bondPoint);
+                    if (bond != null) {
+                        inventory.removeJoint(bond.hostItem, bond.guestItem, MySixDofJoint.class);
+                        removeBond(bond);
                     }
-                    String role = spatial.getUserData("interface");
+                    String role = spatial.getUserData("bondPoint");
                     if ("host".equals(role)) {
-                        hostInterfaces.remove(intf);
+                        hostBondPoints.remove(bondPoint);
                     } else if ("guest".equals(role)) {
-                        guestInterfaces.remove(intf);
+                        guestBondPoints.remove(bondPoint);
                     }
                 }
             }
         });
-        guestInterfacesByItem.remove(item);
+        guestBondPointsByItem.remove(item);
     }
     
-    protected int getNumInterfaces() {
-        return hostInterfaces.size() + guestInterfaces.size();
+    protected int getNumBondPoints() {
+        return hostBondPoints.size() + guestBondPoints.size();
     }
 
-    protected void addConnection(InterfaceConnection conn) {
-        conns.add(conn);
-        connsByInterface.put(conn.host, conn);
-        connsByInterface.put(conn.guest, conn);
-        Set<Spatial> neibs = itemAdjacency.get(conn.hostItem);
+    protected void addBond(ObjectBond bond) {
+        bonds.add(bond);
+        bondForPoint.put(bond.host, bond);
+        bondForPoint.put(bond.guest, bond);
+        Set<Spatial> neibs = itemAdjacency.get(bond.hostItem);
         if (neibs == null) {
             neibs = new HashSet<>();
-            itemAdjacency.put(conn.hostItem, neibs);
+            itemAdjacency.put(bond.hostItem, neibs);
         }
-        neibs.add(conn.guestItem);
-        neibs = itemAdjacency.get(conn.guestItem);
+        neibs.add(bond.guestItem);
+        neibs = itemAdjacency.get(bond.guestItem);
         if (neibs == null) {
             neibs = new HashSet<>();
-            itemAdjacency.put(conn.guestItem, neibs);
+            itemAdjacency.put(bond.guestItem, neibs);
         }
-        neibs.add(conn.hostItem);
+        neibs.add(bond.hostItem);
     }
     
-    protected void removeConnection(InterfaceConnection conn) {
-        conns.remove(conn);
-        connsByInterface.remove(conn.host);
-        connsByInterface.remove(conn.guest);
-        itemAdjacency.get(conn.hostItem).remove(conn.guestItem);
-        itemAdjacency.get(conn.guestItem).remove(conn.hostItem);
+    protected void removeBond(ObjectBond bond) {
+        bonds.remove(bond);
+        bondForPoint.remove(bond.host);
+        bondForPoint.remove(bond.guest);
+        itemAdjacency.get(bond.hostItem).remove(bond.guestItem);
+        itemAdjacency.get(bond.guestItem).remove(bond.hostItem);
     }
 
-    protected InterfaceConnection getConnection(Node intf) {
-        return connsByInterface.get(intf);
+    protected ObjectBond getBond(Node bondPoint) {
+        return bondForPoint.get(bondPoint);
     }
     
     /**
-     * Find or create an interface connection between
-     * (1) the guest interface on guestItem closest to clickedLocation and
-     * (2) an appropriate host interface as follows:
-     *     (a) the existing connection, if the guest is already connected to a host interface,
-     *         and the host interface is still fastenable.
-     *     (b) a "valid" new connection to the host interface closest to the guest interface.
+     * Find or create an object bond between
+     * (1) the guest bond point on guestItem closest to clickedLocation and
+     * (2) an appropriate host bond point as follows:
+     *     (a) the existing bond, if the guest is already connected to a host bond point,
+     *         and the bond is still fastenable.
+     *     (b) a "valid" new bond to the host bond point closest to the guest bond point.
      * 
-     * A valid host interface is one that:
-     * (1) is within distance distTolerance to the guest interface
-     * (2) is of the same type as the guest interface,
-     * (3) has not already been fasten to another guest interface, and
+     * A valid host bond point is one that:
+     * (1) is within distance distTolerance to the guest bond point
+     * (2) is of the same bond type as the guest bond point,
+     * (3) has not already been connected to another guest bond point, and
      * (4) the item it belongs to has not already been directly or indirectly connected to guestItem.
      * @param guestItem
      * @param clickedLocation
      * @param distTolerance
-     * @return a connection, or null if failed.
+     * @return a bond, or null if failed.
      */
-    protected InterfaceConnection findFastenable(Spatial guestItem, Vector3f clickedLocation,
+    protected ObjectBond findFastenable(Spatial guestItem, Vector3f clickedLocation,
             float distTolerance) {
-        Node guest = getNearestGuestInterface(guestItem, clickedLocation);
+        Node guest = getNearestGuestBondPoint(guestItem, clickedLocation);
         if (guest == null) {
             return null;
         }
-        InterfaceConnection conn = getConnection(guest);
-        if (conn != null) {
+        ObjectBond bond = getBond(guest);
+        if (bond != null) {
             // guest is already connected
-            if (conn.isFastenable()) {
-                return conn;
+            if (bond.isFastenable()) {
+                return bond;
             }
             return null;
         } else {
-            // guest is not already connected; create a new interface connection
+            // guest is not already connected; create a new object bond
             //
             Vector3f guestLoc = guest.getWorldTranslation();
             Set<Spatial> invalidItems = gatherConnectedItems(guestItem, new HashSet<Spatial>());
             float minDist = Float.MAX_VALUE;
             Node minHost = null;
-            for (Node host : hostInterfaces) {
-                if (!host.getUserData("interfaceType").equals(guest.getUserData("interfaceType"))) {
+            for (Node host : hostBondPoints) {
+                if (!host.getUserData("bondType").equals(guest.getUserData("bondType"))) {
                     continue;
                 }
-                if (getConnection(host) != null) {
-                    // already connected to another guest interface
+                if (getBond(host) != null) {
+                    // already connected to another guest bond point
                     continue;
                 }
                 Spatial hostItem = inventory.getItem(host);
@@ -328,27 +328,27 @@ public class InterfaceTracker {
             if (minHost == null) {
                 return null;
             }
-            return new InterfaceConnection(minHost, guest);
+            return new ObjectBond(minHost, guest);
         }
     }
 
     /**
-     * Find an existing (loosenable) interface connection containing the guest interface on guestItem
+     * Find an existing (loosenable) object bond containing the guest bond point on guestItem
      * closest to clickedLocation.
      * @param guestItem
      * @param clickedLocation
-     * @return a connection, or null if failed.
+     * @return a bond, or null if failed.
      */
-    protected InterfaceConnection findLoosenable(Spatial guestItem, Vector3f clickedLocation) {
-        Node guest = getNearestGuestInterface(guestItem, clickedLocation);
+    protected ObjectBond findLoosenable(Spatial guestItem, Vector3f clickedLocation) {
+        Node guest = getNearestGuestBondPoint(guestItem, clickedLocation);
         if (guest == null) {
             return null;
         }
-        return getConnection(guest);
+        return getBond(guest);
     }
     
-    private Node getNearestGuestInterface(Spatial guestItem, Vector3f loc) {
-        Set<Node> guests = guestInterfacesByItem.get(guestItem);
+    private Node getNearestGuestBondPoint(Spatial guestItem, Vector3f loc) {
+        Set<Node> guests = guestBondPointsByItem.get(guestItem);
         if (guests == null) {
             return null;
         }
@@ -378,48 +378,48 @@ public class InterfaceTracker {
         return visited;
     }
 
-    protected class InterfaceMemento {
-        Set<Node> hostInterfaces = new HashSet<>();
-        Set<Node> guestInterfaces = new HashSet<>();
-        Set<ConnectionMemento> conns = new HashSet<>();
+    protected class ObjectBondTrackerMemento {
+        Set<Node> hostBondPoints = new HashSet<>();
+        Set<Node> guestBondPoints = new HashSet<>();
+        Set<ObjectBondMemento> bonds = new HashSet<>();
     }
     
-    protected class ConnectionMemento {
+    protected class ObjectBondMemento {
         Node host;
         Node guest;
         int tightness;
     }
     
-    protected InterfaceMemento saveToMemento() {
-        InterfaceMemento m = new InterfaceMemento();
-        m.hostInterfaces.addAll(hostInterfaces);
-        m.guestInterfaces.addAll(guestInterfaces);
-        for (InterfaceConnection conn : conns) {
-            ConnectionMemento cm = new ConnectionMemento();
-            cm.host = conn.host;
-            cm.guest = conn.guest;
-            cm.tightness = conn.tightness;
-            m.conns.add(cm);
+    protected ObjectBondTrackerMemento saveToMemento() {
+        ObjectBondTrackerMemento m = new ObjectBondTrackerMemento();
+        m.hostBondPoints.addAll(hostBondPoints);
+        m.guestBondPoints.addAll(guestBondPoints);
+        for (ObjectBond bond : bonds) {
+            ObjectBondMemento cm = new ObjectBondMemento();
+            cm.host = bond.host;
+            cm.guest = bond.guest;
+            cm.tightness = bond.tightness;
+            m.bonds.add(cm);
         }
         return m;
     }
 
-    protected void restoreFromMemento(InterfaceMemento m) {
-        hostInterfaces.addAll(m.hostInterfaces);
-        guestInterfaces.addAll(m.guestInterfaces);
-        for (Node g : guestInterfaces) {
+    protected void restoreFromMemento(ObjectBondTrackerMemento m) {
+        hostBondPoints.addAll(m.hostBondPoints);
+        guestBondPoints.addAll(m.guestBondPoints);
+        for (Node g : guestBondPoints) {
             Spatial item = inventory.getItem(g);
-            Set<Node> set = guestInterfacesByItem.get(item);
+            Set<Node> set = guestBondPointsByItem.get(item);
             if (set == null) {
                 set = new HashSet<>();
-                guestInterfacesByItem.put(item, set);
+                guestBondPointsByItem.put(item, set);
             }
             set.add(g);
         }
-        // connections
-        for (ConnectionMemento cm : m.conns) {
-            InterfaceConnection c = new InterfaceConnection(cm.host, cm.guest, cm.tightness);
-            addConnection(c);
+        // bonds
+        for (ObjectBondMemento cm : m.bonds) {
+            ObjectBond c = new ObjectBond(cm.host, cm.guest, cm.tightness);
+            addBond(c);
         }
     }
 }

@@ -34,9 +34,9 @@ import edu.umd.smile.MainApp;
 import edu.umd.smile.gui.ContextMenuListener;
 import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.object.Factory;
-import edu.umd.smile.object.InterfaceTracker;
-import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
 import edu.umd.smile.object.Inventory;
+import edu.umd.smile.object.ObjectBondTracker;
+import edu.umd.smile.object.ObjectBondTracker.ObjectBond;
 import edu.umd.smile.object.Table;
 import edu.umd.smile.util.MyRigidBodyControl;
 
@@ -97,8 +97,8 @@ public class Demonstrator implements ActionListener, AnalogListener {
         Geometry g; // geometry that is clicked on
         AbstractControl triggerable;
         Spatial pointable;
-        InterfaceConnection fastenable;
-        InterfaceConnection loosenable;
+        ObjectBond fastenable;
+        ObjectBond loosenable;
     }
     
     public ContextMenuParam createContextMenuParamForTrigger(Geometry g) {
@@ -130,7 +130,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         if (guestItem == null) {
             return null;
         }
-        InterfaceTracker.InterfaceConnection fastenable = inventory.findFastenable(guestItem, clickedLocation, 2);
+        ObjectBondTracker.ObjectBond fastenable = inventory.findFastenable(guestItem, clickedLocation, 2);
         if (fastenable == null) {
             return null;
         } else {
@@ -146,7 +146,7 @@ public class Demonstrator implements ActionListener, AnalogListener {
         if (guestItem == null) {
             return null;
         }
-        InterfaceConnection loosenable = inventory.findLoosenable(guestItem, clickedLocation);
+        ObjectBond loosenable = inventory.findLoosenable(guestItem, clickedLocation);
         if (loosenable == null) {
             return null;
         } else {

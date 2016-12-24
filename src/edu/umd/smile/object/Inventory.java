@@ -25,8 +25,8 @@ import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
 import edu.umd.smile.gui.LogMessage;
-import edu.umd.smile.object.InterfaceTracker.InterfaceConnection;
-import edu.umd.smile.object.InterfaceTracker.InterfaceMemento;
+import edu.umd.smile.object.ObjectBondTracker.ObjectBond;
+import edu.umd.smile.object.ObjectBondTracker.ObjectBondTrackerMemento;
 import edu.umd.smile.util.MyJoint;
 import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
@@ -46,12 +46,12 @@ public class Inventory {
     private HashSet<PhysicsJoint> joints = new HashSet<PhysicsJoint>();
     private HashMap<Spatial, AbstractControl> controls = new HashMap<>();
     private ArrayList<InventoryListener> listeners = new ArrayList<InventoryListener>();
-    private InterfaceTracker interfaceTracker;
+    private ObjectBondTracker objectBondTracker;
 
     public Inventory(MainApp app) {
     	rootNode = app.getRootNode();
     	bulletAppState = app.getBulletAppState();
-    	interfaceTracker = new InterfaceTracker(app, this);
+    	objectBondTracker = new ObjectBondTracker(app, this);
     }
     
     public Set<Spatial> allItems() {
@@ -79,7 +79,7 @@ public class Inventory {
     	rootNode.attachChild(item);
     	items.add(item);
     	
-    	interfaceTracker.addItemInterfaces(item);
+    	objectBondTracker.addBondPointsForItem(item);
     	
     	for (InventoryListener l : listeners) {
     		l.objectCreated(item);
@@ -265,7 +265,7 @@ public class Inventory {
     
     public void removeItem(Spatial item) {
     	if (items.contains(item)) {
-    	    interfaceTracker.removeItemInterfaces(item);
+    	    objectBondTracker.removeBondPointsForItem(item);
     		removeItemControls(item);
     		removeItemPhysics(item);
     		item.getParent().detachChild(item);
@@ -300,8 +300,8 @@ public class Inventory {
     	if (!controls.isEmpty()) {
             throw new IllegalStateException("controls is not empty");
     	}
-        if (interfaceTracker.getNumInterfaces() > 0) {
-            throw new IllegalStateException("interfaceManager is not empty");
+        if (objectBondTracker.getNumBondPoints() > 0) {
+            throw new IllegalStateException("objectBondManager is not empty");
         }
     }
     
@@ -449,12 +449,12 @@ public class Inventory {
         }
     }
     
-    public InterfaceConnection findFastenable(Spatial guestItem, Vector3f clickedLocation, float distTolerance) {
-        return interfaceTracker.findFastenable(guestItem, clickedLocation, distTolerance);
+    public ObjectBond findFastenable(Spatial guestItem, Vector3f clickedLocation, float distTolerance) {
+        return objectBondTracker.findFastenable(guestItem, clickedLocation, distTolerance);
     }
     
-    public InterfaceConnection findLoosenable(Spatial guestItem, Vector3f clickedLocation) {
-        return interfaceTracker.findLoosenable(guestItem, clickedLocation);
+    public ObjectBond findLoosenable(Spatial guestItem, Vector3f clickedLocation) {
+        return objectBondTracker.findLoosenable(guestItem, clickedLocation);
     }
             
     public void addListener(InventoryListener l) {
@@ -493,7 +493,7 @@ public class Inventory {
     	private HashSet<ItemInfo> itemInfoSet = new HashSet<ItemInfo>();
     	private HashSet<JointInfo> jointInfoSet = new HashSet<JointInfo>();
     	private HashSet<ControlInfo> controlInfoSet = new HashSet<>();
-    	private InterfaceMemento interfaceInfo;
+    	private ObjectBondTrackerMemento bondInfo;
     	
     	private Memento() {
     	}
@@ -534,7 +534,7 @@ public class Inventory {
     		m.controlInfoSet.add(info);
     	}
     	
-    	m.interfaceInfo = interfaceTracker.saveToMemento();
+    	m.bondInfo = objectBondTracker.saveToMemento();
 
     	return m;
     }
@@ -566,6 +566,6 @@ public class Inventory {
     		registerControl(info.s, info.control);
     		info.control.restoreStates(info.states);
     	}
-    	interfaceTracker.restoreFromMemento(m.interfaceInfo);
+    	objectBondTracker.restoreFromMemento(m.bondInfo);
     }
 }

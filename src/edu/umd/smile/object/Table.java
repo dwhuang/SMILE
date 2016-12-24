@@ -1105,10 +1105,10 @@ public class Table implements ActionListener {
 				s = processCustomElement(childElm, false);
 			} else if (childElm.getNodeName().equals("composite")) {
 				s = processCompositeElement(childElm, false);
-            } else if (childElm.getNodeName().equals("guestInterface")) {
-                s = processGuestInterfaceElement(childElm);
-            } else if (childElm.getNodeName().equals("hostInterface")) {
-                s = processHostInterfaceElement(childElm);
+            } else if (childElm.getNodeName().equals("guestBondPoint")) {
+                s = processGuestBondPointElement(childElm);
+            } else if (childElm.getNodeName().equals("hostBondPoint")) {
+                s = processHostBondPointElement(childElm);
 			} else if (childElm.getNodeName().equals("toggleSwitch")) {
 				s = processToggleSwitchElement(childElm, false);
 			} else if (childElm.getNodeName().equals("indicatorLights")) {
@@ -1139,14 +1139,14 @@ public class Table implements ActionListener {
 		return node;
 	}
 
-    private Spatial processGuestInterfaceElement(Element elm) {
+    private Spatial processGuestBondPointElement(Element elm) {
         String id = elm.getAttribute("id");
         id = getUniqueId(id);
         // Non-empty string; two parts must have the same type before they can be put together
         String type = elm.getAttribute("type");
         Vector3f location = parseVector3(elm.getAttribute("location"));
         Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-        // The interface host that this object (guest) is fastened to; ignored if isHost.
+        // The host bond point that this object (guest) is fastened to; ignored if isHost.
         String hostId = elm.getAttribute("hostId");
 
         Node node = new Node(id);
@@ -1155,16 +1155,16 @@ public class Table implements ActionListener {
                 rotation.x * FastMath.DEG_TO_RAD,
                 rotation.y * FastMath.DEG_TO_RAD,
                 rotation.z * FastMath.DEG_TO_RAD));
-        node.setUserData("interface", "guest");
-        node.setUserData("interfaceType", type);
+        node.setUserData("bondPoint", "guest");
+        node.setUserData("bondType", type);
         if (!hostId.isEmpty()) {
-            // TODO: add interface connection at init
+            // TODO: add object bond at init
         }
         
         return node;
     }
 
-    private Spatial processHostInterfaceElement(Element elm) {
+    private Spatial processHostBondPointElement(Element elm) {
         String id = elm.getAttribute("id");
         id = getUniqueId(id);
         // Non-empty string; two parts must have the same type before they can be put together
@@ -1178,8 +1178,8 @@ public class Table implements ActionListener {
                 rotation.x * FastMath.DEG_TO_RAD,
                 rotation.y * FastMath.DEG_TO_RAD,
                 rotation.z * FastMath.DEG_TO_RAD));
-        node.setUserData("interface", "host");
-        node.setUserData("interfaceType", type);
+        node.setUserData("bondPoint", "host");
+        node.setUserData("bondType", type);
         
         int k = 0;
         for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {

@@ -242,17 +242,17 @@
         </complexContent>
     </complexType>
 
-    <attributeGroup name="interfaceAttrs">
+    <attributeGroup name="bondPointAttrs">
         <attribute name="id" type="tt:idType" use="optional"/>
         <attribute name="type" type="tt:nonEmptyStringType" use="required"/>
         <attribute name="location" type="tt:vector3Type" use="optional" default="(0,0,0)" />
         <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
     </attributeGroup>
-    <complexType name="guestInterfaceType">
-        <attributeGroup ref="tt:interfaceAttrs"/>
+    <complexType name="guestBondPointType">
+        <attributeGroup ref="tt:bondPointAttrs"/>
         <attribute name="hostId" type="tt:idType" use="optional"/>
     </complexType>    
-    <complexType name="hostInterfaceType">
+    <complexType name="hostBondPointType">
         <sequence minOccurs="1" maxOccurs="unbounded">
             <element name="tightness">
                 <complexType>
@@ -261,7 +261,7 @@
                 </complexType>
             </element>
         </sequence>
-        <attributeGroup ref="tt:interfaceAttrs"/>
+        <attributeGroup ref="tt:bondPointAttrs"/>
     </complexType>    
 
     <attributeGroup name="boxAttrs">
@@ -327,8 +327,8 @@
             <element name="box" type="tt:boxType"/>
             <element name="custom" type="tt:customType"/>
             <element name="composite" type="tt:compositeType"/>            
-            <element name="guestInterface" type="tt:guestInterfaceType"/>            
-            <element name="hostInterface" type="tt:hostInterfaceType"/>            
+            <element name="guestBondPoint" type="tt:guestBondPointType"/>            
+            <element name="hostBondPoint" type="tt:hostBondPointType"/>            
             <element name="toggleSwitch" type="tt:toggleSwitchType"/>            
             <element name="indicatorLights" type="tt:indicatorLightsType"/>            
             <element name="customControl" type="tt:customControlType"/>

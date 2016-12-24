@@ -10,7 +10,7 @@
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <cylinder yspan="$length*3/4$" radius="$radius$" color="$color$" location="(0, 0, $-length*3/4/2$)" rotation="(90, 0, 0)" sides="16"/>
             <prism zspan="$length/4$" radiusTop="$radius$" radiusBottom="0.05" color="$color$" location="(0, 0, $-length*3/4-length/4/2$)" sides="16"/>
-            <guestInterface id="screwM" type="ScrewType" location="(0, 0, $-length$)" rotation="(180, 0, 0)" hostId="$hostId$"/>
+            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, $-length$)" rotation="(180, 0, 0)" hostId="$hostId$"/>
         </composite>
     </def>
     <def name="screw">
@@ -41,11 +41,11 @@
         <var name="color" value="gray"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <ring zspan="$height$" radiusOuter="$outerRadius$" radiusInner="$innerRadius$" color="$color$" location="(0, 0, 0)" sides="32"/>
-            <hostInterface id="screwF" type="ScrewType" location="(0, 0, $height/2$)" rotation="(0, 0, 0)">
+            <hostBondPoint id="screwF" type="ScrewType" location="(0, 0, $height/2$)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, -$depth/3$)" rotation="(0, 0, 45)"/>
                 <tightness location="(0, 0, -$depth*2/3$)" rotation="(0, 0, 90)"/>
                 <tightness location="(0, 0, -$depth$)" rotation="(0, 0, 135)"/>
-            </hostInterface>
+            </hostBondPoint>
         </composite>
     </def>
     <def name="hole">
@@ -56,11 +56,11 @@
         <var name="radius" value="0.2"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <prism zspan="0.02" radiusTop="$radius$" radiusBottom="$radius$" color="black" location="(0, 0, 0)" sides="32"/>
-            <hostInterface id="screwF" type="ScrewType" location="(0, 0, 0.01)" rotation="(0, 0, 0)">
+            <hostBondPoint id="screwF" type="ScrewType" location="(0, 0, 0.01)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, -$depth/3$)" rotation="(0, 0, 60)"/>
                 <tightness location="(0, 0, -$depth*2/3$)" rotation="(0, 0, 120)"/>
                 <tightness location="(0, 0, -$depth$)" rotation="(0, 0, 180)"/>
-            </hostInterface>
+            </hostBondPoint>
         </composite>
     </def>
     <def name="screwConnector">
