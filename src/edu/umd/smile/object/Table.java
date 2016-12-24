@@ -656,6 +656,7 @@ public class Table implements ActionListener {
 			}
 		}
 		inventory.initControls();
+		inventory.createInitBonds();
 	}
 
 	private void makeTable() {
@@ -1146,8 +1147,9 @@ public class Table implements ActionListener {
         String type = elm.getAttribute("type");
         Vector3f location = parseVector3(elm.getAttribute("location"));
         Vector3f rotation = parseVector3(elm.getAttribute("rotation"));
-        // The host bond point that this object (guest) is fastened to; ignored if isHost.
-        String hostId = elm.getAttribute("hostId");
+        // The host bond point that this object (guest) is fastened to; ignored if is host
+        String hostId = elm.getAttribute("initBondHostId");
+        int hostTightness = Integer.parseInt(elm.getAttribute("initBondTightness"));
 
         Node node = new Node(id);
         node.setLocalTranslation(location);
@@ -1158,7 +1160,8 @@ public class Table implements ActionListener {
         node.setUserData("bondPoint", "guest");
         node.setUserData("bondType", type);
         if (!hostId.isEmpty()) {
-            // TODO: add object bond at init
+            node.setUserData("initBondHostId", hostId);
+            node.setUserData("initBondTightness", hostTightness);
         }
         
         return node;

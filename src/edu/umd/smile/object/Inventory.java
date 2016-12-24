@@ -449,6 +449,24 @@ public class Inventory {
         }
     }
     
+    public void createInitBonds() {
+        for (Spatial item : items) {
+            item.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial spatial) {
+                    if (spatial instanceof Node) {
+                        Node node = (Node) spatial;
+                        String hostId = node.getUserData("initBondHostId");
+                        if (hostId != null) {
+                            objectBondTracker.createInitBond(node, hostId,
+                                    (Integer) node.getUserData("initBondTightness"));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     public ObjectBond findFastenable(Spatial guestItem, Vector3f clickedLocation, float distTolerance) {
         return objectBondTracker.findFastenable(guestItem, clickedLocation, distTolerance);
     }

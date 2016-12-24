@@ -250,7 +250,8 @@
     </attributeGroup>
     <complexType name="guestBondPointType">
         <attributeGroup ref="tt:bondPointAttrs"/>
-        <attribute name="hostId" type="tt:idType" use="optional"/>
+        <attribute name="initBondHostId" type="tt:idType" use="optional" default=""/>
+        <attribute name="initBondTightness" type="tt:countType" use="optional" default="0"/>
     </complexType>    
     <complexType name="hostBondPointType">
         <sequence minOccurs="1" maxOccurs="unbounded">

@@ -176,8 +176,8 @@ public class ObjectBondTracker {
     protected Inventory inventory;
     protected MainApp app;
     // main storage
-    protected Set<Node> hostBondPoints = new HashSet<>();
-    protected Set<Node> guestBondPoints = new HashSet<>();
+    protected Map<String, Node> hostBondPoints = new HashMap<>();
+    protected Map<String, Node> guestBondPoints = new HashMap<>();
     protected Set<ObjectBond> bonds = new HashSet<>();
     // derived
     protected Map<Spatial, Set<Node>> guestBondPointsByItem = new HashMap<>();
@@ -197,9 +197,9 @@ public class ObjectBondTracker {
                     String role = spatial.getUserData("bondPoint");
                     Node bondPoint = (Node) spatial;
                     if ("host".equals(role)) {
-                        hostBondPoints.add(bondPoint);
+                        hostBondPoints.put(bondPoint.getName(), bondPoint);
                     } else if ("guest".equals(role)) {
-                        guestBondPoints.add(bondPoint);
+                        guestBondPoints.put(bondPoint.getName(), bondPoint);
                         Set<Node> set = guestBondPointsByItem.get(item);
                         if (set == null) {
                             set = new HashSet<>();
@@ -307,7 +307,7 @@ public class ObjectBondTracker {
             Set<Spatial> invalidItems = gatherConnectedItems(guestItem, new HashSet<Spatial>());
             float minDist = Float.MAX_VALUE;
             Node minHost = null;
-            for (Node host : hostBondPoints) {
+            for (Node host : hostBondPoints.values()) {
                 if (!host.getUserData("bondType").equals(guest.getUserData("bondType"))) {
                     continue;
                 }
@@ -347,6 +347,33 @@ public class ObjectBondTracker {
         return getBond(guest);
     }
     
+    protected void createInitBond(Node guest, String hostId, int tightness) {
+        Node host = hostBondPoints.get(hostId);
+        if (host == null) {
+            throw new IllegalArgumentException("hostId " + hostId + " not found");
+        }
+        if (getBond(guest) != null) {
+            throw new IllegalArgumentException("guest bond point " + guest + " is busy");
+        }
+        if (getBond(host) != null) {
+            throw new IllegalArgumentException("host bond point " + host + " is busy");
+        }
+        if (!host.getUserData("bondType").equals(guest.getUserData("bondType"))) {
+            throw new IllegalArgumentException("host and guest are of different bond types");
+        }
+        Spatial guestItem = inventory.getItem(guest);
+        Spatial hostItem = inventory.getItem(host);
+        Set<Spatial> invalidItems = gatherConnectedItems(guestItem, new HashSet<Spatial>());
+        if (invalidItems.contains(hostItem)) {
+            throw new IllegalArgumentException("hostItem already connected (directly or indirectly) to guestItem");
+        }
+        ObjectBond bond = new ObjectBond(host, guest);
+        bond.setTightness(tightness);
+        if (tightness > 0) {
+            addBond(bond);
+        }
+    }
+    
     private Node getNearestGuestBondPoint(Spatial guestItem, Vector3f loc) {
         Set<Node> guests = guestBondPointsByItem.get(guestItem);
         if (guests == null) {
@@ -379,8 +406,8 @@ public class ObjectBondTracker {
     }
 
     protected class ObjectBondTrackerMemento {
-        Set<Node> hostBondPoints = new HashSet<>();
-        Set<Node> guestBondPoints = new HashSet<>();
+        Map<String, Node> hostBondPoints = new HashMap<>();
+        Map<String, Node> guestBondPoints = new HashMap<>();
         Set<ObjectBondMemento> bonds = new HashSet<>();
     }
     
@@ -392,8 +419,8 @@ public class ObjectBondTracker {
     
     protected ObjectBondTrackerMemento saveToMemento() {
         ObjectBondTrackerMemento m = new ObjectBondTrackerMemento();
-        m.hostBondPoints.addAll(hostBondPoints);
-        m.guestBondPoints.addAll(guestBondPoints);
+        m.hostBondPoints.putAll(hostBondPoints);
+        m.guestBondPoints.putAll(guestBondPoints);
         for (ObjectBond bond : bonds) {
             ObjectBondMemento cm = new ObjectBondMemento();
             cm.host = bond.host;
@@ -405,9 +432,9 @@ public class ObjectBondTracker {
     }
 
     protected void restoreFromMemento(ObjectBondTrackerMemento m) {
-        hostBondPoints.addAll(m.hostBondPoints);
-        guestBondPoints.addAll(m.guestBondPoints);
-        for (Node g : guestBondPoints) {
+        hostBondPoints.putAll(m.hostBondPoints);
+        guestBondPoints.putAll(m.guestBondPoints);
+        for (Node g : guestBondPoints.values()) {
             Spatial item = inventory.getItem(g);
             Set<Node> set = guestBondPointsByItem.get(item);
             if (set == null) {
