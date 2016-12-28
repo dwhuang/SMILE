@@ -67,7 +67,7 @@ public class ObjectBondTracker {
                 tr.combineWithParent(s.getLocalTransform());
                 s = s.getParent();
             }
-            throw new IllegalArgumentException("'bondPoint' is not a part of 'whole'");
+            throw new IllegalArgumentException(bondPoint + " is not a part of " + whole);
         }
         
         public Spatial getHostItem() {
@@ -225,9 +225,9 @@ public class ObjectBondTracker {
                     }
                     String role = spatial.getUserData("bondPoint");
                     if ("host".equals(role)) {
-                        hostBondPoints.remove(bondPoint);
+                        hostBondPoints.remove(bondPoint.getName());
                     } else if ("guest".equals(role)) {
-                        guestBondPoints.remove(bondPoint);
+                        guestBondPoints.remove(bondPoint.getName());
                     }
                 }
             }
