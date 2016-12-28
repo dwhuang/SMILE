@@ -22,6 +22,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.debug.Arrow;
+import com.jme3.scene.debug.WireBox;
+import com.jme3.scene.debug.WireSphere;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Line;
@@ -311,18 +313,18 @@ public class Factory {
         return line;
     }
 
-    public Geometry makeUnshadedArrow(String name, Vector3f extend, float lineWidth, ColorRGBA color) {
+    public Geometry makeUnshadedArrow(String name, Vector3f extents, float lineWidth, ColorRGBA color) {
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", color);
         mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        Arrow arrow = new Arrow(extend);
+        Arrow arrow = new Arrow(extents);
         arrow.setLineWidth(lineWidth);
         Geometry line = new Geometry(name, arrow);
         line.setMaterial(mat);
 
         line.setUserData("obj_shape", "arrow");
-        line.setUserData("obj_extend", extend);
+        line.setUserData("obj_extents", extents);
         line.setUserData("obj_lineWidth", lineWidth);
         line.setUserData("obj_color", color);
 
@@ -353,4 +355,41 @@ public class Factory {
     	
     	return base;
     }
+    
+    public Geometry makeUnshadedWireSphere(String name, float radius, float lineWidth, ColorRGBA color) {
+        Material mat = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
+        mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        WireSphere sphere = new WireSphere(radius);
+        sphere.setLineWidth(lineWidth);
+        Geometry g = new Geometry(name, sphere);
+        g.setMaterial(mat);
+
+        g.setUserData("obj_shape", "wireSphere");
+        g.setUserData("obj_radius", radius);
+        g.setUserData("obj_lineWidth", lineWidth);
+        g.setUserData("obj_color", color);
+
+        return g;
+    }
+    
+    public Geometry makeUnshadedWireBox(String name, Vector3f extents, float lineWidth, ColorRGBA color) {
+        Material mat = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
+        mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        WireBox box = new WireBox(extents.x, extents.y, extents.z);
+        box.setLineWidth(lineWidth);
+        Geometry g = new Geometry(name, box);
+        g.setMaterial(mat);
+
+        g.setUserData("obj_shape", "wireBox");
+        g.setUserData("obj_extents", extents);
+        g.setUserData("obj_lineWidth", lineWidth);
+        g.setUserData("obj_color", color);
+
+        return g;
+    }
+    
 }

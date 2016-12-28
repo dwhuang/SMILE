@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
@@ -46,23 +44,21 @@ public class ObjectBondTracker {
         private void init() {
             this.hostItem = inventory.getItem(host);
             this.guestItem = inventory.getItem(guest);
-            this.hostRelTrs.add(getRelativeTransform(host, hostItem, new Transform()));
+            this.hostRelTrs.add(getRelativeTransform(host, hostItem));
             for (Spatial kid : host.getChildren()) {
                 if (kid instanceof Node) {
-                    this.hostRelTrs.add(getRelativeTransform((Node) kid, hostItem, new Transform()));
+                    this.hostRelTrs.add(getRelativeTransform((Node) kid, hostItem));
                 }
             }
-            Quaternion gExtraRot = new Quaternion();
-            gExtraRot.fromAngleAxis(FastMath.PI, Vector3f.UNIT_X);
-            this.guestRelTr = getRelativeTransform(guest, guestItem, new Transform(gExtraRot));
+            this.guestRelTr = getRelativeTransform(guest, guestItem);
             this.maxTightness = hostRelTrs.size() - 1;
             if (maxTightness < 1) {
                 throw new IllegalStateException("maxTightness = " + maxTightness);
             }
         }
         
-        private Transform getRelativeTransform(Node bondPoint, Spatial whole, Transform extra) {
-            Transform tr = extra;
+        private Transform getRelativeTransform(Node bondPoint, Spatial whole) {
+            Transform tr = new Transform();
             Spatial s = bondPoint;
             while (s != null) {
                 if (s == whole) {
@@ -156,9 +152,13 @@ public class ObjectBondTracker {
             Transform tr = TransformUtils.invertTransform(guestRelTr, null);
             tr.combineWithParent(hostRelTr);
             tr.combineWithParent(hostItem.getWorldTransform());
-            
-            Demonstrator.Hand hand = app.getDemonstrator().getHandGraspingItem(guestItem);
-            if (hand != null) {
+
+            Demonstrator demonstrator = app.getDemonstrator();
+            Demonstrator.Hand hand = null;
+            if (demonstrator != null) {
+                hand = app.getDemonstrator().getHandGraspingItem(guestItem);
+            }
+            if (demonstrator != null && hand != null) {
                 hand.move(tr.getTranslation(), 0.1f);
                 hand.rotate(tr.getRotation(), 0.1f);
             } else {

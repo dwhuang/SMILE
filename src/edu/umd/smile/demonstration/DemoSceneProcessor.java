@@ -128,8 +128,8 @@ public class DemoSceneProcessor implements SceneProcessor {
                         hlGeos.add(g);
                     } else if (s instanceof Node) {
                         if (s.getUserData("bondPoint") != null) {
-                        	Geometry g = factory.makeUnshadedLine("bondPointIndicator",
-                        	        Vector3f.ZERO, Vector3f.UNIT_Y, ColorRGBA.Yellow);
+                            Geometry g = factory.makeUnshadedWireBox("bondPointIndicator",
+                                    Vector3f.UNIT_XYZ.mult(0.05f), 1, ColorRGBA.Yellow);
                         	((Node)s).attachChild(g);
                         	hlGeos.add(g);
                         }
