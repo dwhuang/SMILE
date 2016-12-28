@@ -189,7 +189,7 @@
 
     <attributeGroup name="ringAttrs">
         <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
-        <attribute name="radiusOuter" type="tt:spanType" use="optional" default="0.5"/>
+        <attribute name="radiusOuter" type="tt:spanType" use="optional" default="1"/>
         <attribute name="radiusInner" type="tt:spanType" use="optional" default="0.5"/>
         <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
         <attribute name="sides" type="tt:countType" use="optional" default="32"/>
