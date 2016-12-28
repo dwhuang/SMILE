@@ -11,6 +11,8 @@ Primary features include:
 
 Refer to this [technical report](https://hdl.handle.net/1903/18066) for detailed descriptions.
 
+**See [release notes](../../wiki) for new features not included in the tech report.**
+
 ## Prerequisite ##
 * [Java Runtime Environment](http://java.com/en/download/) version 1.7 or above.
 * Matlab is required only if you are planning to run Matlab scripts to control the simulated robot.
