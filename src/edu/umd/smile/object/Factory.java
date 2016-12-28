@@ -32,7 +32,7 @@ import com.jme3.scene.shape.Sphere;
 import com.jme3.util.BufferUtils;
 
 import edu.umd.smile.gui.LogMessage;
-import edu.umd.smile.util.Prism;
+import edu.umd.smile.util.Frustum;
 import edu.umd.smile.util.Ring;
 
 /**
@@ -233,7 +233,7 @@ public class Factory {
         return cylinder;
     }
 
-    public Geometry makePrism(String name, float radiusTop, float radiusBottom, float height, int sides,
+    public Geometry makeFrustum(String name, float radiusTop, float radiusBottom, float height, int sides,
             ColorRGBA color) {
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Light/Lighting.j3md");
@@ -242,10 +242,10 @@ public class Factory {
         mat.setColor("Diffuse", color);
         mat.setColor("Specular", ColorRGBA.White);
 //        mat.setBoolean("HighQuality", false);
-        Geometry prism = new Geometry(name, new Prism(radiusTop, radiusBottom, height, sides));
-        prism.setMaterial(mat);
+        Geometry frustum = new Geometry(name, new Frustum(radiusTop, radiusBottom, height, sides));
+        frustum.setMaterial(mat);
 
-        return prism;
+        return frustum;
     }
 
     public Geometry makeRing(String name, float radiusOuter, float radiusInner, float height, int sides,

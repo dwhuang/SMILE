@@ -22,7 +22,7 @@
             <element name="instance" type="tt:instanceType"/>
             <element name="block"/>
             <element name="cylinder"/>
-            <element name="prism"/>
+            <element name="frustum"/>
             <element name="ring"/>
             <element name="sphere"/>
             <element name="box"/>

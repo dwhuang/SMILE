@@ -158,31 +158,31 @@
         </complexContent>
     </complexType>
 
-    <attributeGroup name="prismAttrs">
+    <attributeGroup name="frustumAttrs">
         <attribute name="color" type="tt:colorType" use="optional" default="gray"/>
         <attribute name="radiusTop" type="tt:spanType" use="optional" default="0.5"/>
         <attribute name="radiusBottom" type="tt:spanType" use="optional" default="0.5"/>
         <attribute name="zspan" type="tt:spanType" use="optional" default="1"/>
         <attribute name="sides" type="tt:countType" use="optional" default="3"/>
     </attributeGroup>    
-    <complexType name="prismType">
+    <complexType name="frustumType">
         <complexContent>
             <extension base="tt:shapeType">
-                <attributeGroup ref="tt:prismAttrs"/>
+                <attributeGroup ref="tt:frustumAttrs"/>
             </extension>
         </complexContent>
     </complexType>
-    <complexType name="prismObjectType">
+    <complexType name="frustumObjectType">
         <complexContent>
             <extension base="tt:objectType">
-                <attributeGroup ref="tt:prismAttrs"/>
+                <attributeGroup ref="tt:frustumAttrs"/>
             </extension>
         </complexContent>
     </complexType>
-    <complexType name="triggerablePrismType">
+    <complexType name="triggerableFrustumType">
         <complexContent>
             <extension base="tt:triggerableType">
-                <attributeGroup ref="tt:prismAttrs"/>
+                <attributeGroup ref="tt:frustumAttrs"/>
             </extension>
         </complexContent>
     </complexType>
@@ -322,7 +322,7 @@
         <choice>
             <element name="block" type="tt:blockType"/>
             <element name="cylinder" type="tt:cylinderType"/>
-            <element name="prism" type="tt:prismType"/>
+            <element name="frustum" type="tt:frustumType"/>
             <element name="ring" type="tt:ringType"/>
             <element name="sphere" type="tt:sphereType"/>
             <element name="box" type="tt:boxType"/>
@@ -339,7 +339,7 @@
         <choice>
             <element name="block" type="tt:triggerableBlockType"/>
             <element name="cylinder" type="tt:triggerableCylinderType"/>
-            <element name="prism" type="tt:triggerablePrismType"/>
+            <element name="frustum" type="tt:triggerableFrustumType"/>
             <element name="ring" type="tt:triggerableRingType"/>
             <element name="sphere" type="tt:triggerableSphereType"/>
             <element name="box" type="tt:triggerableBoxType"/>
@@ -539,7 +539,7 @@
         <choice>
             <element name="block" type="tt:blockObjectType"/>
             <element name="cylinder" type="tt:cylinderObjectType"/>
-            <element name="prism" type="tt:prismObjectType"/>
+            <element name="frustum" type="tt:frustumObjectType"/>
             <element name="ring" type="tt:ringObjectType"/>
             <element name="sphere" type="tt:sphereObjectType"/>
             <element name="box" type="tt:boxObjectType"/>

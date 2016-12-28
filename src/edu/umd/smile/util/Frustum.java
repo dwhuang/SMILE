@@ -9,8 +9,8 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.util.BufferUtils;
 
-public class Prism extends Mesh {
-    public Prism(float radiusTop, float radiusBottom, float height, int sides) {
+public class Frustum extends Mesh {
+    public Frustum(float radiusTop, float radiusBottom, float height, int sides) {
         // num of vertices: 4 each side + top (num of sides & center) + bottom (num of sides & center)
         FloatBuffer vb = BufferUtils.createFloatBuffer((sides * 4 + sides * 2 + 2) * 3);
         FloatBuffer nb = BufferUtils.createFloatBuffer((sides * 4 + sides * 2 + 2) * 3);

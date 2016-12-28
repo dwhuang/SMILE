@@ -629,8 +629,8 @@ public class Table implements ActionListener {
 				processBlockElement(elm, true);
 			} else if (elm.getNodeName().equals("cylinder")) {
 				processCylinderElement(elm, true);
-            } else if (elm.getNodeName().equals("prism")) {
-                processPrismElement(elm, true);
+            } else if (elm.getNodeName().equals("frustum")) {
+                processFrustumElement(elm, true);
             } else if (elm.getNodeName().equals("ring")) {
                 processRingElement(elm, true);
 			} else if (elm.getNodeName().equals("sphere")) {
@@ -730,8 +730,8 @@ public class Table implements ActionListener {
 				obj = processBlockElement(childElm, true);
 			} else if (childElm.getNodeName().equals("cylinder")) {
 				obj = processCylinderElement(childElm, true);
-            } else if (childElm.getNodeName().equals("prism")) {
-                obj = processPrismElement(childElm, true);
+            } else if (childElm.getNodeName().equals("frustum")) {
+                obj = processFrustumElement(childElm, true);
             } else if (childElm.getNodeName().equals("ring")) {
                 obj = processRingElement(childElm, true);
 			} else if (childElm.getNodeName().equals("sphere")) {
@@ -878,7 +878,7 @@ public class Table implements ActionListener {
 		return s;
 	}
 
-    private Spatial processPrismElement(Element elm, boolean isWhole) {
+    private Spatial processFrustumElement(Element elm, boolean isWhole) {
         String id = elm.getAttribute("id");
         boolean pointable = Boolean.parseBoolean(elm.getAttribute("pointable"));
         if (isWhole || pointable) {
@@ -892,7 +892,7 @@ public class Table implements ActionListener {
         float yspan = Float.parseFloat(elm.getAttribute("zspan"));
         int sides = Integer.parseInt(elm.getAttribute("sides"));
 
-        Spatial s = factory.makePrism(id, radiusTop, radiusBottom, yspan, sides, color);
+        Spatial s = factory.makeFrustum(id, radiusTop, radiusBottom, yspan, sides, color);
         s.setLocalTranslation(location);
         s.setLocalRotation(new Quaternion().fromAngles(
                 rotation.x * FastMath.DEG_TO_RAD,
@@ -902,7 +902,7 @@ public class Table implements ActionListener {
         if (isWhole) {
             float mass = Float.parseFloat(elm.getAttribute("mass"));
             inventory.addItem(s, mass);
-            processDescriptionElements(elm, s, "prism");
+            processDescriptionElements(elm, s, "frustum");
         }
         if (pointable) {
             s.setUserData("pointable", "" + pointable);
@@ -1094,8 +1094,8 @@ public class Table implements ActionListener {
 				s = processBlockElement(childElm, false);
 			} else if (childElm.getNodeName().equals("cylinder")) {
 				s = processCylinderElement(childElm, false);
-            } else if (childElm.getNodeName().equals("prism")) {
-                s = processPrismElement(childElm, false);
+            } else if (childElm.getNodeName().equals("frustum")) {
+                s = processFrustumElement(childElm, false);
             } else if (childElm.getNodeName().equals("ring")) {
                 s = processRingElement(childElm, false);
 			} else if (childElm.getNodeName().equals("sphere")) {
@@ -1430,8 +1430,8 @@ public class Table implements ActionListener {
                 s = processBlockElement(childElm, false);
             } else if (childElm.getNodeName().equals("cylinder")) {
                 s = processCylinderElement(childElm, false);
-            } else if (childElm.getNodeName().equals("prism")) {
-                s = processPrismElement(childElm, false);
+            } else if (childElm.getNodeName().equals("frustum")) {
+                s = processFrustumElement(childElm, false);
             } else if (childElm.getNodeName().equals("ring")) {
                 s = processRingElement(childElm, false);
             } else if (childElm.getNodeName().equals("sphere")) {

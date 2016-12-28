@@ -10,8 +10,8 @@
         <var name="initBondTightness" value="0"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <cylinder yspan="$length*3/4$" radius="$radius$" color="$color$" location="(0, 0, $-length*3/4/2$)" rotation="(90, 0, 0)" sides="16"/>
-            <prism zspan="$length/4$" radiusTop="$radius$" radiusBottom="0.05" color="$color$" location="(0, 0, $-length*3/4-length/4/2$)" sides="16"/>
-            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, $-length$)" rotation="(180, 0, 0)" initBondHostId="$initBondHostId$"
+            <frustum zspan="$length/4$" radiusTop="$radius$" radiusBottom="0.05" color="$color$" location="(0, 0, $-length*3/4-length/4/2$)" sides="16"/>
+            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, $-length$)" rotation="(0, 0, 0)" initBondHostId="$initBondHostId$"
                 initBondTightness="$initBondTightness$"/>
         </composite>
     </def>
@@ -26,7 +26,7 @@
         <var name="initBondHostId" value=""/>
         <var name="initBondTightness" value="0"/>
         <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
-            <prism zspan="$tipLength/2$" radiusTop="$tipRadius*1.6$" radiusBottom="$tipRadius*1.6$" color="$color$" location="(0, 0, $tipLength/2/2$)" sides="6"/>
+            <frustum zspan="$tipLength/2$" radiusTop="$tipRadius*1.6$" radiusBottom="$tipRadius*1.6$" color="$color$" location="(0, 0, $tipLength/2/2$)" sides="6"/>
             <instance def="screwTip">
                 <var name="length" value="$tipLength$"/>
                 <var name="radius" value="$tipRadius$"/>
@@ -61,7 +61,7 @@
         <var name="depth" value="1"/>
         <var name="radius" value="0.2"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
-            <prism zspan="0.02" radiusTop="$radius$" radiusBottom="$radius$" color="black" location="(0, 0, 0)" sides="32"/>
+            <frustum zspan="0.02" radiusTop="$radius$" radiusBottom="$radius$" color="black" location="(0, 0, 0)" sides="32"/>
             <hostBondPoint id="screwF" type="ScrewType" location="(0, 0, 0.01)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, -$depth/3$)" rotation="(0, 0, 60)"/>
                 <tightness location="(0, 0, -$depth*2/3$)" rotation="(0, 0, 120)"/>
