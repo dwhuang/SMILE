@@ -54,14 +54,14 @@
         <var name="hostId1" value="ballF"/>
         <var name="hostId2" value="valveF"/>
         <var name="hostId3" value="stepperF"/>
-        <var name="downstream" value=""/>
+        <var name="downstream" value="L1"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_plumbing.stl"/> 
-            <hostBondPoint id="$hostId1$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
+            <hostBondPoint id="$hostId1$" downstreamOverride="$downstream$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
-                <tightness location="(0, 0, 0)" rotation="(0, 0, -90)"/>
+                <tightness downstreamState="4" location="(0, 0, 0)" rotation="(0, 0, -90)"/>
             </hostBondPoint>
-            <hostBondPoint id="$hostId2$" type="ScrewType" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)" downstream="$downstream$">
+            <hostBondPoint id="$hostId2$" type="ScrewType" downstream="$downstream$" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
                 <tightness location="(0, 0, $-scale*(4 + .3875*1)$)" rotation="(0, 0, 360)"/>
                 <tightness location="(0, 0, $-scale*(4 + .3875*2)$)" rotation="(0, 0, 360)"/>
@@ -72,6 +72,27 @@
                 <tightness location="(0, 0, $-scale*.2$)" rotation="(0, 0, 360)"/>
                 <tightness location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
             </hostBondPoint>
+            <indicatorLights id="L1" xspan="$scale*2.3$" location="($scale*14$,0,$scale*2.4$)" numLights="3" lightRadius="$scale*0.15$">
+                <state descriptionName="0">
+                    <light id="0" color="red"/>
+                    <light id="1" color="red"/>
+                    <light id="2" color="red"/>
+                </state>
+                <state descriptionName="1">
+                    <light id="0" color="red"/>
+                    <light id="1" color="red"/>
+                    <light id="2" color="red"/>
+                </state>
+                <state descriptionName="2">
+                    <light id="0" color="red"/>
+                    <light id="1" color="red"/>
+                </state>
+                <state descriptionName="3">
+                    <light id="0" color="red"/>
+                </state>
+                <state descriptionName="4">
+                </state>
+            </indicatorLights>
         </composite>
     </def>
 </tabletop>

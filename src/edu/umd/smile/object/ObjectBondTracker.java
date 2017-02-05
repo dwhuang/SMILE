@@ -27,16 +27,18 @@ public class ObjectBondTracker {
         protected Spatial hostItem;
         protected Spatial guestItem;
         protected List<Transform> hostRelTrs = new ArrayList<>(); // bond point transform relative to the item
+        protected Map<Integer, Integer> overrideStates = new HashMap<>();
         protected Transform guestRelTr;
         protected int tightness = 0;
         protected int maxTightness;
         protected AbstractControl downstream;
+        protected AbstractControl downstreamOverride;
 
         public ObjectBond(Node host, Node guest) {
             this.host = host;
             this.guest = guest;
-            this.downstream = null;
             this.downstream = downstreams.get(host.getName());
+            this.downstreamOverride = downstreamOverrides.get(host.getName());
             init();
         }
         
@@ -44,16 +46,23 @@ public class ObjectBondTracker {
             this(host, guest);
             this.tightness = tightness;
             this.downstream = downstreams.get(host.getName());
+            this.downstreamOverride = downstreamOverrides.get(host.getName());
         }
 
         private void init() {
             this.hostItem = inventory.getItem(host);
             this.guestItem = inventory.getItem(guest);
             this.hostRelTrs.add(getRelativeTransform(host, hostItem));
+            int tn = 1;
             for (Spatial kid : host.getChildren()) {
                 if (kid instanceof Node) {
                     this.hostRelTrs.add(getRelativeTransform((Node) kid, hostItem));
+                    Integer overrideState = (Integer) kid.getUserData("downstreamState");
+                    if (overrideState != null) {
+                       this.overrideStates.put(tn, overrideState);
+                    }
                 }
+                ++tn;
             }
             this.guestRelTr = getRelativeTransform(guest, guestItem);
             this.maxTightness = hostRelTrs.size() - 1;
@@ -178,6 +187,12 @@ public class ObjectBondTracker {
             if (downstream != null) {
                downstream.setState(tn, true);
             }
+            if (downstreamOverride != null) {
+               if (overrideStates.containsKey(tn))
+                  downstreamOverride.setOverrideState(overrideStates.get(tn), true);
+               else
+                  downstreamOverride.setOverrideState(-1, true);
+            }
         }
     }
 
@@ -188,6 +203,7 @@ public class ObjectBondTracker {
     protected Map<String, Node> guestBondPoints = new HashMap<>();
     protected Set<ObjectBond> bonds = new HashSet<>();
     protected Map<String, AbstractControl> downstreams = new HashMap<>();
+    protected Map<String, AbstractControl> downstreamOverrides = new HashMap<>();
     // derived
     protected Map<Spatial, Set<Node>> guestBondPointsByItem = new HashMap<>();
     protected Map<Node, ObjectBond> bondForPoint = new HashMap<>();
@@ -207,10 +223,18 @@ public class ObjectBondTracker {
                     Node bondPoint = (Node) spatial;
                     if ("host".equals(role)) {
                         hostBondPoints.put(bondPoint.getName(), bondPoint);
+
+                        // Process downstream
                         String downstream = spatial.getUserData("downstream");
                         if (downstream != null && downstream != "") {
                            downstreams.put(bondPoint.getName(),
                                            inventory.getControl(downstream));
+                        }
+                        // Process downstream override
+                        downstream = spatial.getUserData("downstreamOverride");
+                        if (downstream != null && downstream != "") {
+                           downstreamOverrides.put(bondPoint.getName(),
+                                                   inventory.getControl(downstream));
                         }
                     } else if ("guest".equals(role)) {
                         guestBondPoints.put(bondPoint.getName(), bondPoint);

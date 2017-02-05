@@ -15,6 +15,7 @@ public abstract class AbstractControl {
 	protected Inventory inventory;
 	protected Spatial spatial;
 	private int state;
+	private int overrideState;
 	private String prevStateName;
 	private LinkedList<AbstractControl> downstreams = new LinkedList<>();
 	private LinkedList<String> downstreamIds = new LinkedList<>();
@@ -24,6 +25,7 @@ public abstract class AbstractControl {
 		inventory = inv;
 		spatial = s;
 		state = -1;
+		overrideState = -1;
 		prevStateName = "";
 	}
 	
@@ -68,16 +70,34 @@ public abstract class AbstractControl {
 	public Spatial getSpatial() {
 		return spatial;
 	}
+
+	protected boolean setOverrideState(int s, boolean announce) {
+	   if (s >= -1) {
+	      overrideState = s;
+         String currStateName = getStateName();
+	      if (announce && !currStateName.equals(prevStateName)) {
+	          prevStateName = currStateName;
+	          announceStateChanged();
+	      }
+	      return true;
+      }
+      return false;
+   }
 	
 	protected int getState() {
-		return state;
+		if (overrideState > -1)
+		   return overrideState;
+		else
+         return state;
 	}
 	
     public void saveStates(Map<String, Object> p) {
         p.put("state", state);
+        p.put("overrideState", overrideState);
     }
     
 	public void restoreStates(Map<String, Object> p) {
+		setOverrideState((Integer) p.get("overrideState"), false);
 		setState((Integer) p.get("state"), false);
 	}
 		
@@ -90,8 +110,8 @@ public abstract class AbstractControl {
 	protected boolean setState(int s, boolean announce) {
 	    if (canSetState(s)) {
 	        state = s;
-            String currStateName = getStateName();
-	        if (announce && !currStateName.equals(prevStateName)) {
+           String currStateName = getStateName();
+	        if (overrideState == -1 && announce && !currStateName.equals(prevStateName)) {
 	            prevStateName = currStateName;
 	            announceStateChanged();
 	        }
@@ -124,7 +144,10 @@ public abstract class AbstractControl {
      * @return
      */
     public String getStateName() {
-        return "" + state;
+        if (overrideState != -1)
+           return "" + overrideState;
+        else
+           return "" + state;
     }
 
     /**

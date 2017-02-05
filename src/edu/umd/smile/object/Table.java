@@ -1184,6 +1184,7 @@ public class Table implements ActionListener {
         node.setUserData("bondPoint", "host");
         node.setUserData("bondType", type);
         node.setUserData("downstream", elm.getAttribute("downstream"));
+        node.setUserData("downstreamOverride", elm.getAttribute("downstreamOverride"));
         
         int k = 0;
         for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
@@ -1200,6 +1201,9 @@ public class Table implements ActionListener {
                         rot.x * FastMath.DEG_TO_RAD,
                         rot.y * FastMath.DEG_TO_RAD,
                         rot.z * FastMath.DEG_TO_RAD));
+                String state = childElm.getAttribute("downstreamState");
+                if (state != null && state != "")
+                   n.setUserData("downstreamState", Integer.parseInt(state));
                 node.attachChild(n);
             } else {
                 logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());

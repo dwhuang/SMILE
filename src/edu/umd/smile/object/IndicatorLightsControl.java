@@ -61,6 +61,15 @@ public class IndicatorLightsControl extends AbstractControl {
 	}
 
 	@Override
+	protected boolean setOverrideState(int s, boolean announce) {
+		if (super.setOverrideState(s, announce)) {
+		    states.get(getState()).engage();
+		    return true;
+		}
+		return false;
+	}
+
+	@Override
 	protected boolean setState(int s, boolean announce) {
 		if (super.setState(s, announce)) {
 		    states.get(getState()).engage();
