@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml" xspan="20" yspan="12">
+    <include file="tablesetup/def-screw.xml"/>
+    <include file="tablesetup/def-valve.xml"/>
+    <instance def="valveScrew">
+        <var name="initBondHostId" value="valveF"/>
+        <var name="initBondTightness" value="1"/>
+        <var name="location" value="(3,3,5)"/>
+        <var name="scale" value="0.254"/>
+    </instance>
+    <instance def="stepperScrew">
+        <var name="initBondHostId" value="stepperF"/>
+        <var name="initBondTightness" value="1"/>
+        <var name="location" value="(2,2,5)"/>
+        <var name="scale" value="0.154"/>
+    </instance>
+    <instance def="ballSwivel">
+        <var name="initBondHostId" value="ballF"/>
+        <var name="initBondTightness" value="1"/>
+        <var name="location" value="(-2,-2,5)"/>
+        <var name="scale" value="0.254"/>
+    </instance>
+    <composite location="(-3,0,3.5)" rotation="(0,0,0)">
+        <instance def="plumbing">
+            <var name="hostId" value="plumbingReceiver"/>
+            <var name="scale" value="0.254"/>
+            <var name="mass" value="100"/> 
+            <var name="downstream" value="L1"/> 
+        </instance>
+        <indicatorLights id="L1" xspan="$0.254*2.3$" location="($0.254*14$,0,$0.254*2.4$)" numLights="3" lightRadius="$0.254*0.15$">
+            <state descriptionName="0">
+                <light id="0" color="red"/>
+                <light id="1" color="red"/>
+                <light id="2" color="red"/>
+            </state>
+            <state descriptionName="1">
+                <light id="0" color="red"/>
+                <light id="1" color="red"/>
+                <light id="2" color="red"/>
+            </state>
+            <state descriptionName="2">
+                <light id="0" color="red"/>
+                <light id="1" color="red"/>
+            </state>
+            <state descriptionName="3">
+                <light id="0" color="red"/>
+            </state>
+            <state descriptionName="4">
+            </state>
+        </indicatorLights>
+    </composite>
+</tabletop>

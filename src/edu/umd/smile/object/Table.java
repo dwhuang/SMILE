@@ -1183,6 +1183,7 @@ public class Table implements ActionListener {
                 rotation.z * FastMath.DEG_TO_RAD));
         node.setUserData("bondPoint", "host");
         node.setUserData("bondType", type);
+        node.setUserData("downstream", elm.getAttribute("downstream"));
         
         int k = 0;
         for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {

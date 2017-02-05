@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tabletop xmlns="http://synapse.cs.umd.edu/tabletop-xml">
+    <def name="valveScrew">
+        <var name="id" value="valve_screw"/>
+        <var name="location" value="(0, 0, 0)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="0.1"/>
+        <var name="scale" value="1"/>
+        <var name="color" value="darkgray"/>
+        <var name="initBondHostId" value=""/>
+        <var name="initBondTightness" value="0"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <custom location="(0, 0, $-scale*2$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_valve_screw.stl"/> 
+            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, 0)" rotation="(0, 0, 0)" initBondHostId="$initBondHostId$"
+                initBondTightness="$initBondTightness$"/>
+        </composite>
+    </def>
+    <def name="stepperScrew">
+        <var name="id" value="stepper_screw"/>
+        <var name="location" value="(0, 0, $-scale*2$)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="0.1"/>
+        <var name="scale" value="1"/>
+        <var name="color" value="darkgray"/>
+        <var name="initBondHostId" value=""/>
+        <var name="initBondTightness" value="0"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <custom location="(0, 0, $-scale*.5$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_stepper_screw.stl"/> 
+            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, 0)" rotation="(0, 0, 0)" initBondHostId="$initBondHostId$"
+                initBondTightness="$initBondTightness$"/>
+        </composite>
+    </def>
+    <def name="ballSwivel">
+        <var name="id" value="ball_swivel"/>
+        <var name="location" value="(0, 0, 0)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="mass" value="0.1"/>
+        <var name="scale" value="1"/>
+        <var name="color" value="darkgray"/>
+        <var name="initBondHostId" value=""/>
+        <var name="initBondTightness" value="0"/>
+        <composite id="$id$" location="$location$" rotation="$rotation$" mass="$mass$">
+            <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_ball_swivel.stl"/> 
+            <guestBondPoint id="screwM" type="ScrewType" location="(0, 0, $-scale*1.25$)" rotation="(0, 0, 0)" initBondHostId="$initBondHostId$"
+                            initBondTightness="$initBondTightness$"/>
+        </composite>
+    </def>
+    <def name="plumbing">
+        <var name="id" value="plumbing"/>
+        <var name="location" value="(0, 0, 0)"/>
+        <var name="rotation" value="(0, 0, 0)"/>
+        <var name="scale" value="0.5"/>
+        <var name="color" value="gray"/>
+        <var name="hostId1" value="ballF"/>
+        <var name="hostId2" value="valveF"/>
+        <var name="hostId3" value="stepperF"/>
+        <var name="downstream" value=""/>
+        <composite id="$id$" location="$location$" rotation="$rotation$">
+            <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_plumbing.stl"/> 
+            <hostBondPoint id="$hostId1$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
+                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                <tightness location="(0, 0, 0)" rotation="(0, 0, -90)"/>
+            </hostBondPoint>
+            <hostBondPoint id="$hostId2$" type="ScrewType" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)" downstream="$downstream$">
+                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                <tightness location="(0, 0, $-scale*(4 + .3875*1)$)" rotation="(0, 0, 360)"/>
+                <tightness location="(0, 0, $-scale*(4 + .3875*2)$)" rotation="(0, 0, 360)"/>
+                <tightness location="(0, 0, $-scale*(4 + .3875*3)$)" rotation="(0, 0, 360)"/>
+            </hostBondPoint>
+            <hostBondPoint id="$hostId3$" type="ScrewType" location="($scale*(2.3+.2)$, 0, $scale*3.85$)" rotation="(0, 90, 0)">
+                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                <tightness location="(0, 0, $-scale*.2$)" rotation="(0, 0, 360)"/>
+                <tightness location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
+            </hostBondPoint>
+        </composite>
+    </def>
+</tabletop>

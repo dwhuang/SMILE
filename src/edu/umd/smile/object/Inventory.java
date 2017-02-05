@@ -140,6 +140,15 @@ public class Inventory {
     public AbstractControl getControl(Spatial s) {
         return controls.get(s);
     }
+
+    public AbstractControl getControl(String id) {
+        for (Spatial s : controls.keySet()) {
+           if (s.getName().equals(id)) {
+              return controls.get(s);
+           }
+        }
+        return null;
+    }
     
 	public MySixDofJoint addSixDofJoint(Spatial item1, Spatial item2, Vector3f refPt1, Vector3f refPt2,
 	        Matrix3f rot1, Matrix3f rot2, boolean collision) {

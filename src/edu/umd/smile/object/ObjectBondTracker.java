@@ -15,6 +15,7 @@ import com.jme3.scene.Spatial;
 
 import edu.umd.smile.MainApp;
 import edu.umd.smile.demonstration.Demonstrator;
+import edu.umd.smile.object.AbstractControl;
 import edu.umd.smile.util.MyRigidBodyControl;
 import edu.umd.smile.util.MySixDofJoint;
 import edu.umd.smile.util.TransformUtils;
@@ -29,18 +30,22 @@ public class ObjectBondTracker {
         protected Transform guestRelTr;
         protected int tightness = 0;
         protected int maxTightness;
+        protected AbstractControl downstream;
 
         public ObjectBond(Node host, Node guest) {
             this.host = host;
             this.guest = guest;
+            this.downstream = null;
+            this.downstream = downstreams.get(host.getName());
             init();
         }
         
         protected ObjectBond(Node host, Node guest, int tightness) {
             this(host, guest);
             this.tightness = tightness;
+            this.downstream = downstreams.get(host.getName());
         }
-        
+
         private void init() {
             this.hostItem = inventory.getItem(host);
             this.guestItem = inventory.getItem(guest);
@@ -170,6 +175,9 @@ public class ObjectBondTracker {
             inventory.updateItemInsomnia(hostItem);
             
             tightness = tn;
+            if (downstream != null) {
+               downstream.setState(tn, true);
+            }
         }
     }
 
@@ -179,6 +187,7 @@ public class ObjectBondTracker {
     protected Map<String, Node> hostBondPoints = new HashMap<>();
     protected Map<String, Node> guestBondPoints = new HashMap<>();
     protected Set<ObjectBond> bonds = new HashSet<>();
+    protected Map<String, AbstractControl> downstreams = new HashMap<>();
     // derived
     protected Map<Spatial, Set<Node>> guestBondPointsByItem = new HashMap<>();
     protected Map<Node, ObjectBond> bondForPoint = new HashMap<>();
@@ -198,6 +207,11 @@ public class ObjectBondTracker {
                     Node bondPoint = (Node) spatial;
                     if ("host".equals(role)) {
                         hostBondPoints.put(bondPoint.getName(), bondPoint);
+                        String downstream = spatial.getUserData("downstream");
+                        if (downstream != null && downstream != "") {
+                           downstreams.put(bondPoint.getName(),
+                                           inventory.getControl(downstream));
+                        }
                     } else if ("guest".equals(role)) {
                         guestBondPoints.put(bondPoint.getName(), bondPoint);
                         Set<Node> set = guestBondPointsByItem.get(item);
