@@ -28,25 +28,26 @@ public class ObjectBondTracker {
         protected Spatial guestItem;
         protected List<Transform> hostRelTrs = new ArrayList<>(); // bond point transform relative to the item
         protected Map<Integer, Integer> overrideStates = new HashMap<>();
+        protected Set<Integer> lockStates = new HashSet<>();
         protected Transform guestRelTr;
         protected int tightness = 0;
         protected int maxTightness;
         protected AbstractControl downstream;
         protected AbstractControl downstreamOverride;
+        protected String downstreamLock;
 
         public ObjectBond(Node host, Node guest) {
             this.host = host;
             this.guest = guest;
             this.downstream = downstreams.get(host.getName());
             this.downstreamOverride = downstreamOverrides.get(host.getName());
+            this.downstreamLock = downstreamLocks.get(host.getName());
             init();
         }
         
         protected ObjectBond(Node host, Node guest, int tightness) {
             this(host, guest);
             this.tightness = tightness;
-            this.downstream = downstreams.get(host.getName());
-            this.downstreamOverride = downstreamOverrides.get(host.getName());
         }
 
         private void init() {
@@ -57,9 +58,17 @@ public class ObjectBondTracker {
             for (Spatial kid : host.getChildren()) {
                 if (kid instanceof Node) {
                     this.hostRelTrs.add(getRelativeTransform((Node) kid, hostItem));
+
+                    // Extract downstream state transitions
                     Integer overrideState = (Integer) kid.getUserData("downstreamState");
                     if (overrideState != null) {
                        this.overrideStates.put(tn, overrideState);
+                    }
+
+                    // Extract downstream lock
+                    Boolean lockState = (Boolean) kid.getUserData("downstreamLock");
+                    if (lockState != null && lockState == true) {
+                       this.lockStates.add(tn);
                     }
                 }
                 ++tn;
@@ -103,7 +112,7 @@ public class ObjectBondTracker {
         public int getTightness() {
             return tightness;
         }
-        
+
         public void fasten() {
             if (!isFastenable()) {
                 throw new IllegalStateException("Object bond between '"
@@ -127,11 +136,11 @@ public class ObjectBondTracker {
         }
         
         public boolean isFastenable() {
-            return tightness < maxTightness;
+            return tightness < maxTightness && !lockedHosts.contains(host);
         }
 
         public boolean isLoosenable() {
-            return tightness > 0;
+            return tightness > 0 && !lockedHosts.contains(host);
         }
         
         /**
@@ -184,6 +193,8 @@ public class ObjectBondTracker {
             inventory.updateItemInsomnia(hostItem);
             
             tightness = tn;
+
+            // Process downstream elements, if they exist
             if (downstream != null) {
                downstream.setState(tn, true);
             }
@@ -192,6 +203,16 @@ public class ObjectBondTracker {
                   downstreamOverride.setOverrideState(overrideStates.get(tn), true);
                else
                   downstreamOverride.setOverrideState(-1, true);
+            }
+            if (downstreamLock != null) {
+               Node node = hostBondPoints.get(downstreamLock);
+               if (node != null) {
+                  if (lockStates.contains(tn)) {
+                     lockedHosts.add(node);
+                  } else {
+                     lockedHosts.remove(node);
+                  }
+               }
             }
         }
     }
@@ -204,6 +225,8 @@ public class ObjectBondTracker {
     protected Set<ObjectBond> bonds = new HashSet<>();
     protected Map<String, AbstractControl> downstreams = new HashMap<>();
     protected Map<String, AbstractControl> downstreamOverrides = new HashMap<>();
+    protected Map<String, String> downstreamLocks = new HashMap<>();
+    protected Set<Node> lockedHosts = new HashSet<>();
     // derived
     protected Map<Spatial, Set<Node>> guestBondPointsByItem = new HashMap<>();
     protected Map<Node, ObjectBond> bondForPoint = new HashMap<>();
@@ -235,6 +258,11 @@ public class ObjectBondTracker {
                         if (downstream != null && downstream != "") {
                            downstreamOverrides.put(bondPoint.getName(),
                                                    inventory.getControl(downstream));
+                        }
+                        // Process downstream locks
+                        downstream = spatial.getUserData("downstreamLock");
+                        if (downstream != null && downstream != "") {
+                           downstreamLocks.put(bondPoint.getName(), downstream);
                         }
                     } else if ("guest".equals(role)) {
                         guestBondPoints.put(bondPoint.getName(), bondPoint);
@@ -363,7 +391,7 @@ public class ObjectBondTracker {
                     minHost = host;
                 }
             }
-            if (minHost == null) {
+            if (minHost == null || lockedHosts.contains(minHost)) {
                 return null;
             }
             return new ObjectBond(minHost, guest);
@@ -382,7 +410,14 @@ public class ObjectBondTracker {
         if (guest == null) {
             return null;
         }
-        return getBond(guest);
+
+        // Ensure bond is not locked
+        ObjectBond bond = getBond(guest);
+        if (!lockedHosts.contains(bond.host)) {
+           return bond;
+        } else {
+           return null;
+        }
     }
     
     protected void createInitBond(Node guest, String hostId, int tightness) {

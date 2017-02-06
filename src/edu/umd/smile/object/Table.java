@@ -1185,6 +1185,7 @@ public class Table implements ActionListener {
         node.setUserData("bondType", type);
         node.setUserData("downstream", elm.getAttribute("downstream"));
         node.setUserData("downstreamOverride", elm.getAttribute("downstreamOverride"));
+        node.setUserData("downstreamLock", elm.getAttribute("downstreamLock"));
         
         int k = 0;
         for (org.w3c.dom.Node child = elm.getFirstChild(); child != null; child = child.getNextSibling()) {
@@ -1193,6 +1194,7 @@ public class Table implements ActionListener {
             }
             Element childElm = (Element) child;
             if (childElm.getNodeName().equals("tightness")) {
+                // Extract location and rotation
                 Vector3f loc = parseVector3(childElm.getAttribute("location"));
                 Vector3f rot = parseVector3(childElm.getAttribute("rotation"));
                 Node n = new Node(id + "-tightness" + (++k));
@@ -1201,9 +1203,16 @@ public class Table implements ActionListener {
                         rot.x * FastMath.DEG_TO_RAD,
                         rot.y * FastMath.DEG_TO_RAD,
                         rot.z * FastMath.DEG_TO_RAD));
+
+                // Extract downstream state
                 String state = childElm.getAttribute("downstreamState");
                 if (state != null && state != "")
                    n.setUserData("downstreamState", Integer.parseInt(state));
+
+                // Extract downstream lock
+                String lock = childElm.getAttribute("downstreamLock");
+                if (lock != null && lock != "")
+                   n.setUserData("downstreamLock", Boolean.parseBoolean(lock));
                 node.attachChild(n);
             } else {
                 logger.log(Level.WARNING, "skipping unknown composite element " + childElm.getNodeName());

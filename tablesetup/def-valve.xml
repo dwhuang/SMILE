@@ -54,23 +54,24 @@
         <var name="hostId1" value="ballF"/>
         <var name="hostId2" value="valveF"/>
         <var name="hostId3" value="stepperF"/>
-        <var name="downstream" value="L1"/>
+        <var name="downstreamControl" value="L1"/>
+        <var name="downstreamLock" value="$hostId2$"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_plumbing.stl"/> 
-            <hostBondPoint id="$hostId1$" downstreamOverride="$downstream$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
+            <hostBondPoint id="$hostId1$" downstreamOverride="$downstreamControl$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
                 <tightness downstreamState="4" location="(0, 0, 0)" rotation="(0, 0, -90)"/>
             </hostBondPoint>
-            <hostBondPoint id="$hostId2$" type="ScrewType" downstream="$downstream$" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)">
+            <hostBondPoint id="$hostId2$" type="ScrewType" downstream="$downstreamControl$" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)">
                 <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
                 <tightness location="(0, 0, $-scale*(4 + .3875*1)$)" rotation="(0, 0, 360)"/>
                 <tightness location="(0, 0, $-scale*(4 + .3875*2)$)" rotation="(0, 0, 360)"/>
                 <tightness location="(0, 0, $-scale*(4 + .3875*3)$)" rotation="(0, 0, 360)"/>
             </hostBondPoint>
-            <hostBondPoint id="$hostId3$" type="ScrewType" location="($scale*(2.3+.2)$, 0, $scale*3.85$)" rotation="(0, 90, 0)">
+            <hostBondPoint id="$hostId3$" downstreamLock="$downstreamLock$" type="ScrewType" location="($scale*(2.3+.2)$, 0, $scale*3.85$)" rotation="(0, 90, 0)">
                 <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
                 <tightness location="(0, 0, $-scale*.2$)" rotation="(0, 0, 360)"/>
-                <tightness location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
+                <tightness downstreamLock="true" location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
             </hostBondPoint>
             <indicatorLights id="L1" xspan="$scale*2.3$" location="($scale*14$,0,$scale*2.4$)" numLights="3" lightRadius="$scale*0.15$">
                 <state descriptionName="0">

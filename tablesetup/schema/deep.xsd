@@ -249,6 +249,7 @@
         <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
         <attribute name="downstream" type="tt:idType" use="optional"/>
         <attribute name="downstreamOverride" type="tt:idType" use="optional"/>
+        <attribute name="downstreamLock" type="tt:idType" use="optional"/>
     </attributeGroup>
     <complexType name="guestBondPointType">
         <attributeGroup ref="tt:bondPointAttrs"/>
@@ -262,6 +263,7 @@
                     <attribute name="location" type="tt:vector3Type" use="optional" default="(0,0,0)" />
                     <attribute name="rotation" type="tt:vector3Type" use="optional" default="(0,0,0)"/>
                     <attribute name="downstreamState" type="tt:countType" use="optional"/>
+                    <attribute name="downstreamLock" type="boolean" use="optional"/>
                 </complexType>
             </element>
         </sequence>
