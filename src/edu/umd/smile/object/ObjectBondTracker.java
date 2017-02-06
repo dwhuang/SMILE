@@ -413,7 +413,7 @@ public class ObjectBondTracker {
 
         // Ensure bond is not locked
         ObjectBond bond = getBond(guest);
-        if (!lockedHosts.contains(bond.host)) {
+        if (bond != null && !lockedHosts.contains(bond.host)) {
            return bond;
         } else {
            return null;
