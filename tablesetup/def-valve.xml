@@ -58,42 +58,51 @@
         <var name="downstreamLock" value="$hostId2$"/>
         <composite id="$id$" location="$location$" rotation="$rotation$">
             <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_plumbing.stl"/> 
-            <hostBondPoint id="$hostId1$" downstreamOverride="$downstreamControl$" type="ScrewType" location="(-$scale*14$, 0, $scale*1$)" rotation="(0, 0, 0)">
-                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
-                <tightness downstreamState="4" location="(0, 0, 0)" rotation="(0, 0, -90)"/>
-            </hostBondPoint>
-            <hostBondPoint id="$hostId2$" type="ScrewType" downstream="$downstreamControl$" location="(0, 0, $scale*8.25$)" rotation="(0, 0, 0)">
-                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
-                <tightness location="(0, 0, $-scale*(4 + .3875*1)$)" rotation="(0, 0, 360)"/>
-                <tightness location="(0, 0, $-scale*(4 + .3875*2)$)" rotation="(0, 0, 360)"/>
-                <tightness location="(0, 0, $-scale*(4 + .3875*3)$)" rotation="(0, 0, 360)"/>
-            </hostBondPoint>
-            <hostBondPoint id="$hostId3$" downstreamLock="$downstreamLock$" type="ScrewType" location="($scale*(2.3+.2)$, 0, $scale*3.85$)" rotation="(0, 90, 0)">
-                <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
-                <tightness location="(0, 0, $-scale*.2$)" rotation="(0, 0, 360)"/>
-                <tightness downstreamLock="true" location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
-            </hostBondPoint>
-            <indicatorLights id="L1" xspan="$scale*2.3$" location="($scale*14$,0,$scale*2.4$)" numLights="3" lightRadius="$scale*0.15$">
-                <state descriptionName="0">
-                    <light id="0" color="red"/>
-                    <light id="1" color="red"/>
-                    <light id="2" color="red"/>
-                </state>
-                <state descriptionName="1">
-                    <light id="0" color="red"/>
-                    <light id="1" color="red"/>
-                    <light id="2" color="red"/>
-                </state>
-                <state descriptionName="2">
-                    <light id="0" color="red"/>
-                    <light id="1" color="red"/>
-                </state>
-                <state descriptionName="3">
-                    <light id="0" color="red"/>
-                </state>
-                <state descriptionName="4">
-                </state>
-            </indicatorLights>
+            <composite location="(0, 0, 0)" rotation="(0, 0, 0)">
+                <custom location="(0, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_ball_chassis.stl"/> 
+                <hostBondPoint id="$hostId1$" downstreamOverride="$downstreamControl$" type="ScrewType" location="(0, 0, $scale*1$)" rotation="(0, 0, 0)">
+                    <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                    <tightness downstreamState="4" location="(0, 0, 0)" rotation="(0, 0, -90)"/>
+                </hostBondPoint>
+            </composite>
+            <composite location="($14*scale$, 0, $-scale$)" rotation="(-90, 0, 0)">
+                <custom location="(0, 0, 0)" rotation="(0, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_valve_chassis.stl"/> 
+                <hostBondPoint id="$hostId2$" type="ScrewType" downstream="$downstreamControl$" location="(0, $-scale*9$, 0)" rotation="(0, 90, -90)">
+                    <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                    <tightness location="(0, 0, $-scale*(4 + .3875*1)$)" rotation="(0, 0, 360)"/>
+                    <tightness location="(0, 0, $-scale*(4 + .3875*2)$)" rotation="(0, 0, 360)"/>
+                    <tightness location="(0, 0, $-scale*(4 + .3875*3)$)" rotation="(0, 0, 360)"/>
+                </hostBondPoint>
+                <hostBondPoint id="$hostId3$" downstreamLock="$downstreamLock$" type="ScrewType" location="($scale*(2.3+.2)$, $-scale*4.85$, 0)" rotation="(0, 90, 0)">
+                    <tightness location="(0, 0, 0)" rotation="(0, 0, 0)"/>
+                    <tightness location="(0, 0, $-scale*.2$)" rotation="(0, 0, 360)"/>
+                    <tightness downstreamLock="true" location="(0, 0, $-scale*.4$)" rotation="(0, 0, 360)"/>
+                </hostBondPoint>
+            </composite>
+            <composite location="(0, 0, 0)" rotation="(0, 0, 0)">
+                <custom location="($-14*scale$, 0, $-scale$)" rotation="(-90, 0, 0)" color="$color$" scale="$scale$" file="tablesetup/stl/smile_led_chassis.stl"/> 
+                <indicatorLights id="L1" xspan="$scale*2.3$" location="($-scale*14$,0,$scale*2.4$)" numLights="3" lightRadius="$scale*0.15$">
+                    <state descriptionName="0">
+                        <light id="0" color="red"/>
+                        <light id="1" color="red"/>
+                        <light id="2" color="red"/>
+                    </state>
+                    <state descriptionName="1">
+                        <light id="0" color="red"/>
+                        <light id="1" color="red"/>
+                        <light id="2" color="red"/>
+                    </state>
+                    <state descriptionName="2">
+                        <light id="0" color="red"/>
+                        <light id="1" color="red"/>
+                    </state>
+                    <state descriptionName="3">
+                        <light id="0" color="red"/>
+                    </state>
+                    <state descriptionName="4">
+                    </state>
+                </indicatorLights>
+            </composite>
         </composite>
     </def>
 </tabletop>

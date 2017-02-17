@@ -24,7 +24,7 @@
         <instance def="plumbing">
             <var name="hostId" value="plumbingReceiver"/>
             <var name="scale" value="0.254"/>
-            <var name="mass" value="100"/> 
+            <var name="mass" value="100"/>
         </instance>
     </composite>
 </tabletop>
